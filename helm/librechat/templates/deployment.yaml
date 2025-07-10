@@ -5,7 +5,9 @@ metadata:
   labels:
     {{- include "librechat.labels" . | nindent 4 }}
 spec:
+  {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
+  {{- end }}
   {{- if .Values.updateStrategy }}
   strategy: {{- toYaml .Values.updateStrategy | nindent 4 }}
   {{- end }}
@@ -30,24 +32,43 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      serviceAccountName: {{ include "librechat.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
         - name: {{ include "librechat.fullname" $ }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          image: "{{ if .Values.image.registry }}{{ .Values.image.registry }}/{{ end }}{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: http
-              containerPort: {{ .Values.service.port }}
+              containerPort: {{ .Values.service.port | default 3080 }}
               protocol: TCP
+          {{- if .Values.lifecycle }}
           lifecycle:
             {{- toYaml .Values.lifecycle | nindent 12 }}
+          {{- end }}
+          {{- if .Values.livenessProbe }}
           livenessProbe:
             {{- toYaml .Values.livenessProbe | nindent 12 }}
+          {{- else }}
+          livenessProbe:
+            initialDelaySeconds: 5
+            httpGet:
+              path: /
+              port: http
+          {{- end }}
+          {{- if .Values.readinessProbe }}
           readinessProbe:
             {{- toYaml .Values.readinessProbe | nindent 12 }}
+          {{- else }}
+          readinessProbe:
+            initialDelaySeconds: 5
+            httpGet:
+              path: /
+              port: http
+          {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
@@ -65,13 +86,35 @@ spec:
           {{- toYaml .Values.volumeMounts | nindent 10 }}
           {{- end }}
           envFrom:
-          - configMapRef:
-              name: {{ include "librechat.fullname" $ }}-configenv
-          {{- if .Values.global.librechat.existingSecretName }}
-          - secretRef:
-              name: {{ .Values.global.librechat.existingSecretName }}
-              optional: true
-          {{- end }}
+            {{- if .Values.config.envSecrets.secretRef }}
+            - secretRef:
+                name: {{ .Values.config.envSecrets.secretRef }}
+            {{- end }}
+            {{- if .Values.config }}
+            - configMapRef:
+                name: {{ include "librechat.fullname" . }}-env
+            {{- end }}
+            {{- if .Values.librechat.configEnv }}
+            - configMapRef:
+                name: {{ include "librechat.fullname" . }}-configenv
+            {{- end }}
+            {{- range .Values.config.additionalConfigMaps }}
+            - configMapRef:
+                name: {{ .name }}
+            {{- end }}
+            {{- if .Values.global.librechat.existingSecretName }}
+            - secretRef:
+                name: {{ .Values.global.librechat.existingSecretName }}
+                optional: true
+            {{- end }}
+          env:
+            {{- range $secretKeyRef := .Values.config.envSecrets.secretKeyRef }}
+            - name: {{ $secretKeyRef.name }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secretKeyRef.secretName }}
+                  key: {{ $secretKeyRef.secretKey }}
+            {{- end }}
       volumes:
       {{- if or .Values.librechat.configYamlContent .Values.librechat.existingConfigYaml }}
       - name: config-yaml

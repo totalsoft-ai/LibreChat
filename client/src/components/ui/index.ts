@@ -1,3 +1,5 @@
+export * from './Accordion';
+export * from './AnimatedTabs';
 export * from './AlertDialog';
 export * from './Breadcrumb';
 export * from './Button';
@@ -27,7 +29,6 @@ export * from './Pagination';
 export * from './Progress';
 export * from './InputOTP';
 export { default as Badge } from './Badge';
-export { default as MCPIcon } from './MCPIcon';
 export { default as Combobox } from './Combobox';
 export { default as Dropdown } from './Dropdown';
 export { default as SplitText } from './SplitText';
