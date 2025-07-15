@@ -19,6 +19,12 @@ const {
   createYouTubeTools,
   TavilySearchResults,
   createOpenAIImageTools,
+  DocumentLoaderTool,
+  CodeReviewTool,
+  DocumentFlowTool,
+  DocumentSummarizerTool,
+  TextTranslatorTool,
+  WebScrapingTool
 } = require('../');
 const { primeFiles: primeCodeFiles } = require('~/server/services/Files/Code/process');
 const { createFileSearchTool, primeFiles: primeSearchFiles } = require('./fileSearch');
@@ -154,6 +160,12 @@ const loadTools = async ({
     'azure-ai-search': StructuredACS,
     traversaal_search: TraversaalSearch,
     tavily_search_results_json: TavilySearchResults,
+    document_loader: DocumentLoaderTool,
+    code_review: CodeReviewTool,
+    document_flow: DocumentFlowTool,
+    document_summarizer: DocumentSummarizerTool,
+    text_translator: TextTranslatorTool,
+    web_scraping: WebScrapingTool,
   };
 
   const customConstructors = {

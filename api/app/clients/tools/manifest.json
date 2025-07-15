@@ -1,5 +1,18 @@
 [
   {
+    "name": "Document Loader",
+    "pluginKey": "document_loader",
+    "description": "Upload and process documents (PDF, DOCX, Excel) with automatic personal data detection. Also supports Notion and Confluence imports.",
+    "icon": "https://i.imgur.com/RHsSG5h.png",
+    "authConfig": [
+      {
+        "authField": "DOCUMENT_LOADER_BASE_URL",
+        "label": "Document Loader API URL",
+        "description": "URL-ul către serviciul de Document Loader API"
+      }
+    ]
+  },
+  {
     "name": "Traversaal",
     "pluginKey": "traversaal_search",
     "description": "Traversaal is a robust search API tailored for LLM Agents. Get an API key here: https://api.traversaal.ai",
@@ -9,6 +22,58 @@
         "authField": "TRAVERSAAL_API_KEY",
         "label": "Traversaal API Key",
         "description": "Get your API key here: <a href=\"https://api.traversaal.ai\" target=\"_blank\">https://api.traversaal.ai</a>"
+      }
+    ]
+  },
+  {
+    "name": "Code Review Tool",
+    "pluginKey": "code_review",
+    "description": "Analizează și review-ează codul folosind un agent AI specializat. Oferă feedback, sugestii de îmbunătățire și un scor de calitate.",
+    "icon": "https://cdn-icons-png.flaticon.com/512/1159/1159283.png",
+    "authConfig": [
+      {
+        "authField": "CODE_REVIEW_API_URL",
+        "label": "Code Review API URL",
+        "description": "URL-ul către serviciul de Code Review API"
+      }
+    ]
+  },
+  {
+    "name": "Document Flow",
+    "pluginKey": "document_flow",
+    "description": "Generează documentație profesională din cerințe folosind AI. Suportă PRD, Execution Plan și diagrame PlantUML.",
+    "icon": "https://cdn-icons-png.flaticon.com/512/8415/8415999.png",
+    "authConfig": [
+      {
+        "authField": "DOCUMENT_FLOW_API_URL",
+        "label": "Document Flow API URL",
+        "description": "URL-ul către serviciul DocuFlow API"
+      }
+    ]
+  },
+  {
+    "name": "Document Summarizer",
+    "pluginKey": "document_summarizer",
+    "description": "Sumarizează documente și text folosind AI. Suportă PDF, DOCX, DOC, TXT și text direct.",
+    "icon": "https://cdn-icons-png.flaticon.com/512/8415/8415999.png",
+    "authConfig": [
+      {
+        "authField": "DOCUMENT_SUMMARIZER_API_URL",
+        "label": "Document Summarizer API URL",
+        "description": "URL-ul către serviciul Document Summarizer API"
+      }
+    ]
+  },
+  {
+    "name": "Text Translator",
+    "pluginKey": "text_translator",
+    "description": "Traduce text și documente între diferite limbi folosind AI. Detectează automat limba sursă.",
+    "icon": "https://cdn-icons-png.flaticon.com/512/8415/8415999.png",
+    "authConfig": [
+      {
+        "authField": "TEXT_TRANSLATOR_API_URL",
+        "label": "Text Translator API URL",
+        "description": "URL-ul către serviciul Text Translator API"
       }
     ]
   },
@@ -190,6 +255,19 @@
         "authField": "FLUX_API_KEY",
         "label": "Your Flux API Key",
         "description": "Provide your Flux API key from your user profile."
+      }
+    ]
+  },
+  {
+    "name": "Web Scraping",
+    "pluginKey": "web_scraping",
+    "description": "Extract content from web pages and URLs with optional Notion integration. Supports PDFs, HTML pages, and dynamic content.",
+    "icon": "https://www.cloudifyapps.com/assets/images/icons/web-scraping-main-icon.png",
+    "authConfig": [
+      {
+        "authField": "WEB_SCRAPING_API_URL",
+        "label": "Web Scraping API URL",
+        "description": "The URL of the Web Scraping API service "
       }
     ]
   }
