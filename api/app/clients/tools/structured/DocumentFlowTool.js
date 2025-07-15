@@ -71,10 +71,27 @@ class DocumentFlowTool extends Tool {
         fileContent = Buffer.from(fileData.content, 'base64');
       }
 
-      // Verifică extensia fișierului
+      // Verifică extensia fișierului și MIME type
       const fileExtension = fileData.name.split('.').pop().toLowerCase();
-      if (!['docx', 'pdf'].includes(fileExtension)) {
+      const supportedExtensions = ['docx', 'pdf'];
+      const supportedMimeTypes = [
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+        'application/pdf' // .pdf
+      ];
+      
+      if (!supportedExtensions.includes(fileExtension)) {
         throw new Error('Tip de fișier nesuportat. Suportate: .docx, .pdf');
+      }
+      
+      // Detectează MIME type din conținut (simplu verificare)
+      const isPdf = fileContent.slice(0, 4).toString('hex') === '25504446'; // %PDF
+      const isDocx = fileContent.slice(0, 4).toString('hex') === '504b0304'; // PK\x03\x04 (ZIP header)
+      
+      if (fileExtension === 'pdf' && !isPdf) {
+        throw new Error('Fișierul nu pare să fie un PDF valid');
+      }
+      if (fileExtension === 'docx' && !isDocx) {
+        throw new Error('Fișierul nu pare să fie un DOCX valid');
       }
 
       // Construim FormData pentru upload

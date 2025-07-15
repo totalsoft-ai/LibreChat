@@ -68,10 +68,38 @@ class DocumentSummarizerTool extends Tool {
         fileContent = Buffer.from(fileData.content, 'base64');
       }
 
-      // Verifică extensia fișierului
+      // Verifică extensia fișierului și MIME type
       const fileExtension = fileData.name.split('.').pop().toLowerCase();
-      if (!['pdf', 'docx', 'doc', 'txt'].includes(fileExtension)) {
+      const supportedExtensions = ['pdf', 'docx', 'doc', 'txt'];
+      const supportedMimeTypes = [
+        'application/pdf', // .pdf
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+        'application/msword', // .doc
+        'text/plain' // .txt
+      ];
+      
+      if (!supportedExtensions.includes(fileExtension)) {
         throw new Error('Tip de fișier nesuportat. Suportate: .pdf, .docx, .doc, .txt');
+      }
+      
+      // Detectează MIME type din conținut
+      const isPdf = fileContent.slice(0, 4).toString('hex') === '25504446'; // %PDF
+      const isDocx = fileContent.slice(0, 4).toString('hex') === '504b0304'; // PK\x03\x04 (ZIP header)
+      const isDoc = fileContent.slice(0, 8).toString('hex') === 'd0cf11e0a1b11ae1'; // DOC signature
+      const isTxt = fileContent.slice(0, 4).toString('utf8').includes('\n') || 
+                   fileContent.slice(0, 100).toString('utf8').match(/^[\x00-\x7F\s]*$/); // Text check
+      
+      if (fileExtension === 'pdf' && !isPdf) {
+        throw new Error('Fișierul nu pare să fie un PDF valid');
+      }
+      if (fileExtension === 'docx' && !isDocx) {
+        throw new Error('Fișierul nu pare să fie un DOCX valid');
+      }
+      if (fileExtension === 'doc' && !isDoc) {
+        throw new Error('Fișierul nu pare să fie un DOC valid');
+      }
+      if (fileExtension === 'txt' && !isTxt) {
+        throw new Error('Fișierul nu pare să fie un fișier text valid');
       }
 
       // Construim FormData pentru upload

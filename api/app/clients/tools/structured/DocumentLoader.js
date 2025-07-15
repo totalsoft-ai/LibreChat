@@ -58,8 +58,36 @@ class DocumentLoaderTool extends Tool {
       if (!fs.existsSync(filePath)) throw new Error(`File not found: ${filePath}`);
       
       const ext = filePath.split('.').pop().toLowerCase();
-      if (!['pdf', 'docx', 'xlsx', 'xls'].includes(ext)) {
+      const supportedExtensions = ['pdf', 'docx', 'xlsx', 'xls'];
+      const supportedMimeTypes = [
+        'application/pdf', // .pdf
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+        'application/vnd.ms-excel' // .xls
+      ];
+      
+      if (!supportedExtensions.includes(ext)) {
         throw new Error(`Unsupported file type: ${ext}`);
+      }
+
+      // Verifică MIME type din conținut
+      const fileBuffer = fs.readFileSync(filePath);
+      const isPdf = fileBuffer.slice(0, 4).toString('hex') === '25504446'; // %PDF
+      const isDocx = fileBuffer.slice(0, 4).toString('hex') === '504b0304'; // PK\x03\x04 (ZIP header)
+      const isXlsx = fileBuffer.slice(0, 4).toString('hex') === '504b0304'; // PK\x03\x04 (ZIP header)
+      const isXls = fileBuffer.slice(0, 8).toString('hex') === 'd0cf11e0a1b11ae1'; // Excel signature
+      
+      if (ext === 'pdf' && !isPdf) {
+        throw new Error(`File ${filePath} does not appear to be a valid PDF`);
+      }
+      if (ext === 'docx' && !isDocx) {
+        throw new Error(`File ${filePath} does not appear to be a valid DOCX`);
+      }
+      if (ext === 'xlsx' && !isXlsx) {
+        throw new Error(`File ${filePath} does not appear to be a valid XLSX`);
+      }
+      if (ext === 'xls' && !isXls) {
+        throw new Error(`File ${filePath} does not appear to be a valid XLS`);
       }
 
       formData.append('files', fs.createReadStream(filePath), filePath.split('/').pop());
