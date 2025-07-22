@@ -94,6 +94,12 @@ jobs:
           "ENDPOINTS" = "${{ vars.ENDPOINTS }}"
           "MCP_ATLASSIAN_JIRA_URL" = "${{ vars.MCP_ATLASSIAN_JIRA_URL }}"
           "MCP_ATLASSIAN_JIRA_USERNAME" = "${{ vars.MCP_ATLASSIAN_JIRA_USERNAME }}"
+          "CODE_REVIEW_API_URL" = "${{ vars.CODE_REVIEW_API_URL }}"
+          "DOCUMENT_LOADER_BASE_URL" = "${{ vars.DOCUMENT_LOADER_BASE_URL }}"
+          "DOCUMENT_FLOW_API_URL" = "${{ vars.DOCUMENT_FLOW_API_URL }}"
+          "DOCUMENT_SUMMARIZER_API_URL" = "${{ vars.DOCUMENT_SUMMARIZER_API_URL }}"
+          "TEXT_TRANSLATOR_API_URL" = "${{ vars.TEXT_TRANSLATOR_API_URL }}"
+          "WEB_SCRAPING_API_URL" = "${{ vars.WEB_SCRAPING_API_URL }}"
         }
 
         ./custom/scripts/build-and-deploy.ps1 `

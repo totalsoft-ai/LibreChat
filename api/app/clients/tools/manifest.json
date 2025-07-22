@@ -3,7 +3,7 @@
     "name": "Document Loader",
     "pluginKey": "document_loader",
     "description": "Upload and process documents (PDF, DOCX, Excel) with automatic personal data detection. Also supports Notion and Confluence imports.",
-    "icon": "https://i.imgur.com/RHsSG5h.png",
+    "icon": "https://cdn-icons-png.flaticon.com/512/8964/8964905.png",
     "authConfig": [
       {
         "authField": "DOCUMENT_LOADER_BASE_URL",
@@ -29,7 +29,7 @@
     "name": "Code Review Tool",
     "pluginKey": "code_review",
     "description": "Analizează și review-ează codul folosind un agent AI specializat. Oferă feedback, sugestii de îmbunătățire și un scor de calitate.",
-    "icon": "https://cdn-icons-png.flaticon.com/512/1159/1159283.png",
+    "icon": "https://cdn-icons-png.freepik.com/512/16942/16942656.png",
     "authConfig": [
       {
         "authField": "CODE_REVIEW_API_URL",
@@ -55,7 +55,7 @@
     "name": "Document Summarizer",
     "pluginKey": "document_summarizer",
     "description": "Sumarizează documente și text folosind AI. Suportă PDF, DOCX, DOC, TXT și text direct.",
-    "icon": "https://cdn-icons-png.flaticon.com/512/8415/8415999.png",
+    "icon": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSME8udDKun4VSrT58DgnflHTYqkLdi82BwsA&s",
     "authConfig": [
       {
         "authField": "DOCUMENT_SUMMARIZER_API_URL",
@@ -68,7 +68,7 @@
     "name": "Text Translator",
     "pluginKey": "text_translator",
     "description": "Traduce text și documente între diferite limbi folosind AI. Detectează automat limba sursă.",
-    "icon": "https://cdn-icons-png.flaticon.com/512/8415/8415999.png",
+    "icon": "https://cdn-icons-png.flaticon.com/512/3263/3263116.png",
     "authConfig": [
       {
         "authField": "TEXT_TRANSLATOR_API_URL",

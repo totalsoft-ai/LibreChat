@@ -90,5 +90,19 @@ endpoints:
       models:
         gpt-4o:
           deploymentName: gpt-4o
-  
-  
+  bedrock:
+    availableRegions: "${BEDROCK_AWS_DEFAULT_REGION}"
+    streamRate: 35
+    titleModel: 'anthropic.claude-3-haiku-20240307-v1:0'
+  custom:
+    - name: "Assistant-with-knowledge"
+      baseURL: "${ASSISTANT_WITH_K_BASEURL}"
+      apiKey: "${ASSISTANT_WITH_K_APIKEY}"
+      models:
+        default: "${ASSISTANT_WITH_K_MODELS}"
+    - name: "Local Models"
+      baseURL: "${LOCAL_MODELS_BASEURL}"
+      models:
+        default: ["gemma-doc-analysis"]
+        fetch: true
+      streamRate: 35

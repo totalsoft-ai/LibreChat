@@ -11,8 +11,8 @@ class DocumentFlowTool extends Tool {
     super(fields);
     this.name = 'document_flow';
     this.baseUrl = getEnvironmentVariable('DOCUMENT_FLOW_API_URL');
-    
-    this.description = 
+
+    this.description =
       'Generează documentație profesională din cerințe folosind AI. ' +
       'Suportă PRD (Product Requirements Document), Execution Plan, și diagrame PlantUML. ' +
       'Poate procesa text direct sau fișiere DOCX/PDF.';
@@ -24,8 +24,8 @@ class DocumentFlowTool extends Tool {
       return_format: z.enum(['text', 'pdf']).optional(),
       file_data: z.object({
         name: z.string(),
-        content: z.string()
-      }).optional()
+        content: z.string(),
+      }).optional(),
     });
   }
 
@@ -50,7 +50,7 @@ class DocumentFlowTool extends Tool {
     const requestBody = {
       message: requirements,
       doc_type: doc_type,
-      return_format: return_format
+      return_format: return_format,
     };
 
     return await this._request('POST', '/api/generate', requestBody);
@@ -76,17 +76,17 @@ class DocumentFlowTool extends Tool {
       const supportedExtensions = ['docx', 'pdf'];
       const supportedMimeTypes = [
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
-        'application/pdf' // .pdf
+        'application/pdf', // .pdf
       ];
-      
+
       if (!supportedExtensions.includes(fileExtension)) {
         throw new Error('Tip de fișier nesuportat. Suportate: .docx, .pdf');
       }
-      
+
       // Detectează MIME type din conținut (simplu verificare)
       const isPdf = fileContent.slice(0, 4).toString('hex') === '25504446'; // %PDF
       const isDocx = fileContent.slice(0, 4).toString('hex') === '504b0304'; // PK\x03\x04 (ZIP header)
-      
+
       if (fileExtension === 'pdf' && !isPdf) {
         throw new Error('Fișierul nu pare să fie un PDF valid');
       }
@@ -113,7 +113,7 @@ class DocumentFlowTool extends Tool {
     }
 
     const options = { method };
-    
+
     if (body) {
       if (isJson) {
         options.headers = { 'Content-Type': 'application/json' };
@@ -128,19 +128,19 @@ class DocumentFlowTool extends Tool {
 
     try {
       const response = await fetch(`${this.baseUrl}${path}`, options);
-      
+
       if (response.headers.get('content-type')?.includes('application/pdf')) {
         // Pentru PDF, returnăm un mesaj cu link-ul de download
         return JSON.stringify({
           success: true,
-          message: "Documentația a fost generată cu succes în format PDF",
-          format: "pdf",
-          download_available: true
+          message: 'Documentația a fost generată cu succes în format PDF',
+          format: 'pdf',
+          download_available: true,
         });
       }
-      
+
       const result = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(result.detail || response.statusText || `HTTP ${response.status}`);
       }

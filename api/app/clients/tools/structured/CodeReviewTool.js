@@ -11,8 +11,8 @@ class CodeReviewTool extends Tool {
     super(fields);
     this.name = 'code_review';
     this.baseUrl = getEnvironmentVariable('CODE_REVIEW_API_URL');
-    
-    this.description = 
+
+    this.description =
       'Analizează și review-ează codul folosind un agent AI specializat. ' +
       'Oferă feedback, sugestii de îmbunătățire și un scor de calitate. ' +
       'Suportă analiza codului din mesaje text sau fișiere încărcate.';
@@ -24,8 +24,8 @@ class CodeReviewTool extends Tool {
       language: z.string().optional(),
       file_data: z.object({
         name: z.string(),
-        content: z.string()
-      }).optional()
+        content: z.string(),
+      }).optional(),
     });
   }
 
@@ -83,11 +83,11 @@ class CodeReviewTool extends Tool {
       throw new Error('CODE_REVIEW_API_URL nu este configurat');
     }
 
-    const options = { 
+    const options = {
       method,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     };
-    
+
     if (body) {
       options.body = JSON.stringify(body);
     }
@@ -95,7 +95,7 @@ class CodeReviewTool extends Tool {
     try {
       const response = await fetch(`${this.baseUrl}${path}`, options);
       const result = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(result.detail || response.statusText || `HTTP ${response.status}`);
       }

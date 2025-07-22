@@ -50,13 +50,8 @@ class TextTranslatorTool extends Tool {
       throw new Error('Limba țintă trebuie specificată');
     }
 
-    // Construim FormData pentru request
-    const FormData = require('form-data');
-    const formData = new FormData();
-    formData.append('text', text);
-    formData.append('target_language', target_language);
-
-    return await this._request('POST', '/translate', formData, false);
+    // Trimitem textul direct ca JSON în loc de FormData
+    return await this._request('POST', '/translate', { text, target_language }, true);
   }
 
   async _translateFile(fileData, target_language = 'en') {
