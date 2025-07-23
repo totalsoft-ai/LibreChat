@@ -79,6 +79,7 @@ jobs:
           "AWS_ACCESS_KEY_ID" = "${{ secrets.AWS_ACCESS_KEY_ID }}"
           "AWS_SECRET_ACCESS_KEY" = "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
           "AWS_DEFAULT_REGION" = "${{ secrets.AWS_DEFAULT_REGION }}"
+          "ASSISTANT_WITH_K_APIKEY" = "${{ secrets.ASSISTANT_WITH_K_APIKEY }}"
         }
 
         $envVarsHashtable = @{
@@ -100,6 +101,9 @@ jobs:
           "DOCUMENT_SUMMARIZER_API_URL" = "${{ vars.DOCUMENT_SUMMARIZER_API_URL }}"
           "TEXT_TRANSLATOR_API_URL" = "${{ vars.TEXT_TRANSLATOR_API_URL }}"
           "WEB_SCRAPING_API_URL" = "${{ vars.WEB_SCRAPING_API_URL }}"
+          "ASSISTANT_WITH_K_BASEURL" = "${{ vars.ASSISTANT_WITH_K_BASEURL }}"
+          "ASSISTANT_WITH_K_MODELS" = "${{ vars.ASSISTANT_WITH_K_MODELS }}"
+          "LOCAL_MODELS_BASEURL" = "${{ vars.LOCAL_MODELS_BASEURL }}"
         }
 
         ./custom/scripts/build-and-deploy.ps1 `
