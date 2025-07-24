@@ -100,10 +100,11 @@ endpoints:
       baseURL: "${ASSISTANT_WITH_K_BASEURL}"
       apiKey: "${ASSISTANT_WITH_K_APIKEY}"
       models:
-        default: "${ASSISTANT_WITH_K_MODELS}"
+        default: ["us.anthropic.claude-3-5-haiku-20241022-v1:0"]
     - name: "Local Models"
       baseURL: "${LOCAL_MODELS_BASEURL}"
+      apiKey: "dummy"
       models:
-        default: ["gemma-doc-analysis"]
+        default: ["Test_Gemma_Retrained:latest"]
         fetch: true
       streamRate: 35
