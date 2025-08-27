@@ -25,7 +25,7 @@ $UtilsPath = Join-Path -Path $ScriptDir -ChildPath "utils\ps-utils.ps1"
 # Path to important files
 $Dockerfile = Join-Path -Path $ProjectRoot -ChildPath "Dockerfile.multi"
 $CustomValues = Join-Path -Path $ProjectRoot -ChildPath "custom\config\k8s\custom-values.yaml"
-$HelmChart = Join-Path -Path $ProjectRoot -ChildPath "charts\librechat"
+$HelmChart = Join-Path -Path $ProjectRoot -ChildPath "helm\librechat"
 
 Write-Host "Building and deploying LibreChat custom image" -ForegroundColor Green
 Write-Host "===============================================" -ForegroundColor Green
