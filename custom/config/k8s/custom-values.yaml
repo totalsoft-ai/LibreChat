@@ -26,13 +26,17 @@ config:
   envSecrets:
     secretRef: librechat-secrets
 
+  envFrom:
+    - configMapRef:
+        name: librechat-github-env
+
   env:
     NODE_ENV: "production"
     ALLOW_PASSWORD_RESET: "true"
     SEARCH: "true"
-    ALLOW_EMAIL_LOGIN: "true"
-    ALLOW_REGISTRATION: "true"
-    ALLOW_SOCIAL_LOGIN: "false"
+    ALLOW_EMAIL_LOGIN: "false"
+    ALLOW_REGISTRATION: "false"
+    ALLOW_SOCIAL_LOGIN: "true"
     ALLOW_SOCIAL_REGISTRATION: "false"
     APP_TITLE: "Librechat"
     CUSTOM_FOOTER: "Provided with ❤️"
@@ -41,6 +45,10 @@ config:
     DEBUG_OPENAI: "true"
     DEBUG_PLUGINS: "true" 
     NODE_TLS_REJECT_UNAUTHORIZED: "0"
+    OPENID_CALLBACK_URL: "/oauth/openid/callback"
+    OPENID_SCOPE: "openid profile email"
+    OPENID_AUTO_REDIRECT: "true"
+    DEBUG_OPENID_REQUESTS: "true"
 resources:
   limits:
     cpu: 1
