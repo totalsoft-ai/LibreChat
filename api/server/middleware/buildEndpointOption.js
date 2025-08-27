@@ -93,8 +93,16 @@ async function buildEndpointOption(req, res, next) {
     // TODO: use `getModelsConfig` only when necessary
     const modelsConfig = await getModelsConfig(req);
     req.body.endpointOption.modelsConfig = modelsConfig;
-    if (req.body.files && !isAgents) {
-      req.body.endpointOption.attachments = processFiles(req.body.files);
+    if (req.body.files) {
+      if (isAgents) {
+        // For agents, pass files directly with their content
+        req.body.endpointOption.attachments = req.body.files.map(file => ({
+          ...file,
+          content: file.content || null // Ensure content is included
+        }));
+      } else {
+        req.body.endpointOption.attachments = processFiles(req.body.files);
+      }
     }
     next();
   } catch (error) {

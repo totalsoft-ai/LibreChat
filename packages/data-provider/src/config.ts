@@ -160,6 +160,7 @@ export enum Capabilities {
   retrieval = 'retrieval',
   actions = 'actions',
   tools = 'tools',
+  document_loader = 'document_loader',
 }
 
 export enum AgentCapabilities {
@@ -172,6 +173,7 @@ export enum AgentCapabilities {
   tools = 'tools',
   chain = 'chain',
   ocr = 'ocr',
+  document_loader = 'document_loader',
 }
 
 export const defaultAssistantsVersion = {
@@ -214,6 +216,7 @@ export const assistantEndpointSchema = baseEndpointSchema.merge(
         Capabilities.retrieval,
         Capabilities.actions,
         Capabilities.tools,
+        Capabilities.document_loader,
       ]),
     /* general */
     apiKey: z.string().optional(),
@@ -250,6 +253,7 @@ export const agentsEndpointSChema = baseEndpointSchema.merge(
         AgentCapabilities.tools,
         AgentCapabilities.ocr,
         AgentCapabilities.chain,
+        AgentCapabilities.document_loader,
       ]),
   }),
 );

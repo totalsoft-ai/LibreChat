@@ -528,6 +528,8 @@ async function loadAgentTools({ req, res, agent, tool_resources, openAIApiKey })
       req,
       openAIApiKey,
       tool_resources,
+      attachments: req.body.attachments || [],
+      agent: { attachments: req.body.attachments || [] },
       processFileURL,
       uploadImageBuffer,
       returnMetadata: true,

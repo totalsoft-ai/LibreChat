@@ -247,6 +247,8 @@ const useFileHandling = (params?: UseFileHandling) => {
           fileConfig?.endpoints.default ??
           defaultFileConfig.endpoints[endpoint] ??
           defaultFileConfig.endpoints.default,
+        endpoint,
+        toolResource: _toolResource,
       });
     } catch (error) {
       console.error('file validation error', error);
@@ -266,11 +268,26 @@ const useFileHandling = (params?: UseFileHandling) => {
         const extendedFile: ExtendedFile = {
           file_id,
           file: originalFile,
+          filename: originalFile.name,
           type: originalFile.type,
           preview,
           progress: 0.2,
           size: originalFile.size,
         };
+
+        // For agents, read file content as base64
+        if (isAgentsEndpoint(endpoint)) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const result = e.target?.result as string;
+            if (result) {
+              // Convert to base64 if it's not already
+              const base64Content = result.startsWith('data:') ? result : `data:${originalFile.type};base64,${btoa(result)}`;
+              updateFileById(file_id, { content: base64Content });
+            }
+          };
+          reader.readAsDataURL(originalFile);
+        }
 
         if (_toolResource != null && _toolResource !== '') {
           extendedFile.tool_resource = _toolResource;
@@ -279,16 +296,20 @@ const useFileHandling = (params?: UseFileHandling) => {
         const isImage = originalFile.type.split('/')[0] === 'image';
         const tool_resource =
           extendedFile.tool_resource ?? params?.additionalMetadata?.tool_resource;
-        if (isAgentsEndpoint(endpoint) && !isImage && tool_resource == null) {
-          /** Note: this needs to be removed when we can support files to providers */
-          setError('com_error_files_unsupported_capability');
-          continue;
-        }
+        
+        // For agents generic message files: keep in memory, don't upload to server
+        const isAgentGenericFile = isAgentsEndpoint(endpoint) && !isImage && tool_resource == null;
 
         addFile(extendedFile);
 
         if (isImage) {
           loadImage(extendedFile, preview);
+          continue;
+        }
+        
+        if (isAgentGenericFile) {
+          // Mark as completed locally (content was set asynchronously by FileReader above)
+          updateFileById(file_id, { progress: 1, source: undefined });
           continue;
         }
 

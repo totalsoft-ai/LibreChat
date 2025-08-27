@@ -36,6 +36,13 @@ const DragDropModal = ({ onOptionSelect, setShowModal, files, isVisible }: DragD
         icon: <ImageUpIcon className="icon-md" />,
         condition: files.every((file) => file.type?.startsWith('image/')),
       },
+      // Generic file upload option
+      {
+        label: localize('com_ui_upload_files'),
+        value: undefined,
+        icon: <FileType2Icon className="icon-md" />,
+        condition: true, // Always show this option
+      },
     ];
     for (const capability of capabilities) {
       if (capability === EToolResources.file_search) {

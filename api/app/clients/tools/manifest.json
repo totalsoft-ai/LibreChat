@@ -1,5 +1,18 @@
 [
   {
+    "name": "Web Scraping",
+    "pluginKey": "web_scraping",
+    "description": "Extract content from web pages and URLs with optional Notion integration. Supports PDFs, HTML pages, and dynamic content.",
+    "icon": "https://cdn-icons-png.flaticon.com/512/8964/8964905.png",
+    "authConfig": [
+      {
+        "authField": "WEB_SCRAPING_API_URL",
+        "label": "Web Scraping API URL",
+        "description": "The URL of the Web Scraping API service "
+      }
+    ]
+  },
+  {
     "name": "Document Loader",
     "pluginKey": "document_loader",
     "description": "Upload and process documents (PDF, DOCX, Excel) with automatic personal data detection. Also supports Notion and Confluence imports.",
@@ -9,6 +22,19 @@
         "authField": "DOCUMENT_LOADER_BASE_URL",
         "label": "Document Loader API URL",
         "description": "URL-ul către serviciul de Document Loader API"
+      }
+    ]
+  },
+  {
+    "name": "Document Loader Onboarding",
+    "pluginKey": "document_loader_onboarding",
+    "description": "Upload and process documents (PDF, DOCX, Excel) with automatic personal data detection for onboarding. Also supports Notion and Confluence imports.",
+    "icon": "https://cdn-icons-png.flaticon.com/512/8964/8964905.png",
+    "authConfig": [
+      {
+        "authField": "DOCUMENT_LOADER_ONBOARDING_BASE_URL",
+        "label": "Document Loader Onboarding API URL",
+        "description": "URL-ul către serviciul de Document Loader Onboarding API"
       }
     ]
   },
@@ -255,19 +281,6 @@
         "authField": "FLUX_API_KEY",
         "label": "Your Flux API Key",
         "description": "Provide your Flux API key from your user profile."
-      }
-    ]
-  },
-  {
-    "name": "Web Scraping",
-    "pluginKey": "web_scraping",
-    "description": "Extract content from web pages and URLs with optional Notion integration. Supports PDFs, HTML pages, and dynamic content.",
-    "icon": "https://www.cloudifyapps.com/assets/images/icons/web-scraping-main-icon.png",
-    "authConfig": [
-      {
-        "authField": "WEB_SCRAPING_API_URL",
-        "label": "Web Scraping API URL",
-        "description": "The URL of the Web Scraping API service "
       }
     ]
   }

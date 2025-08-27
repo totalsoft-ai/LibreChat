@@ -231,13 +231,23 @@ export default function useChatFunctions({
       setFiles(new Map());
       setFilesToDelete({});
     } else if (setFiles && files && files.size > 0) {
-      currentMsg.files = Array.from(files.values()).map((file) => ({
-        file_id: file.file_id,
-        filepath: file.filepath,
-        type: file.type ?? '', // Ensure type is not undefined
-        height: file.height,
-        width: file.width,
-      }));
+      currentMsg.files = Array.from(files.values()).map((file) => {
+        const fileData: any = {
+          file_id: file.file_id,
+          filepath: file.filepath,
+          filename: file.filename || file.file?.name || 'unknown',
+          type: file.type ?? '', // Ensure type is not undefined
+          height: file.height,
+          width: file.width,
+        };
+        
+        // For agents, include the file content directly
+        if (endpoint === EModelEndpoint.agents && file.content) {
+          fileData.content = file.content;
+        }
+        
+        return fileData;
+      });
       setFiles(new Map());
       setFilesToDelete({});
     }

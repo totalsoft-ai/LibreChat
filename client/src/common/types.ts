@@ -496,6 +496,7 @@ export interface ExtendedFile {
   embedded?: boolean;
   tool_resource?: string;
   metadata?: t.TFile['metadata'];
+  content?: string; // Base64 encoded file content for agents
 }
 
 export interface ModelItemProps {

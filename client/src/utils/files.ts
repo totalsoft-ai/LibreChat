@@ -206,11 +206,15 @@ export const validateFiles = ({
   fileList,
   setError,
   endpointFileConfig,
+  endpoint,
+  toolResource,
 }: {
   fileList: File[];
   files: Map<string, ExtendedFile>;
   setError: (error: string) => void;
   endpointFileConfig: EndpointFileConfig;
+  endpoint?: string;
+  toolResource?: string;
 }) => {
   const { fileLimit, fileSizeLimit, totalSizeLimit, supportedMimeTypes } = endpointFileConfig;
   const existingFiles = Array.from(files.values());
@@ -250,7 +254,11 @@ export const validateFiles = ({
       fileList[i] = newFile;
     }
 
-    if (!checkType(originalFile.type, supportedMimeTypes)) {
+    // Skip MIME type validation for agents when no specific tool_resource is provided (generic upload)
+    const isAgentsEndpoint = endpoint === 'agents';
+    const isGenericUpload = isAgentsEndpoint && !toolResource;
+    
+    if (!isGenericUpload && !checkType(originalFile.type, supportedMimeTypes)) {
       console.log(originalFile);
       setError('Currently, unsupported file type: ' + originalFile.type);
       return false;

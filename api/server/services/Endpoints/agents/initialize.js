@@ -110,6 +110,18 @@ const primeResources = async ({
           tool_resources[EToolResources.image_edit] = { ...image_edit, files: [] };
         }
         tool_resources[EToolResources.image_edit].files.push(file);
+      } else if (
+        requestFileSet.has(file.file_id) &&
+        (file.type === 'application/pdf' ||
+         file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+         file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+         file.type === 'application/vnd.ms-excel')
+      ) {
+        const document_loader = tool_resources[EToolResources.document_loader] ?? {};
+        if (!document_loader.files) {
+          tool_resources[EToolResources.document_loader] = { ...document_loader, files: [] };
+        }
+        tool_resources[EToolResources.document_loader].files.push(file);
       }
 
       attachments.push(file);
@@ -175,10 +187,18 @@ const initializeAgentOptions = async ({
     }
     const toolFiles = await getToolFilesByIds(fileIds, toolResourceSet);
     if (requestFiles.length || toolFiles.length) {
-      currentFiles = await processFiles(requestFiles.concat(toolFiles));
+      // For agents, keep files with their direct content instead of processing them
+      currentFiles = requestFiles.concat(toolFiles).map(file => ({
+        ...file,
+        content: file.content || null // Ensure content is preserved
+      }));
     }
   } else if (isInitialAgent && requestFiles.length) {
-    currentFiles = await processFiles(requestFiles);
+    // For agents, keep files with their direct content instead of processing them
+    currentFiles = requestFiles.map(file => ({
+      ...file,
+      content: file.content || null // Ensure content is preserved
+    }));
   }
 
   const { attachments, tool_resources } = await primeResources({

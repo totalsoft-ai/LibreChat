@@ -13,6 +13,7 @@ const TraversaalSearch = require('./structured/TraversaalSearch');
 const createOpenAIImageTools = require('./structured/OpenAIImageTools');
 const TavilySearchResults = require('./structured/TavilySearchResults');
 const DocumentLoaderTool = require('./structured/DocumentLoader');
+const DocumentLoaderOnboardingTool = require('./structured/DocumentLoaderOnboarding');
 const CodeReviewTool = require('./structured/CodeReviewTool');
 const DocumentFlowTool = require('./structured/DocumentFlowTool');
 const DocumentSummarizerTool = require('./structured/DocumentSummarizerTool');
@@ -49,9 +50,10 @@ module.exports = {
   TavilySearchResults,
   createOpenAIImageTools,
   DocumentLoaderTool,
+  DocumentLoaderOnboardingTool,
   CodeReviewTool,
   DocumentFlowTool,
   DocumentSummarizerTool,
   TextTranslatorTool,
-  WebScrapingTool,
+  WebScrapingTool
 };

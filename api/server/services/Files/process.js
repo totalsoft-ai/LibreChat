@@ -473,12 +473,20 @@ const processFileUpload = async ({ req, res, metadata }) => {
 const processAgentFileUpload = async ({ req, res, metadata }) => {
   const { file } = req;
   const { agent_id, tool_resource } = metadata;
-  if (agent_id && !tool_resource) {
+  
+  // Allow generic file uploads for agents (no tool_resource required)
+  // This enables the "Upload File" option to work
+  if (agent_id && !tool_resource && !metadata.message_file) {
+    // For agent-specific uploads, we still require tool_resource
     throw new Error('No tool resource provided for agent file upload');
   }
 
   if (tool_resource === EToolResources.file_search && file.mimetype.startsWith('image')) {
     throw new Error('Image uploads are not supported for file search tool resources');
+  }
+
+  if (tool_resource === EToolResources.document_loader && file.mimetype.startsWith('image')) {
+    throw new Error('Image uploads are not supported for document loader tool resources');
   }
 
   let messageAttachment = !!metadata.message_file;
@@ -487,7 +495,13 @@ const processAgentFileUpload = async ({ req, res, metadata }) => {
   }
 
   const isImage = file.mimetype.startsWith('image');
-  if (!isImage && !tool_resource) {
+  const isDocument = file.mimetype === 'application/pdf' ||
+                    file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+                    file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+                    file.mimetype === 'application/vnd.ms-excel';
+  
+  // Allow generic file uploads for agents (no tool_resource required for message attachments)
+  if (!isImage && !isDocument && !tool_resource && !messageAttachment) {
     /** Note: this needs to be removed when we can support files to providers */
     throw new Error('No tool resource provided for non-image agent file upload');
   }
@@ -562,6 +576,36 @@ const processAgentFileUpload = async ({ req, res, metadata }) => {
     return res
       .status(200)
       .json({ message: 'Agent file uploaded and processed successfully', ...result });
+  } else if (tool_resource === EToolResources.document_loader) {
+    // For document_loader, we just need to save the file and add it to agent resources
+    // The actual processing will be done by the DocumentLoader tool
+    const { file_id, temp_file_id } = metadata;
+    
+    const fileInfo = removeNullishValues({
+      file_id,
+      temp_file_id,
+      user: req.user.id,
+      type: file.mimetype,
+      filepath: file.path,
+      source: FileSources.local,
+      filename: file.originalname,
+      bytes: file.size,
+      model: messageAttachment ? undefined : req.body.model,
+      context: messageAttachment ? FileContext.message_attachment : FileContext.agents,
+    });
+
+    if (!messageAttachment && tool_resource) {
+      await addAgentResourceFile({
+        req,
+        file_id,
+        agent_id,
+        tool_resource,
+      });
+    }
+    const result = await createFile(fileInfo, true);
+    return res
+      .status(200)
+      .json({ message: 'Document file uploaded and processed successfully', ...result });
   }
 
   const source =

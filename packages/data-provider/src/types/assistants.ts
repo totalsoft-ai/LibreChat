@@ -21,6 +21,7 @@ export enum Tools {
   file_search = 'file_search',
   retrieval = 'retrieval',
   function = 'function',
+  document_loader = 'document_loader',
 }
 
 export enum EToolResources {
@@ -29,6 +30,7 @@ export enum EToolResources {
   file_search = 'file_search',
   image_edit = 'image_edit',
   ocr = 'ocr',
+  document_loader = 'document_loader',
 }
 
 export type Tool = {
@@ -180,6 +182,7 @@ export interface AgentToolResources {
   [EToolResources.execute_code]?: ExecuteCodeResource;
   [EToolResources.file_search]?: AgentFileResource;
   [EToolResources.ocr]?: AgentBaseResource;
+  [EToolResources.document_loader]?: AgentBaseResource;
 }
 /**
  * A resource for the execute_code tool.

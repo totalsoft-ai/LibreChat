@@ -31,25 +31,25 @@ actions:
     - "google.com"
 
 
-mcpServers:
-  figma:
-    command: npx
-    args:
-      - -y
-      - "figma-developer-mcp"
-      - "--figma-api-key"
-      - "${MCP_FIGMA_API_KEY}"
-      - "--stdio"
-  
-  atlassian:
-    command: npx
-    args:
-      - -y
-      - "mcp-remote"
-      - "https://mcp.atlassian.com/v1/sse"
-      - "--jira-url=${MCP_ATLASSIAN_JIRA_URL}"
-      - "--jira-username=${MCP_ATLASSIAN_JIRA_USERNAME}"
-      - "--jira-token=${MCP_ATLASSIAN_JIRA_TOKEN}"
+# mcpServers:
+#   figma:
+#     command: npx
+#     args:
+#       - -y
+#       - "figma-developer-mcp"
+#       - "--figma-api-key"
+#       - "${MCP_FIGMA_API_KEY}"
+#       - "--stdio"
+#   
+#   atlassian:
+#     command: npx
+#     args:
+#       - -y
+#       - "mcp-remote"
+#       - "https://mcp.atlassian.com/v1/sse"
+#       - "--jira-url=${MCP_ATLASSIAN_JIRA_URL}"
+#       - "--jira-username=${MCP_ATLASSIAN_JIRA_USERNAME}"
+#       - "--jira-token=${MCP_ATLASSIAN_JIRA_TOKEN}"
 
 # Definition of custom endpoints
 endpoints:

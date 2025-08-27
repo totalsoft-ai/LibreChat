@@ -20,6 +20,7 @@ const {
   TavilySearchResults,
   createOpenAIImageTools,
   DocumentLoaderTool,
+  DocumentLoaderOnboardingTool,
   CodeReviewTool,
   DocumentFlowTool,
   DocumentSummarizerTool,
@@ -161,11 +162,12 @@ const loadTools = async ({
     traversaal_search: TraversaalSearch,
     tavily_search_results_json: TavilySearchResults,
     document_loader: DocumentLoaderTool,
+    document_loader_onboarding: DocumentLoaderOnboardingTool,
     code_review: CodeReviewTool,
     document_flow: DocumentFlowTool,
     document_summarizer: DocumentSummarizerTool,
     text_translator: TextTranslatorTool,
-    web_scraping: WebScrapingTool,
+    web_scraping: WebScrapingTool
   };
 
   const customConstructors = {
@@ -292,14 +294,33 @@ const loadTools = async ({
     }
 
     if (toolConstructors[tool]) {
-      const options = toolOptions[tool] || {};
-      const toolInstance = loadToolWithAuth(
-        user,
-        getAuthFields(tool),
-        toolConstructors[tool],
-        options,
-      );
-      requestedTools[tool] = toolInstance;
+      const toolOptionsForTool = toolOptions[tool] || {};
+      
+      // For document_loader tool, pass tool_resources and attachments
+      if (tool === 'document_loader') {
+        const documentLoaderOptions = {
+          ...toolOptionsForTool,
+          tool_resources: options.tool_resources || {},
+          attachments: options.attachments || [],
+          agent: options.agent || {},
+          req: options.req || {},
+        };
+        const toolInstance = loadToolWithAuth(
+          user,
+          getAuthFields(tool),
+          toolConstructors[tool],
+          documentLoaderOptions,
+        );
+        requestedTools[tool] = toolInstance;
+      } else {
+        const toolInstance = loadToolWithAuth(
+          user,
+          getAuthFields(tool),
+          toolConstructors[tool],
+          toolOptionsForTool,
+        );
+        requestedTools[tool] = toolInstance;
+      }
       continue;
     }
   }

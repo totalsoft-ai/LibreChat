@@ -1,10 +1,14 @@
-const { Tool } = require('langchain/tools');
+const { Tool } = require('@langchain/core/tools');
 const { z } = require('zod');
 const { getEnvironmentVariable } = require('@langchain/core/utils/env');
 
 class WebScrapingTool extends Tool {
-  constructor() {
-    super();
+  static lc_name() {
+    return 'web_scraping';
+  }
+
+  constructor(fields = {}) {
+    super(fields);
     this.name = 'web_scraping_tool';
     this.description =
       'Extract content from web pages and URLs. Can also upload content to Notion if requested. Supports various content types including PDFs, HTML pages, and dynamic content.';
@@ -30,63 +34,85 @@ class WebScrapingTool extends Tool {
       }
 
       const apiUrl = getEnvironmentVariable('WEB_SCRAPING_API_URL');
+      if (!apiUrl) {
+        throw new Error('WEB_SCRAPING_API_URL is not configured. Please set this environment variable.');
+      }
+
+      // Validate API URL format
+      if (!urlPattern.test(apiUrl)) {
+        throw new Error('Invalid WEB_SCRAPING_API_URL format. URL must start with http:// or https://');
+      }
 
       const requestBody = {
         message: upload_to_notion ? `${url} notion` : url,
       };
 
-      const response = await fetch(`${apiUrl}/scrape`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-        timeout: 300000, // 5 minutes timeout for large content
-      });
+      // Create AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minutes timeout
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Web scraping API error: ${response.status} - ${errorText}`);
-      }
+      try {
+        const response = await fetch(`${apiUrl}/scrape`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+          signal: controller.signal,
+        });
 
-      const result = await response.json();
+        clearTimeout(timeoutId);
 
-      if (!result.response) {
-        throw new Error('No response received from web scraping service');
-      }
-
-      // Format the response
-      let formattedResponse = result.response;
-
-      // Add additional metadata if available
-      if (result.content && result.content.length > 0) {
-        const contentLength = result.content.length;
-        const wordCount = result.content.split(/\s+/).length;
-
-        formattedResponse += `\n\n📊 **Extraction Statistics:**\n`;
-        formattedResponse += `• Characters extracted: ${contentLength.toLocaleString()}\n`;
-        formattedResponse += `• Words extracted: ${wordCount.toLocaleString()}\n`;
-
-        if (result.download_url) {
-          formattedResponse += `• [Download full content](${result.download_url})\n`;
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Web scraping API error: ${response.status} - ${errorText}`);
         }
-      }
 
-      // Add Notion integration status
-      if (upload_to_notion) {
-        if (result.notion_upload_result && result.notion_upload_result.success) {
-          formattedResponse += `\n✅ **Notion Integration:** Content successfully uploaded to Notion\n`;
-          if (result.notion_upload_result.page_link) {
-            formattedResponse += `• [View in Notion](${result.notion_upload_result.page_link})\n`;
+        const result = await response.json();
+
+        if (!result.response) {
+          throw new Error('No response received from web scraping service');
+        }
+
+        // Format the response
+        let formattedResponse = result.response;
+
+        // Add additional metadata if available
+        if (result.content && result.content.length > 0) {
+          const contentLength = result.content.length;
+          const wordCount = result.content.split(/\s+/).length;
+
+          formattedResponse += `\n\n📊 **Extraction Statistics:**\n`;
+          formattedResponse += `• Characters extracted: ${contentLength.toLocaleString()}\n`;
+          formattedResponse += `• Words extracted: ${wordCount.toLocaleString()}\n`;
+
+          if (result.download_url) {
+            formattedResponse += `• [Download full content](${result.download_url})\n`;
           }
-        } else if (result.notion_upload_result && !result.notion_upload_result.success) {
-          formattedResponse += `\n❌ **Notion Integration:** ${result.notion_upload_result.message}\n`;
-        } else if (!result.notion_available) {
-          formattedResponse += `\n⚠️ **Notion Integration:** Notion integration is not configured\n`;
         }
-      }
 
-      return formattedResponse;
+        // Add Notion integration status
+        if (upload_to_notion) {
+          if (result.notion_upload_result && result.notion_upload_result.success) {
+            formattedResponse += `\n✅ **Notion Integration:** Content successfully uploaded to Notion\n`;
+            if (result.notion_upload_result.page_link) {
+              formattedResponse += `• [View in Notion](${result.notion_upload_result.page_link})\n`;
+            }
+          } else if (result.notion_upload_result && !result.notion_upload_result.success) {
+            formattedResponse += `\n❌ **Notion Integration:** ${result.notion_upload_result.message}\n`;
+          } else if (!result.notion_available) {
+            formattedResponse += `\n⚠️ **Notion Integration:** Notion integration is not configured\n`;
+          }
+        }
+
+        return formattedResponse;
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        if (fetchError.name === 'AbortError') {
+          throw new Error('Web scraping request timed out after 5 minutes');
+        }
+        throw fetchError;
+      }
     } catch (error) {
       console.error('Web scraping tool error:', error);
       throw new Error(`Web scraping failed: ${error.message}`);
@@ -94,4 +120,4 @@ class WebScrapingTool extends Tool {
   }
 }
 
-module.exports = { WebScrapingTool }; 
+module.exports = WebScrapingTool; 

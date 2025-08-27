@@ -47,6 +47,15 @@ const AttachFile = ({ disabled }: AttachFileProps) => {
         },
         icon: <ImageUpIcon className="icon-md" />,
       },
+      // Generic file upload option
+      {
+        label: localize('com_ui_upload_files'),
+        onClick: () => {
+          setToolResource(undefined);
+          handleUploadClick();
+        },
+        icon: <FileType2Icon className="icon-md" />,
+      },
     ];
 
     if (capabilities.includes(EToolResources.ocr)) {
