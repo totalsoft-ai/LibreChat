@@ -25,7 +25,7 @@ $UtilsPath = Join-Path -Path $ScriptDir -ChildPath "utils\ps-utils.ps1"
 # Path to important files
 $Dockerfile = Join-Path -Path $ProjectRoot -ChildPath "Dockerfile.multi"
 $CustomValues = Join-Path -Path $ProjectRoot -ChildPath "custom\config\k8s\custom-values.yaml"
-$HelmChart = Join-Path -Path $ProjectRoot -ChildPath "charts\librechat"
+$HelmChart = Join-Path -Path $ProjectRoot -ChildPath "helm\librechat"
 
 Write-Host "Building and deploying LibreChat custom image" -ForegroundColor Green
 Write-Host "===============================================" -ForegroundColor Green
@@ -164,6 +164,10 @@ Write-Host "Deleting existing LibreChat configuration ConfigMap if it exists..."
 kubectl delete configmap librechat-config --namespace $Namespace --ignore-not-found
 
 kubectl create configmap librechat-config --from-file=librechat.yaml="$LibreChatConfigPath" -n $Namespace --dry-run=client -o yaml | kubectl apply -f -
+
+# Build dependencies
+Write-Host "Building Helm chart dependencies..." -ForegroundColor Cyan
+helm dependency build $HelmChart
 
 # Deploy or upgrade using Helm
 Write-Host "Deploying to Kubernetes using Helm..." -ForegroundColor Cyan
