@@ -1,14 +1,14 @@
-import React from 'react';
+import { Spinner } from '@librechat/client';
 import { useWatch, useFormContext } from 'react-hook-form';
 import { SystemRoles, Permissions, PermissionTypes } from 'librechat-data-provider';
 import type { AgentForm, AgentPanelProps } from '~/common';
 import { useLocalize, useAuthContext, useHasAccess } from '~/hooks';
 import { useUpdateAgentMutation } from '~/data-provider';
 import AdvancedButton from './Advanced/AdvancedButton';
+import VersionButton from './Version/VersionButton';
 import DuplicateAgent from './DuplicateAgent';
 import AdminSettings from './AdminSettings';
 import DeleteButton from './DeleteButton';
-import { Spinner } from '~/components';
 import ShareAgent from './ShareAgent';
 import { Panel } from '~/common';
 
@@ -55,6 +55,7 @@ export default function AgentFooter({
   return (
     <div className="mb-1 flex w-full flex-col gap-2">
       {showButtons && <AdvancedButton setActivePanel={setActivePanel} />}
+      {showButtons && agent_id && <VersionButton setActivePanel={setActivePanel} />}
       {user?.role === SystemRoles.ADMIN && showButtons && <AdminSettings />}
       {/* Context Button */}
       <div className="flex items-center justify-end gap-2">

@@ -1,6 +1,9 @@
 name: Build and Deploy - Totalsoft Local
 
 on:
+  push:
+    branches:
+      - main          
   workflow_dispatch:
     inputs:
       imageTag:
@@ -80,6 +83,9 @@ jobs:
           "AWS_SECRET_ACCESS_KEY" = "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
           "AWS_DEFAULT_REGION" = "${{ secrets.AWS_DEFAULT_REGION }}"
           "ASSISTANT_WITH_K_APIKEY" = "${{ secrets.ASSISTANT_WITH_K_APIKEY }}"
+          "KEYCLOAK_CLIENT_SECRET" = "${{ secrets.KEYCLOAK_CLIENT_SECRET }}"
+          "OPENID_CLIENT_SECRET" = "${{ secrets.OPENID_CLIENT_SECRET }}"
+          "OPENID_SESSION_SECRET" = "${{ secrets.OPENID_SESSION_SECRET }}"
         }
 
         $envVarsHashtable = @{
@@ -104,6 +110,11 @@ jobs:
           "ASSISTANT_WITH_K_BASEURL" = "${{ vars.ASSISTANT_WITH_K_BASEURL }}"
           "ASSISTANT_WITH_K_MODELS" = "${{ vars.ASSISTANT_WITH_K_MODELS }}"
           "LOCAL_MODELS_BASEURL" = "${{ vars.LOCAL_MODELS_BASEURL }}"
+          "MCP_SERVER_BASEURL" = "${{ vars.MCP_SERVER_BASEURL }}"
+          "KEYCLOAK_CLIENT_ID" = "${{ vars.KEYCLOAK_CLIENT_ID }}"
+          "LIBRECHAT_REDIRECT_BASEURL" = "${{ vars.LIBRECHAT_REDIRECT_BASEURL }}"
+          "OPENID_CLIENT_ID" = "${{ vars.OPENID_CLIENT_ID }}"
+          "OPENID_ISSUER" = "${{ vars.OPENID_ISSUER }}"
         }
 
         ./custom/scripts/build-and-deploy.ps1 `
