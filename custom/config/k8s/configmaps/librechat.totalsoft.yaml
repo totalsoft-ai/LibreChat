@@ -36,7 +36,7 @@ mcpServers:
       startup: false
       requiresOAuth: true
       type: streamable-http
-      url: ${MCP_SERVER_BASEURL}/mcp
+      url: ${MCP_SERVER_BASEURL}
       oauth:
         authorization_url: ${MCP_SERVER_BASEURL}/oauth/authorize       
         token_url: ${MCP_SERVER_BASEURL}/oauth/token
