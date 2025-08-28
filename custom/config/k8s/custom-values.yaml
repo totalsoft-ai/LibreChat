@@ -9,6 +9,9 @@ hostAliases:
   - ip: "10.1.48.101"
     hostnames:
       - "keycloak.totalsoft.local"
+  - ip: "10.1.48.101"
+    hostnames:
+      - "mcp.totalsoft.local"
 # This will be populated from the command line, but you can also set it manually here
 imagePullSecrets: []
 # - name: regcred
