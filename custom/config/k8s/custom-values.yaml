@@ -1,7 +1,12 @@
 replicaCount: 1
 
+global:
+  librechat:
+    existingSecretName: "librechat-secrets"
+
 image:
-  repository: registry.totalsoft.local/librechat-custom
+  registry: registry.totalsoft.local
+  repository: librechat-custom
   tag: latest
   pullPolicy: Always
 
@@ -9,28 +14,10 @@ image:
 imagePullSecrets: []
 # - name: regcred
 
-persistence:
-  enabled: false
-
-volumes:
-  - name: librechat-config
-    configMap:
-      name: librechat-config
-
-volumeMounts:
-  - name: librechat-config
-    mountPath: /app/librechat.yaml
-    subPath: librechat.yaml
-
-config:
-  envSecrets:
-    secretRef: librechat-secrets
-
-  envFrom:
-    - configMapRef:
-        name: librechat-github-env
-
-  env:
+librechat:
+  existingConfigYaml: "librechat-config"
+  
+  configEnv:
     NODE_ENV: "production"
     ALLOW_PASSWORD_RESET: "true"
     SEARCH: "true"
