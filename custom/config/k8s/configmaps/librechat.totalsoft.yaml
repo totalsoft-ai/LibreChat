@@ -32,24 +32,18 @@ actions:
 
 
 mcpServers:
-  figma:
-    command: npx
-    args:
-      - -y
-      - "figma-developer-mcp"
-      - "--figma-api-key"
-      - "${MCP_FIGMA_API_KEY}"
-      - "--stdio"
-  
-  atlassian:
-    command: npx
-    args:
-      - -y
-      - "mcp-remote"
-      - "https://mcp.atlassian.com/v1/sse"
-      - "--jira-url=${MCP_ATLASSIAN_JIRA_URL}"
-      - "--jira-username=${MCP_ATLASSIAN_JIRA_USERNAME}"
-      - "--jira-token=${MCP_ATLASSIAN_JIRA_TOKEN}"
+  spring-mcp:
+      startup: false
+      requiresOAuth: true
+      type: streamable-http
+      url: ${MCP_SERVER_BASEURL}/mcp
+      oauth:
+        authorization_url: https://mcp.totalsoft.local/oauth/authorize       
+        token_url: https://mcp.totalsoft.local/oauth/token
+        client_id: ${KEYCLOAK_CLIENT_ID}
+        client_secret: ${KEYCLOAK_CLIENT_SECRET}
+        redirect_uri: https://librechat.totalsoft.local/oauth/callback
+        scope: "read execute"
 
 # Definition of custom endpoints
 endpoints:
