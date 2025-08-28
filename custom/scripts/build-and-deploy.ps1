@@ -114,9 +114,24 @@ if ($Secrets.Count -gt 0) {
     Write-Host "Created '$appSecretName' with $($Secrets.Count) values" -ForegroundColor Green
 }
 
-# Environment variables will be passed directly to Helm instead of creating a separate ConfigMap
+$githubEnvConfigMapName = "$HelmReleaseName-github-env"
 if ($EnvVars.Count -gt 0) {
-    Write-Host "Will configure $($EnvVars.Count) environment variables via Helm values" -ForegroundColor Cyan
+    # Delete the existing ConfigMap if it exists
+    Write-Host "Deleting existing environment ConfigMap if it exists..." -ForegroundColor Cyan
+    kubectl delete configmap $githubEnvConfigMapName --namespace $Namespace --ignore-not-found
+    
+    Write-Host "Creating ConfigMap '$githubEnvConfigMapName' with $($EnvVars.Count) environment variables" -ForegroundColor Cyan
+    $configMapYaml = "apiVersion: v1`nkind: ConfigMap`nmetadata:`n  name: $githubEnvConfigMapName`n  namespace: $Namespace`ndata:`n"
+    
+    foreach ($key in $EnvVars.Keys) {
+        $value = $EnvVars[$key]
+        # Escape double quotes in value if needed
+        $escapedValue = $value -replace '"', '\"'
+        $configMapYaml += "  $key`: `"$escapedValue`"`n"
+    }
+    
+    $configMapYaml | kubectl apply -f -
+    Write-Host "Created '$githubEnvConfigMapName' with $($EnvVars.Count) values" -ForegroundColor Green
 }
 
 # Create TLS secret directly with kubectl
@@ -159,24 +174,14 @@ $timestamp = Get-Date -Format "yyyy-MM-dd_HH:mm:ss"
 $helmCmd = "helm upgrade --install $HelmReleaseName `"$HelmChart`" " + `
            "--namespace $Namespace " + `
            "-f `"$CustomValues`" " + `
-           "--set image.registry=$Registry " + `
-           "--set image.repository=$ImageName " + `
+           "--set image.repository=$Registry/$ImageName " + `
            "--set image.tag=$ImageTag " + `
            "--set podAnnotations.rollme=$timestamp "
 
 # Add GitHub environment ConfigMap if environment variables were provided
 if ($EnvVars.Count -gt 0) {
-    # The new chart structure uses librechat.configEnv directly, so we'll merge the env vars into the configEnv section
-    foreach ($key in $EnvVars.Keys) {
-        $value = $EnvVars[$key]
-        # Escape special characters for Helm
-        $escapedValue = $value -replace '"', '\"' -replace '`', '\`'
-        $helmCmd += "--set `"librechat.configEnv.$key=$escapedValue`" "
-    }
+    $helmCmd += "--set `"config.additionalConfigMaps[0].name=$githubEnvConfigMapName`" "
 }
-
-# Set the global secret name
-$helmCmd += "--set `"global.librechat.existingSecretName=$appSecretName`" "
 
 $helmCmd += "--force"
 
