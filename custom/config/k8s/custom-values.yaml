@@ -29,6 +29,9 @@ volumeMounts:
 config:
   envSecrets:
     secretRef: librechat-secrets
+  envFrom:
+    - configMapRef:
+        name: librechat-github-env
 
   env:
     NODE_ENV: "production"
