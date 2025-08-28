@@ -36,13 +36,13 @@ mcpServers:
       startup: false
       requiresOAuth: true
       type: streamable-http
-      url: ${MCP_SERVER}
+      url: ${MCP_SERVER_BASEURL}/mcp
       oauth:
-        authorization_url: http://localhost:8093/oauth/authorize        
-        token_url: http://localhost:8080/oauth/token
-        client_id: librechat
-        client_secret: SSSSsyZESeiZ3gHnXHJmhsG2rN2K2fM2
-        redirect_uri: http://localhost:3080/oauth/callback
+        authorization_url: ${MCP_SERVER_BASEURL}/oauth/authorize       
+        token_url: ${MCP_SERVER_BASEURL}/oauth/token
+        client_id: ${KEYCLOAK_CLIENT_ID}
+        client_secret: ${KEYCLOAK_CLIENT_SECRET}
+        redirect_uri: ${LIBRECHAT_REDIRECT_BASEURL}/oauth/callback
         scope: "read execute"
 
 # Definition of custom endpoints
