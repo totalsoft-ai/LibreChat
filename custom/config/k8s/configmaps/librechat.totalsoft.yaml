@@ -36,13 +36,13 @@ mcpServers:
       startup: false
       requiresOAuth: true
       type: streamable-http
-      url: "${MCP_SERVER_BASEURL}"
+      url: ${MCP_SERVER_BASEURL}/mcp
       oauth:
-        authorization_url: ${MCP_SERVER_BASEURL}/oauth/authorize       
-        token_url: ${MCP_SERVER_BASEURL}/oauth/token
+        authorization_url: https://mcp.totalsoft.local/oauth/authorize       
+        token_url: https://mcp.totalsoft.local/oauth/token
         client_id: ${KEYCLOAK_CLIENT_ID}
         client_secret: ${KEYCLOAK_CLIENT_SECRET}
-        redirect_uri: ${LIBRECHAT_REDIRECT_BASEURL}/oauth/callback
+        redirect_uri: https://librechat.totalsoft.local/oauth/callback
         scope: "read execute"
 
 # Definition of custom endpoints
