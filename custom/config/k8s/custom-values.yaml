@@ -5,6 +5,13 @@ image:
   tag: latest
   pullPolicy: Always
 
+hostAliases:
+  - ip: "10.1.48.101"
+    hostnames:
+      - "keycloak.totalsoft.local"
+  - ip: "10.1.48.101"
+    hostnames:
+      - "mcp.totalsoft.local"
 # This will be populated from the command line, but you can also set it manually here
 imagePullSecrets: []
 # - name: regcred
@@ -31,8 +38,8 @@ config:
     ALLOW_PASSWORD_RESET: "true"
     SEARCH: "true"
     ALLOW_EMAIL_LOGIN: "true"
-    ALLOW_REGISTRATION: "true"
-    ALLOW_SOCIAL_LOGIN: "false"
+    ALLOW_REGISTRATION: "false"
+    ALLOW_SOCIAL_LOGIN: "true"
     ALLOW_SOCIAL_REGISTRATION: "false"
     APP_TITLE: "Librechat"
     CUSTOM_FOOTER: "Provided with ❤️"
@@ -41,6 +48,10 @@ config:
     DEBUG_OPENAI: "true"
     DEBUG_PLUGINS: "true" 
     NODE_TLS_REJECT_UNAUTHORIZED: "0"
+    OPENID_CALLBACK_URL: "/oauth/openid/callback"
+    OPENID_SCOPE: "openid profile email"
+    OPENID_AUTO_REDIRECT: "false"
+    DEBUG_OPENID_REQUESTS: "true"
 resources:
   limits:
     cpu: 1
@@ -57,7 +68,7 @@ autoscaling:
   targetMemoryUtilizationPercentage: 80
 
 ingress:
-  enabled: true
+  enabled: true 
   className: nginx
   annotations:
     kubernetes.io/ingress.class: nginx

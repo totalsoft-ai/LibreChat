@@ -1,34 +1,25 @@
-const { createContentAggregator, Providers } = require('@librechat/agents');
+const { logger } = require('@librechat/data-schemas');
+const { validateAgentModel } = require('@librechat/api');
+const { createContentAggregator } = require('@librechat/agents');
 const {
   Constants,
-  ErrorTypes,
   EModelEndpoint,
-  EToolResources,
+  isAgentsEndpoint,
   getResponseSender,
-  AgentCapabilities,
-  replaceSpecialVars,
-  providerEndpointMap,
 } = require('librechat-data-provider');
 const {
-  getDefaultHandlers,
   createToolEndCallback,
+  getDefaultHandlers,
 } = require('~/server/controllers/agents/callbacks');
-const initAnthropic = require('~/server/services/Endpoints/anthropic/initialize');
-const getBedrockOptions = require('~/server/services/Endpoints/bedrock/options');
-const initOpenAI = require('~/server/services/Endpoints/openAI/initialize');
-const initCustom = require('~/server/services/Endpoints/custom/initialize');
-const initGoogle = require('~/server/services/Endpoints/google/initialize');
-const generateArtifactsPrompt = require('~/app/clients/prompts/artifacts');
+const { initializeAgent } = require('~/server/services/Endpoints/agents/agent');
+const { getModelsConfig } = require('~/server/controllers/ModelController');
 const { getCustomEndpointConfig } = require('~/server/services/Config');
-const { processFiles } = require('~/server/services/Files/process');
 const { loadAgentTools } = require('~/server/services/ToolService');
 const AgentClient = require('~/server/controllers/agents/client');
-const { getConvoFiles } = require('~/models/Conversation');
-const { getToolFilesByIds } = require('~/models/File');
-const { getModelMaxTokens } = require('~/utils');
 const { getAgent } = require('~/models/Agent');
 const { getFiles } = require('~/models/File');
 const { logger } = require('~/config');
+const { logViolation } = require('~/cache');
 
 const providerConfigMap = {
   [Providers.XAI]: initCustom,
@@ -231,84 +222,35 @@ const initializeAgentOptions = async ({
     if (!customEndpointConfig) {
       throw new Error(`Provider ${provider} not supported`);
     }
-    getOptions = initCustom;
-    agent.provider = Providers.OPENAI;
   }
-  const model_parameters = Object.assign(
-    {},
-    agent.model_parameters ?? { model: agent.model },
-    isInitialAgent === true ? endpointOption?.model_parameters : {},
-  );
-  const _endpointOption =
-    isInitialAgent === true
-      ? Object.assign({}, endpointOption, { model_parameters })
-      : { model_parameters };
-
-  const options = await getOptions({
-    req,
-    res,
-    optionsOnly: true,
-    overrideEndpoint: provider,
-    overrideModel: agent.model,
-    endpointOption: _endpointOption,
-  });
-
-  if (
-    agent.endpoint === EModelEndpoint.azureOpenAI &&
-    options.llmConfig?.azureOpenAIApiInstanceName == null
-  ) {
-    agent.provider = Providers.OPENAI;
-  }
-
-  if (options.provider != null) {
-    agent.provider = options.provider;
-  }
-
-  /** @type {import('@librechat/agents').ClientOptions} */
-  agent.model_parameters = Object.assign(model_parameters, options.llmConfig);
-  if (options.configOptions) {
-    agent.model_parameters.configuration = options.configOptions;
-  }
-
-  if (!agent.model_parameters.model) {
-    agent.model_parameters.model = agent.model;
-  }
-
-  if (agent.instructions && agent.instructions !== '') {
-    agent.instructions = replaceSpecialVars({
-      text: agent.instructions,
-      user: req.user,
-    });
-  }
-
-  if (typeof agent.artifacts === 'string' && agent.artifacts !== '') {
-    agent.additional_instructions = generateArtifactsPrompt({
-      endpoint: agent.provider,
-      artifacts: agent.artifacts,
-    });
-  }
-
-  const tokensModel =
-    agent.provider === EModelEndpoint.azureOpenAI ? agent.model : agent.model_parameters.model;
-  const maxTokens = optionalChainWithEmptyCheck(
-    agent.model_parameters.maxOutputTokens,
-    agent.model_parameters.maxTokens,
-    0,
-  );
-  const maxContextTokens = optionalChainWithEmptyCheck(
-    agent.model_parameters.maxContextTokens,
-    agent.max_context_tokens,
-    getModelMaxTokens(tokensModel, providerEndpointMap[provider]),
-    4096,
-  );
-  return {
-    ...agent,
-    tools,
-    attachments,
-    toolContextMap,
-    maxContextTokens: (maxContextTokens - maxTokens) * 0.9,
-  };
 };
+
+function createToolLoader() {
+  /**
+   * @param {object} params
+   * @param {ServerRequest} params.req
+   * @param {ServerResponse} params.res
+   * @param {string} params.agentId
+   * @param {string[]} params.tools
+   * @param {string} params.provider
+   * @param {string} params.model
+   * @param {AgentToolResources} params.tool_resources
+   * @returns {Promise<{ tools: StructuredTool[], toolContextMap: Record<string, unknown> } | undefined>}
+   */
+  return async function loadTools({ req, res, agentId, tools, provider, model, tool_resources }) {
+    const agent = { id: agentId, tools, provider, model };
+    try {
+      return await loadAgentTools({
+        req,
+        res,
+        agent,
+        tool_resources,
+      });
+    } catch (error) {
+      logger.error('Error loading tools for agent ' + agentId, error);
+    }
+  };
+}
 
 const initializeClient = async ({ req, res, endpointOption }) => {
   if (!endpointOption) {
@@ -333,20 +275,41 @@ const initializeClient = async ({ req, res, endpointOption }) => {
     throw new Error('No agent promise provided');
   }
 
-  // Initialize primary agent
   const primaryAgent = await endpointOption.agent;
+  delete endpointOption.agent;
   if (!primaryAgent) {
     throw new Error('Agent not found');
+  }
+
+  const modelsConfig = await getModelsConfig(req);
+  const validationResult = await validateAgentModel({
+    req,
+    res,
+    modelsConfig,
+    logViolation,
+    agent: primaryAgent,
+  });
+
+  if (!validationResult.isValid) {
+    throw new Error(validationResult.error?.message);
   }
 
   const agentConfigs = new Map();
   /** @type {Set<string>} */
   const allowedProviders = new Set(req?.app?.locals?.[EModelEndpoint.agents]?.allowedProviders);
 
-  // Handle primary agent
-  const primaryConfig = await initializeAgentOptions({
+  const loadTools = createToolLoader();
+  /** @type {Array<MongoFile>} */
+  const requestFiles = req.body.files ?? [];
+  /** @type {string} */
+  const conversationId = req.body.conversationId;
+
+  const primaryConfig = await initializeAgent({
     req,
     res,
+    loadTools,
+    requestFiles,
+    conversationId,
     agent: primaryAgent,
     endpointOption,
     allowedProviders,
@@ -360,14 +323,42 @@ const initializeClient = async ({ req, res, endpointOption }) => {
       if (!agent) {
         throw new Error(`Agent ${agentId} not found`);
       }
-      const config = await initializeAgentOptions({
+
+      const validationResult = await validateAgentModel({
         req,
         res,
         agent,
+        modelsConfig,
+        logViolation,
+      });
+
+      if (!validationResult.isValid) {
+        throw new Error(validationResult.error?.message);
+      }
+
+      const config = await initializeAgent({
+        req,
+        res,
+        agent,
+        loadTools,
+        requestFiles,
+        conversationId,
         endpointOption,
         allowedProviders,
       });
       agentConfigs.set(agentId, config);
+    }
+  }
+
+  let endpointConfig = req.app.locals[primaryConfig.endpoint];
+  if (!isAgentsEndpoint(primaryConfig.endpoint) && !endpointConfig) {
+    try {
+      endpointConfig = await getCustomEndpointConfig(primaryConfig.endpoint);
+    } catch (err) {
+      logger.error(
+        '[api/server/controllers/agents/client.js #titleConvo] Error getting custom endpoint config',
+        err,
+      );
     }
   }
 
@@ -376,6 +367,8 @@ const initializeClient = async ({ req, res, endpointOption }) => {
     getResponseSender({
       ...endpointOption,
       model: endpointOption.model_parameters.model,
+      modelDisplayLabel: endpointConfig?.modelDisplayLabel,
+      modelLabel: endpointOption.model_parameters.modelLabel,
     });
 
   const client = new AgentClient({
@@ -393,8 +386,8 @@ const initializeClient = async ({ req, res, endpointOption }) => {
     iconURL: endpointOption.iconURL,
     attachments: primaryConfig.attachments,
     endpointType: endpointOption.endpointType,
+    resendFiles: primaryConfig.resendFiles ?? true,
     maxContextTokens: primaryConfig.maxContextTokens,
-    resendFiles: primaryConfig.model_parameters?.resendFiles ?? true,
     endpoint:
       primaryConfig.id === Constants.EPHEMERAL_AGENT_ID
         ? primaryConfig.endpoint
