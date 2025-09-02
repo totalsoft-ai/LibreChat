@@ -13,9 +13,9 @@ class TextTranslatorTool extends Tool {
     this.baseUrl = getEnvironmentVariable('TEXT_TRANSLATOR_API_URL');
     
     this.description = 
-      'Traduce text și documente între diferite limbi folosind AI. ' +
-      'Suportă fișiere PDF, DOCX, DOC, TXT și text direct. ' +
-      'Detectează automat limba sursă și oferă traduceri profesionale.';
+      'Translates text and documents between different languages using AI. ' +
+      'Supports PDF, DOCX, DOC, TXT files and direct text. ' +
+      'Automatically detects source language and provides professional translations.';
 
     this.schema = z.object({
       action: z.enum(['translate_text', 'translate_file']),
@@ -29,85 +29,115 @@ class TextTranslatorTool extends Tool {
   }
 
   async _call(input) {
-    const { action, text, target_language, file_data } = this.schema.parse(input);
+    try {
+      const { action, text, target_language, file_data } = this.schema.parse(input);
 
-    switch (action) {
-      case 'translate_text':
-        return await this._translateText(text, target_language);
-      case 'translate_file':
-        return await this._translateFile(file_data, target_language);
-      default:
-        throw new Error(`Unsupported action: ${action}`);
+      switch (action) {
+        case 'translate_text':
+          return await this._translateText(text, target_language);
+        case 'translate_file':
+          return await this._translateFile(file_data, target_language);
+        default:
+          throw new Error(`Unsupported action: ${action}`);
+      }
+    } catch (error) {
+      console.error('[TextTranslatorTool] Error in _call:', error);
+      throw new Error(`Translation failed: ${error.message}`);
     }
   }
 
   async _translateText(text, target_language = 'en') {
-    if (!text || !text.trim()) {
-      throw new Error('Textul furnizat este gol sau invalid');
+    console.log('[TextTranslatorTool] _translateText called with:', {
+      text: typeof text,
+      target_language: typeof target_language,
+      textValue: text,
+      targetValue: target_language
+    });
+
+    // Handle case where text might be an object
+    let textString = text;
+    if (typeof text === 'object' && text !== null) {
+      textString = JSON.stringify(text);
+    } else if (typeof text !== 'string') {
+      textString = String(text);
     }
 
-    if (!target_language || !target_language.trim()) {
-      throw new Error('Limba țintă trebuie specificată');
+    // Handle case where target_language might be an object
+    let targetString = target_language;
+    if (typeof target_language === 'object' && target_language !== null) {
+      targetString = JSON.stringify(target_language);
+    } else if (typeof target_language !== 'string') {
+      targetString = String(target_language);
     }
 
-    // Trimitem textul direct ca JSON în loc de FormData
-    return await this._request('POST', '/translate', { text, target_language }, true);
+    if (!textString || !textString.trim()) {
+      throw new Error('Provided text is empty or invalid');
+    }
+
+    if (!targetString || !targetString.trim()) {
+      throw new Error('Target language must be specified');
+    }
+
+    console.log('[TextTranslatorTool] Processed values:', {
+      textString: textString.substring(0, 100) + '...',
+      targetString
+    });
+
+
+
+    // Try URLSearchParams first (simpler form data)
+    const urlSearchParams = new URLSearchParams();
+    urlSearchParams.append('text', textString.trim());
+    urlSearchParams.append('target_language', targetString.trim());
+
+    console.log('[TextTranslatorTool] Sending URLSearchParams with text and target_language fields...');
+    console.log('[TextTranslatorTool] URLSearchParams content:', urlSearchParams.toString());
+    
+    return await this._request('POST', '/translate', urlSearchParams, false);
   }
 
   async _translateFile(fileData, target_language = 'en') {
     if (!fileData || !fileData.name || !fileData.content) {
-      throw new Error('Datele fișierului sunt incomplete');
+      throw new Error('File data is incomplete');
     }
 
     if (!target_language || !target_language.trim()) {
-      throw new Error('Limba țintă trebuie specificată');
+      throw new Error('Target language must be specified');
     }
 
     try {
-      // Decodăm conținutul base64
       let fileContent;
       if (fileData.content.startsWith('data:')) {
-        const [header, content] = fileData.content.split(',', 1);
-        fileContent = Buffer.from(content, 'base64');
+        const parts = fileData.content.split(',');
+        if (parts.length < 2) {
+          throw new Error('Invalid data URL format');
+        }
+        fileContent = Buffer.from(parts[1], 'base64');
       } else {
         fileContent = Buffer.from(fileData.content, 'base64');
       }
 
-      // Verifică extensia fișierului și MIME type
       const fileExtension = fileData.name.split('.').pop().toLowerCase();
       const supportedExtensions = ['pdf', 'docx', 'doc', 'txt'];
-      const supportedMimeTypes = [
-        'application/pdf', // .pdf
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
-        'application/msword', // .doc
-        'text/plain' // .txt
-      ];
       
       if (!supportedExtensions.includes(fileExtension)) {
-        throw new Error('Tip de fișier nesuportat. Suportate: .pdf, .docx, .doc, .txt');
+        throw new Error('Unsupported file type. Supported: .pdf, .docx, .doc, .txt');
       }
       
-      // Detectează MIME type din conținut
-      const isPdf = fileContent.slice(0, 4).toString('hex') === '25504446'; // %PDF
-      const isDocx = fileContent.slice(0, 4).toString('hex') === '504b0304'; // PK\x03\x04 (ZIP header)
-      const isDoc = fileContent.slice(0, 8).toString('hex') === 'd0cf11e0a1b11ae1'; // DOC signature
-      const isTxt = fileContent.slice(0, 4).toString('utf8').includes('\n') || 
-                   fileContent.slice(0, 100).toString('utf8').match(/^[\x00-\x7F\s]*$/); // Text check
+      const isPdf = fileContent.slice(0, 4).toString('hex') === '25504446';
+      const isDocx = fileContent.slice(0, 4).toString('hex') === '504b0304';
+      const isDoc = fileContent.slice(0, 8).toString('hex') === 'd0cf11e0a1b11ae1';
       
       if (fileExtension === 'pdf' && !isPdf) {
-        throw new Error('Fișierul nu pare să fie un PDF valid');
+        throw new Error('File does not appear to be a valid PDF');
       }
       if (fileExtension === 'docx' && !isDocx) {
-        throw new Error('Fișierul nu pare să fie un DOCX valid');
+        throw new Error('File does not appear to be a valid DOCX');
       }
       if (fileExtension === 'doc' && !isDoc) {
-        throw new Error('Fișierul nu pare să fie un DOC valid');
-      }
-      if (fileExtension === 'txt' && !isTxt) {
-        throw new Error('Fișierul nu pare să fie un fișier text valid');
+        throw new Error('File does not appear to be a valid DOC');
       }
 
-      // Construim FormData pentru upload
       const FormData = require('form-data');
       const formData = new FormData();
       formData.append('file', fileContent, fileData.name);
@@ -115,41 +145,114 @@ class TextTranslatorTool extends Tool {
 
       return await this._request('POST', '/translate/file', formData, false);
     } catch (error) {
-      throw new Error(`Eroare la procesarea fișierului: ${error.message}`);
+      throw new Error(`Error processing file: ${error.message}`);
     }
   }
 
   async _request(method, path, body = null, isJson = true) {
     if (!this.baseUrl) {
-      throw new Error('TEXT_TRANSLATOR_API_URL nu este configurat');
+      throw new Error('TEXT_TRANSLATOR_API_URL is not configured. Please set this environment variable.');
     }
 
-    const options = { method };
+    const options = { 
+      method,
+      headers: {}
+    };
     
     if (body) {
       if (isJson) {
-        options.headers = { 'Content-Type': 'application/json' };
+        options.headers['Content-Type'] = 'application/json';
+        options.headers['Accept'] = 'application/json';
         options.body = JSON.stringify(body);
       } else {
-        // Pentru FormData, nu setăm Content-Type - browser-ul îl va seta automat cu boundary
-        options.body = body;
+        // For FormData or URLSearchParams, set the correct Content-Type
+        if (body instanceof URLSearchParams) {
+          options.headers['Content-Type'] = 'application/x-www-form-urlencoded';
+          options.headers['Accept'] = 'application/json';
+          options.body = body.toString();
+        } else {
+          // For FormData, don't set Content-Type - let it be set automatically with boundary
+          options.headers['Accept'] = 'application/json';
+          options.body = body;
+        }
       }
     } else if (method !== 'GET') {
-      options.headers = { 'Content-Type': 'application/json' };
+      options.headers['Content-Type'] = 'application/json';
+      options.headers['Accept'] = 'application/json';
     }
 
     try {
+      console.log(`[TextTranslatorTool] Making ${method} request to ${this.baseUrl}${path}`);
+      if (isJson && body) {
+        console.log(`[TextTranslatorTool] Request body:`, JSON.stringify(body, null, 2));
+      } else if (!isJson && body) {
+        console.log(`[TextTranslatorTool] FormData request`);
+      }
+      
       const response = await fetch(`${this.baseUrl}${path}`, options);
-      const result = await response.json();
+      
+      console.log(`[TextTranslatorTool] Response status: ${response.status}`);
+      console.log(`[TextTranslatorTool] Response headers:`, Object.fromEntries(response.headers.entries()));
+      
+      const contentType = response.headers.get('content-type');
+      let result;
+      
+      if (contentType && contentType.includes('application/json')) {
+        result = await response.json();
+      } else {
+        result = await response.text();
+      }
       
       if (!response.ok) {
-        throw new Error(result.detail || response.statusText || `HTTP ${response.status}`);
+        console.log(`[TextTranslatorTool] Error response:`, result);
+        let errorMessage;
+        
+        if (result && typeof result === 'object') {
+          if (Array.isArray(result.detail)) {
+            errorMessage = result.detail.map(d => d.msg || d.message || 'Unknown error').join(', ');
+          } else {
+            errorMessage = result.detail || result.message || result.error || 'Unknown error';
+          }
+        } else if (typeof result === 'string') {
+          errorMessage = result;
+        } else {
+          errorMessage = response.statusText || `HTTP ${response.status}`;
+        }
+        
+        throw new Error(errorMessage);
       }
 
-      return JSON.stringify(result);
+      console.log(`[TextTranslatorTool] Success response:`, result);
+      console.log(`[TextTranslatorTool] Response type:`, typeof result);
+      console.log(`[TextTranslatorTool] Response keys:`, typeof result === 'object' ? Object.keys(result) : 'N/A');
+      
+      // Handle different response formats
+      if (typeof result === 'object' && result.translated_text) {
+        const formattedResult = {
+          translated_text: result.translated_text,
+          source_language: result.source_language || 'auto',
+          target_language: result.target_language,
+          status: 'success'
+        };
+        console.log(`[TextTranslatorTool] Formatted result:`, formattedResult);
+        return JSON.stringify(formattedResult);
+      } else if (typeof result === 'string') {
+        const formattedResult = {
+          translated_text: result,
+          source_language: 'auto',
+          target_language: 'unknown',
+          status: 'success'
+        };
+        console.log(`[TextTranslatorTool] Formatted result:`, formattedResult);
+        return JSON.stringify(formattedResult);
+      } else {
+        console.log(`[TextTranslatorTool] Raw result:`, result);
+        return JSON.stringify(result);
+      }
     } catch (error) {
+      console.error(`[TextTranslatorTool] Request failed:`, error);
       if (error.name === 'TypeError' && error.message.includes('fetch')) {
-        throw new Error(`Nu se poate conecta la serviciul Text Translator la ${this.baseUrl}`);
+        throw new Error(`Cannot connect to Text Translator service at ${this.baseUrl}. Please check if the URL is correct and the service is available.`);
       }
       throw error;
     }
