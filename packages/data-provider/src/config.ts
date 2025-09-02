@@ -265,11 +265,7 @@ export const agentsEndpointSchema = baseEndpointSchema
         .optional()
         .default(defaultAgentCapabilities),
     }),
-  )
-  .default({
-    disableBuilder: false,
-    capabilities: defaultAgentCapabilities,
-  });
+  );
 
 export const agentsEndpointSchema = baseEndpointSchema
   .merge(
