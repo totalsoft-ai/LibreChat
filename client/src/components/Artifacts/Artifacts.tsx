@@ -26,7 +26,7 @@ export default function Artifacts() {
 
   const {
     activeTab,
-    isMermaid,
+    isPlantUML,
     setActiveTab,
     currentIndex,
     cycleArtifact,
@@ -113,7 +113,7 @@ export default function Artifacts() {
           </div>
           {/* Content */}
           <ArtifactTabs
-            isMermaid={isMermaid}
+            isPlantUML={isPlantUML}
             artifact={currentArtifact}
             editorRef={editorRef as React.MutableRefObject<CodeEditorRef>}
             previewRef={previewRef as React.MutableRefObject<SandpackPreviewRef>}

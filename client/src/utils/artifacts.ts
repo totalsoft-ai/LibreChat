@@ -6,7 +6,7 @@ import type {
 } from '@codesandbox/sandpack-react';
 
 const artifactFilename = {
-  'application/vnd.mermaid': 'App.tsx',
+  'application/vnd.plantuml': 'App.tsx',
   'application/vnd.react': 'App.tsx',
   'text/html': 'index.html',
   'application/vnd.code-html': 'index.html',
@@ -24,7 +24,7 @@ const artifactTemplate: Record<
 > = {
   'text/html': 'static',
   'application/vnd.react': 'react-ts',
-  'application/vnd.mermaid': 'react-ts',
+  'application/vnd.plantuml': 'react-ts',
   'application/vnd.code-html': 'static',
   default: 'static',
   // 'css': 'css',
@@ -38,8 +38,8 @@ export function getFileExtension(language?: string): string {
   switch (language) {
     case 'application/vnd.react':
       return 'tsx';
-    case 'application/vnd.mermaid':
-      return 'mermaid';
+    case 'application/vnd.plantuml':
+      return 'plantuml';
     case 'text/html':
       return 'html';
     // case 'jsx':
@@ -118,7 +118,7 @@ const mermaidDependencies = Object.assign(
 );
 
 const dependenciesMap: Record<keyof typeof artifactFilename, object> = {
-  'application/vnd.mermaid': mermaidDependencies,
+  'application/vnd.plantuml': Object.assign({ pako: '^2.1.0' }, standardDependencies),
   'application/vnd.react': standardDependencies,
   'text/html': standardDependencies,
   'application/vnd.code-html': standardDependencies,
