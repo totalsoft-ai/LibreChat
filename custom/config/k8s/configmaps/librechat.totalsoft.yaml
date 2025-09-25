@@ -12,7 +12,7 @@ cache: false
 
 # Custom interface configuration
 interface:
-  customWelcome: "Welcome to LibreChat! Enjoy your experience."
+  customWelcome: "Hello {{user.name}}!"
   endpointsMenu: true
   modelSelect: true
   parameters: true
