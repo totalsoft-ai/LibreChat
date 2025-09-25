@@ -102,3 +102,28 @@ endpoints:
         default: ["Test_Gemma_Retrained:latest"]
         fetch: true
       streamRate: 35
+    - name: "Assistant"
+      baseURL: "${ORCHESTRATOR_URL}"
+      apiKey: "$ORCHESTRATOR_API_KEY}"
+      titleMessageRole: "user"
+      models:
+        default: ["gemma3:4b"]
+      maxContextTokens: 16000
+      contextStrategy: "refine" 
+      summarize: true
+      summaryModel: "phi4-mini:latest"
+
+
+memory:
+  disabled: false
+  personalize: true
+  tokenLimit: 3000
+  messageWindowSize: 8
+  agent:
+    provider: "Local Models"
+    model: "phi4-mini:latest"
+    instructions: |
+      You are a memory assistant. Store only user-approved, useful facts and preferences.
+    model_parameters:
+      temperature: 0.2
+      max_tokens: 1000
