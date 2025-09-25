@@ -636,34 +636,6 @@ async function loadAgentTools({ req, res, agent, tool_resources, openAIApiKey })
   if (includesWebSearch) {
     webSearchCallbacks = createOnSearchResults(res);
   }
-  // Inject current-request document files (with base64 content) into tool_resources for document_loader
-  let mergedToolResources = tool_resources;
-  try {
-    const topLevelFiles = Array.isArray(req.body?.files) ? req.body.files : [];
-    const messageFiles = Array.isArray(req.body?.userMessage?.files)
-      ? req.body.userMessage.files
-      : [];
-    const requestFiles = topLevelFiles.concat(messageFiles);
-    const contentFiles = requestFiles
-      .filter((f) => f && f.file_id && f.content)
-      .map((f) => ({ file_id: f.file_id, filename: f.filename, type: f.type, content: f.content }));
-    if (contentFiles.length > 0) {
-      mergedToolResources = mergedToolResources || {};
-      mergedToolResources.document_loader = mergedToolResources.document_loader || {};
-      // Merge with attachments if present and not already included
-      const existing = new Set(
-        (mergedToolResources.document_loader.files || []).map((f) => f.file_id),
-      );
-      const merged = (mergedToolResources.document_loader.files || []).concat(
-        contentFiles.filter((f) => !existing.has(f.file_id)),
-      );
-      mergedToolResources.document_loader.files = merged;
-    }
-  } catch (e) {
-    // best-effort; don't block tools if parsing fails
-    logger.warn('[loadAgentTools] Failed to merge request content files for document_loader', e);
-  }
-
   const { loadedTools, toolContextMap } = await loadTools({
     agent,
     functions: true,
@@ -673,7 +645,7 @@ async function loadAgentTools({ req, res, agent, tool_resources, openAIApiKey })
       req,
       res,
       openAIApiKey,
-      tool_resources: mergedToolResources,
+      tool_resources,
       processFileURL,
       uploadImageBuffer,
       returnMetadata: true,
