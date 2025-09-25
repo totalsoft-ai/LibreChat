@@ -86,6 +86,7 @@ jobs:
           "KEYCLOAK_CLIENT_SECRET" = "${{ secrets.KEYCLOAK_CLIENT_SECRET }}"
           "OPENID_CLIENT_SECRET" = "${{ secrets.OPENID_CLIENT_SECRET }}"
           "OPENID_SESSION_SECRET" = "${{ secrets.OPENID_SESSION_SECRET }}"
+          "ORCHESTRATOR_API_KEY" = "${{ secrets.ORCHESTRATOR_API_KEY }}"
         }
 
         $envVarsHashtable = @{
@@ -115,6 +116,7 @@ jobs:
           "LIBRECHAT_REDIRECT_BASEURL" = "${{ vars.LIBRECHAT_REDIRECT_BASEURL }}"
           "OPENID_CLIENT_ID" = "${{ vars.OPENID_CLIENT_ID }}"
           "OPENID_ISSUER" = "${{ vars.OPENID_ISSUER }}"
+          "ORCHESTRATOR_URL" = "${{ vars.ORCHESTRATOR_URL }}"
         }
 
         ./custom/scripts/build-and-deploy.ps1 `
