@@ -55,7 +55,7 @@ export default function ArtifactTabs({
       </Tabs.Content>
       <Tabs.Content
         value="preview"
-        className={cn('flex-grow overflow-auto', isPlantUML ? 'bg-white' : 'bg-white')}
+        className={cn('flex-grow overflow-auto bg-white')}
       >
         <ArtifactPreview
           files={files}
