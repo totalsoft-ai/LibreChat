@@ -16,6 +16,7 @@ import WebSearch from './WebSearch';
 import ToolCall from './ToolCall';
 import ImageGen from './ImageGen';
 import Image from './Image';
+import PlantUMLDiagram from '../../../Artifacts/PlantUML';
 
 type PartProps = {
   part?: TMessageContentParts;
@@ -195,8 +196,15 @@ const Part = memo(
             width: width + 'px',
           }}
         />
-      );
-    }
+            );
+           } else if (part.type === 'application/vnd.plantuml') {
+       // Handle PlantUML diagrams
+       const plantUMLContent = part['application/vnd.plantuml'];
+       if (typeof plantUMLContent === 'string') {
+         return <PlantUMLDiagram content={plantUMLContent} />;
+       }
+     }
+              
 
     return null;
   },

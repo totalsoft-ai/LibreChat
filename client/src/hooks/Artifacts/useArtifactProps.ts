@@ -2,12 +2,12 @@ import { useMemo } from 'react';
 import { removeNullishValues } from 'librechat-data-provider';
 import type { Artifact } from '~/common';
 import { getKey, getProps, getTemplate, getArtifactFilename } from '~/utils/artifacts';
-import { getMermaidFiles } from '~/utils/mermaid';
+import { getPlantUMLFiles } from '~/utils/plantuml';
 
 export default function useArtifactProps({ artifact }: { artifact: Artifact }) {
   const [fileKey, files] = useMemo(() => {
-    if (getKey(artifact.type ?? '', artifact.language).includes('mermaid')) {
-      return ['App.tsx', getMermaidFiles(artifact.content ?? '')];
+    if (getKey(artifact.type ?? '', artifact.language).includes('plantuml')) {
+      return ['App.tsx', getPlantUMLFiles(artifact.content ?? '')];
     }
 
     const fileKey = getArtifactFilename(artifact.type ?? '', artifact.language);

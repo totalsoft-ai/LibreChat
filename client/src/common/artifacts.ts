@@ -20,7 +20,7 @@ export type ArtifactFiles =
   | {
       'App.tsx': string;
       'index.tsx': string;
-      '/components/ui/MermaidDiagram.tsx': string;
+      'components/ui/PlantUMLDiagram.tsx': string;
     }
   | Partial<{
       [x: string]: string | undefined;

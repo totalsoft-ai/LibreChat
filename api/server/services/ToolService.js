@@ -277,6 +277,120 @@ async function processRequiredActions(client, requiredActions) {
 
       const toolCallIndex = client.mappedOrder.get(toolCall.id);
 
+      // If the tool produced LibreChat artifacts, stream them as assistant text and skip the box
+      try {
+        // Case 1: pre-formatted artifact blocks in a string
+        if (typeof output === 'string' && output.includes(':::artifact{')) {
+          let value = output;
+          // Normalize JSON-style directive: :::artifact{ {"id":"...","title":"...","mime":"...","content":"..."} }:::
+          try {
+            const re = /:::artifact\{\s*(\{[\s\S]*?\})\s*\}:::/g;
+            value = value.replace(re, (_m, json) => {
+              try {
+                const a = JSON.parse(json);
+                const identifier = a.identifier || a.id || 'artifact';
+                const title = a.title || 'Artifact';
+                const type = a.type || a.mime || 'text/plain';
+                const content = a.content || '';
+                return `:::artifact{identifier="${identifier}" type="${type}" title="${title}"}\n${content}\n:::`;
+              } catch {
+                return _m; // leave as-is if not JSON
+              }
+            });
+          } catch {}
+          // Also normalize attribute-style keys: id=>identifier, mime=>type
+          try {
+            value = value
+              .replace(/(\{[^}]*)\bid\s*=\s*"/g, '$1identifier="')
+              .replace(/(\{[^}]*)\bmime\s*=\s*"/g, '$1type="');
+          } catch {}
+          client.addContentData({
+            [ContentTypes.TEXT]: { value },
+            type: ContentTypes.TEXT,
+          });
+          return {
+            tool_call_id: currentAction.toolCallId,
+            output: 'Rendered artifact',
+          };
+        }
+
+        // Case 1.5: Detect PlantUML code blocks and convert to artifacts for visualization
+        if (typeof output === 'string' && output.includes('@startuml') && output.includes('@enduml')) {
+          const plantUMLRegex = /@startuml[\s\S]*?@enduml/g;
+          const matches = output.match(plantUMLRegex);
+          
+          if (matches && matches.length > 0) {
+            let processedOutput = output;
+            matches.forEach((match, idx) => {
+              const identifier = `plantuml-diagram-${idx + 1}`;
+              const title = `PlantUML Diagram ${idx + 1}`;
+              const type = 'application/vnd.plantuml';
+              const artifactBlock = `:::artifact{identifier="${identifier}" title="${title}" type="${type}"}\n${match}\n:::`;
+              
+              // Replace the PlantUML code with the artifact block
+              processedOutput = processedOutput.replace(match, artifactBlock);
+            });
+            
+            client.addContentData({
+              [ContentTypes.TEXT]: { value: processedOutput },
+              type: ContentTypes.TEXT,
+            });
+            return {
+              tool_call_id: currentAction.toolCallId,
+              output: 'Rendered PlantUML artifacts',
+            };
+          }
+        }
+
+        // Case 2: JSON payload with artifacts array
+        if (typeof output === 'string' && (output.startsWith('{') || output.startsWith('['))) {
+          try {
+            const parsed = JSON.parse(output);
+            const artifacts = parsed && parsed.artifacts;
+            if (Array.isArray(artifacts) && artifacts.length > 0) {
+              const blocks = artifacts
+                .map((a) => {
+                  const identifier = a.identifier || a.id || 'artifact';
+                  const title = a.title || 'Artifact';
+                  const type = a.type || a.mime || 'text/plain';
+                  const content = a.content || '';
+                  return `:::artifact{identifier="${identifier}" type="${type}" title="${title}"}\n${content}\n:::`;
+                })
+                .join('\n\n');
+              client.addContentData({
+                [ContentTypes.TEXT]: { value: blocks },
+                type: ContentTypes.TEXT,
+              });
+              return {
+                tool_call_id: currentAction.toolCallId,
+                output: 'Rendered artifact',
+              };
+            }
+            // Support JSON schema: { success: true, plantuml: [ "@startuml...@enduml", ... ] }
+            const plantuml = parsed && parsed.plantuml;
+            if (Array.isArray(plantuml) && plantuml.length > 0) {
+              const blocks = plantuml
+                .map((code, idx) => {
+                  const identifier = `diagram-${idx}`;
+                  const title = `PlantUML Diagram ${idx + 1}`;
+                  const type = 'application/vnd.plantuml';
+                  const content = typeof code === 'string' ? code : '';
+                  return `:::artifact{identifier=\"${identifier}\" type=\"${type}\" title=\"${title}\"}\n${content}\n:::`;
+                })
+                .join('\n\n');
+              client.addContentData({
+                [ContentTypes.TEXT]: { value: blocks },
+                type: ContentTypes.TEXT,
+              });
+              return {
+                tool_call_id: currentAction.toolCallId,
+                output: 'Rendered artifact',
+              };
+            }
+          } catch {}
+        }
+      } catch {}
+
       if (imageGenTools.has(currentAction.tool)) {
         const imageOutput = output;
         toolCall.function.output = `${currentAction.tool} displayed an image. All generated images are already plainly visible, so don't repeat the descriptions in detail. Do not list download links as they are available in the UI already. The user may download the images by clicking on them, but do not mention anything about downloading to the user.`;
@@ -522,6 +636,34 @@ async function loadAgentTools({ req, res, agent, tool_resources, openAIApiKey })
   if (includesWebSearch) {
     webSearchCallbacks = createOnSearchResults(res);
   }
+  // Inject current-request document files (with base64 content) into tool_resources for document_loader
+  let mergedToolResources = tool_resources;
+  try {
+    const topLevelFiles = Array.isArray(req.body?.files) ? req.body.files : [];
+    const messageFiles = Array.isArray(req.body?.userMessage?.files)
+      ? req.body.userMessage.files
+      : [];
+    const requestFiles = topLevelFiles.concat(messageFiles);
+    const contentFiles = requestFiles
+      .filter((f) => f && f.file_id && f.content)
+      .map((f) => ({ file_id: f.file_id, filename: f.filename, type: f.type, content: f.content }));
+    if (contentFiles.length > 0) {
+      mergedToolResources = mergedToolResources || {};
+      mergedToolResources.document_loader = mergedToolResources.document_loader || {};
+      // Merge with attachments if present and not already included
+      const existing = new Set(
+        (mergedToolResources.document_loader.files || []).map((f) => f.file_id),
+      );
+      const merged = (mergedToolResources.document_loader.files || []).concat(
+        contentFiles.filter((f) => !existing.has(f.file_id)),
+      );
+      mergedToolResources.document_loader.files = merged;
+    }
+  } catch (e) {
+    // best-effort; don't block tools if parsing fails
+    logger.warn('[loadAgentTools] Failed to merge request content files for document_loader', e);
+  }
+
   const { loadedTools, toolContextMap } = await loadTools({
     agent,
     functions: true,
@@ -531,7 +673,7 @@ async function loadAgentTools({ req, res, agent, tool_resources, openAIApiKey })
       req,
       res,
       openAIApiKey,
-      tool_resources,
+      tool_resources: mergedToolResources,
       processFileURL,
       uploadImageBuffer,
       returnMetadata: true,
