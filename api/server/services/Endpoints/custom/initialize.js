@@ -170,8 +170,8 @@ const initializeClient = async ({ req, res, endpointOption, optionsOnly, overrid
         const existing = options.llmConfig?.promptPrefix ?? '';
         options.llmConfig.promptPrefix = `${memoryPrefix}${existing}`;
         // Also inject into additional instructions to increase influence
-        const existingAddl = options.llmConfig?.additional_instructions ?? '';
-        options.llmConfig.additional_instructions = `${memoryPrefix}${existingAddl}`;
+        //const existingAddl = options.llmConfig?.additional_instructions ?? '';
+        //options.llmConfig.additional_instructions = `${memoryPrefix}${existingAddl}`;
       }
       if (!clientOptions.streamRate) {
         return options;
@@ -199,8 +199,8 @@ const initializeClient = async ({ req, res, endpointOption, optionsOnly, overrid
   if (memoryPrefix) {
     const existingPrefix = clientOptions.promptPrefix ?? '';
     clientOptions.promptPrefix = `${memoryPrefix}${existingPrefix}`;
-    const existingAddl = clientOptions.additional_instructions ?? '';
-    clientOptions.additional_instructions = `${memoryPrefix}${existingAddl}`;
+    //const existingAddl = clientOptions.additional_instructions ?? '';
+    //clientOptions.additional_instructions = `${memoryPrefix}${existingAddl}`;
   }
 
   const client = new OpenAIClient(apiKey, clientOptions);
