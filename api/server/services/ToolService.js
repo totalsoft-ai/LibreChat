@@ -260,7 +260,14 @@ async function processRequiredActions(client, requiredActions) {
     let tool = ToolMap[currentAction.tool] ?? ActionToolMap[currentAction.tool];
 
     const handleToolOutput = async (output) => {
-      requiredActions[i].output = output;
+      function tryParse(jsonString) {
+        try {
+          const v = JSON.parse(jsonString);
+          return v && typeof v === 'object' ? [v, true] : [null, false];
+        } catch {
+          return [null, false];
+        }
+      }
 
       /** @type {FunctionToolCall & PartMetadata} */
       const toolCall = {
@@ -297,7 +304,7 @@ async function processRequiredActions(client, requiredActions) {
                 return _m; // leave as-is if not JSON
               }
             });
-          } catch {}
+          } catch {logger.error('Error parsing artifact JSON:', json);}        
           // Also normalize attribute-style keys: id=>identifier, mime=>type
           try {
             value = value
@@ -343,53 +350,55 @@ async function processRequiredActions(client, requiredActions) {
         }
 
         // Case 2: JSON payload with artifacts array
-        if (typeof output === 'string' && (output.startsWith('{') || output.startsWith('['))) {
+        if (typeof output === 'string') {
           try {
-            const parsed = JSON.parse(output);
-            const artifacts = parsed && parsed.artifacts;
-            if (Array.isArray(artifacts) && artifacts.length > 0) {
-              const blocks = artifacts
-                .map((a) => {
-                  const identifier = a.identifier || a.id || 'artifact';
-                  const title = a.title || 'Artifact';
-                  const type = a.type || a.mime || 'text/plain';
-                  const content = a.content || '';
-                  return `:::artifact{identifier="${identifier}" type="${type}" title="${title}"}\n${content}\n:::`;
-                })
-                .join('\n\n');
-              client.addContentData({
-                [ContentTypes.TEXT]: { value: blocks },
-                type: ContentTypes.TEXT,
-              });
-              return {
-                tool_call_id: currentAction.toolCallId,
-                output: 'Rendered artifact',
-              };
+            const [parsed, isJson] = tryParse(output);
+            if (isJson) {
+              const artifacts = parsed && parsed.artifacts;
+              if (Array.isArray(artifacts) && artifacts.length > 0) {
+                const blocks = artifacts
+                  .map((a) => {
+                    const identifier = a.identifier || a.id || 'artifact';
+                    const title = a.title || 'Artifact';
+                    const type = a.type || a.mime || 'text/plain';
+                    const content = a.content || '';
+                    return `:::artifact{identifier="${identifier}" type="${type}" title="${title}"}\n${content}\n:::`;
+                  })
+                  .join('\n\n');
+                client.addContentData({
+                  [ContentTypes.TEXT]: { value: blocks },
+                  type: ContentTypes.TEXT,
+                });
+                return {
+                  tool_call_id: currentAction.toolCallId,
+                  output: 'Rendered artifact',
+                };
+              }
+              // Support JSON schema: { success: true, plantuml: [ "@startuml...@enduml", ... ] }
+              const plantuml = parsed && parsed.plantuml;
+              if (Array.isArray(plantuml) && plantuml.length > 0) {
+                const blocks = plantuml
+                  .map((code, idx) => {
+                    const identifier = `diagram-${idx}`;
+                    const title = `PlantUML Diagram ${idx + 1}`;
+                    const type = 'application/vnd.plantuml';
+                    const content = typeof code === 'string' ? code : '';
+                    return `:::artifact{identifier=\"${identifier}\" type=\"${type}\" title=\"${title}\"}\n${content}\n:::`;
+                  })
+                  .join('\n\n');
+                client.addContentData({
+                  [ContentTypes.TEXT]: { value: blocks },
+                  type: ContentTypes.TEXT,
+                });
+                return {
+                  tool_call_id: currentAction.toolCallId,
+                  output: 'Rendered artifact',
+                };
+              }
             }
-            // Support JSON schema: { success: true, plantuml: [ "@startuml...@enduml", ... ] }
-            const plantuml = parsed && parsed.plantuml;
-            if (Array.isArray(plantuml) && plantuml.length > 0) {
-              const blocks = plantuml
-                .map((code, idx) => {
-                  const identifier = `diagram-${idx}`;
-                  const title = `PlantUML Diagram ${idx + 1}`;
-                  const type = 'application/vnd.plantuml';
-                  const content = typeof code === 'string' ? code : '';
-                  return `:::artifact{identifier=\"${identifier}\" type=\"${type}\" title=\"${title}\"}\n${content}\n:::`;
-                })
-                .join('\n\n');
-              client.addContentData({
-                [ContentTypes.TEXT]: { value: blocks },
-                type: ContentTypes.TEXT,
-              });
-              return {
-                tool_call_id: currentAction.toolCallId,
-                output: 'Rendered artifact',
-              };
-            }
-          } catch {}
+          } catch {logger.error('Error parsing artifact JSON: @startuml', json);}
         }
-      } catch {}
+      } catch {logger.error('Error parsing artifact JSON: case 2', json);}
 
       if (imageGenTools.has(currentAction.tool)) {
         const imageOutput = output;
