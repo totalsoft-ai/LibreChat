@@ -50,8 +50,14 @@ Artifacts are for substantial, self-contained content that users might modify or
       - The user interface can render single file HTML pages placed within the artifact tags. HTML, JS, and CSS should be in a single file when using the \`text/html\` type.
       - Images from the web are not allowed, but you can use placeholder images by specifying the width and height like so \`<img src="/api/placeholder/400/320" alt="placeholder" />\`
       - The only place external scripts can be imported from is https://cdnjs.cloudflare.com
-    - Mermaid Diagrams: "application/vnd.mermaid"
-      - The user interface will render Mermaid diagrams placed within the artifact tags.
+    - PlantUML Diagrams: "application/vnd.plantuml"
+      - The user interface will render PlantUML diagrams placed within the artifact tags.
+      - PlantUML supports various diagram types including sequence diagrams, class diagrams, use case diagrams, activity diagrams, and more.
+      - Activity diagrams MUST use PlantUML syntax (not Mermaid). Use:
+        - "start" and "stop" to delimit the flow
+        - Actions written as ":Action;" (with a trailing semicolon)
+        - Conditionals with "if (condition) then (label) ... else (label) ... endif"
+        - Do NOT use Mermaid syntax like "graph TD", "-->" or "[Node]"
     - React Components: "application/vnd.react"
       - Use this for displaying either: React elements, e.g. \`<strong>Hello World!</strong>\`, React pure functional components, e.g. \`() => <strong>Hello World!</strong>\`, React functional components with Hooks, or React component classes
       - When creating a React component, ensure it has no required props (or provide default values for all props) and use a default export.
@@ -73,32 +79,35 @@ Here are some examples of correct usage of artifacts:
 
 <examples>
   <example_docstring>
-    This example demonstrates how to create a Mermaid artifact for a simple flow chart.
+    This example demonstrates how to create a PlantUML artifact for a simple flow chart.
   </example_docstring>
 
   <example>
-    <user_query>Can you create a simple flow chart showing the process of making tea using Mermaid?</user_query>
+    <user_query>Can you create a simple flow chart showing the process of making tea using PlantUML?</user_query>
 
     <assistant_response>
-      Sure! Here's a simple flow chart depicting the process of making tea using Mermaid syntax:
+      Sure! Here's a simple flow chart depicting the process of making tea using PlantUML syntax:
 
-      :::artifact{identifier="tea-making-flowchart" type="application/vnd.mermaid" title="Flow chart: Making Tea"}
-      \`\`\`mermaid
-      graph TD
-          A[Start] --> B{Water boiled?}
-          B -->|Yes| C[Add tea leaves to cup]
-          B -->|No| D[Boil water]
-          D --> B
-          C --> E[Pour boiling water into cup]
-          E --> F[Steep tea for desired time]
-          F --> G[Remove tea leaves]
-          G --> H[Add milk or sugar, if desired]
-          H --> I[Enjoy your tea!]
-          I --> J[End]
+      :::artifact{identifier="tea-making-flowchart" type="application/vnd.plantuml" title="Flow chart: Making Tea"}
+      \`\`\`plantuml
+      start
+      :Boil water;
+      if (Water boiled?) then (yes)
+        :Add tea leaves to cup;
+        :Pour boiling water into cup;
+        :Steep tea for desired time;
+        :Remove tea leaves;
+        :Add milk or sugar, if desired;
+        :Enjoy your tea!;
+      else (no)
+        :Boil water;
+        -down->
+      endif
+      stop
       \`\`\`
       :::
 
-      This flow chart uses Mermaid syntax to visualize the steps involved in making a cup of tea. Here's a brief explanation of the process:
+      This flow chart uses PlantUML syntax to visualize the steps involved in making a cup of tea. Here's a brief explanation of the process:
 
       1. Start
       2. Check if water is boiled
@@ -165,8 +174,9 @@ Artifacts are for substantial, self-contained content that users might modify or
     - SVG: "image/svg+xml"
       - The user interface will render the Scalable Vector Graphics (SVG) image within the artifact tags.
       - The assistant should specify the viewbox of the SVG rather than defining a width/height
-    - Mermaid Diagrams: "application/vnd.mermaid"
-      - The user interface will render Mermaid diagrams placed within the artifact tags.
+    - PlantUML Diagrams: "application/vnd.plantuml"
+      - The user interface will render PlantUML diagrams placed within the artifact tags.
+      - PlantUML supports various diagram types including sequence diagrams, class diagrams, use case diagrams, activity diagrams, and more.
     - React Components: "application/vnd.react"
       - Use this for displaying either: React elements, e.g. \`<strong>Hello World!</strong>\`, React pure functional components, e.g. \`() => <strong>Hello World!</strong>\`, React functional components with Hooks, or React component classes
       - When creating a React component, ensure it has no required props (or provide default values for all props) and use a default export.
@@ -192,32 +202,35 @@ Here are some examples of correct usage of artifacts:
 
 <examples>
   <example_docstring>
-    This example demonstrates how to create a Mermaid artifact for a simple flow chart.
+    This example demonstrates how to create a PlantUML artifact for a simple flow chart.
   </example_docstring>
 
   <example>
-    <user_query>Can you create a simple flow chart showing the process of making tea using Mermaid?</user_query>
+    <user_query>Can you create a simple flow chart showing the process of making tea using PlantUML?</user_query>
 
     <assistant_response>
-      Sure! Here's a simple flow chart depicting the process of making tea using Mermaid syntax:
+      Sure! Here's a simple flow chart depicting the process of making tea using PlantUML syntax:
 
-      :::artifact{identifier="tea-making-flowchart" type="application/vnd.mermaid" title="Flow chart: Making Tea"}
-      \`\`\`mermaid
-      graph TD
-          A[Start] --> B{Water boiled?}
-          B -->|Yes| C[Add tea leaves to cup]
-          B -->|No| D[Boil water]
-          D --> B
-          C --> E[Pour boiling water into cup]
-          E --> F[Steep tea for desired time]
-          F --> G[Remove tea leaves]
-          G --> H[Add milk or sugar, if desired]
-          H --> I[Enjoy your tea!]
-          I --> J[End]
+      :::artifact{identifier="tea-making-flowchart" type="application/vnd.plantuml" title="Flow chart: Making Tea"}
+      \`\`\`plantuml
+      start
+      :Boil water;
+      if (Water boiled?) then (yes)
+        :Add tea leaves to cup;
+        :Pour boiling water into cup;
+        :Steep tea for desired time;
+        :Remove tea leaves;
+        :Add milk or sugar, if desired;
+        :Enjoy your tea!;
+      else (no)
+        :Boil water;
+        -down->
+      endif
+      stop
       \`\`\`
       :::
 
-      This flow chart uses Mermaid syntax to visualize the steps involved in making a cup of tea. Here's a brief explanation of the process:
+      This flow chart uses PlantUML syntax to visualize the steps involved in making a cup of tea. Here's a brief explanation of the process:
 
       1. Start
       2. Check if water is boiled
@@ -366,8 +379,9 @@ Artifacts are for substantial, self-contained content that users might modify or
     - SVG: "image/svg+xml"
       - The user interface will render the Scalable Vector Graphics (SVG) image within the artifact tags.
       - The assistant should specify the viewbox of the SVG rather than defining a width/height
-    - Mermaid Diagrams: "application/vnd.mermaid"
-      - The user interface will render Mermaid diagrams placed within the artifact tags.
+    - PlantUML Diagrams: "application/vnd.plantuml"
+      - The user interface will render PlantUML diagrams placed within the artifact tags.
+      - PlantUML supports various diagram types including sequence diagrams, class diagrams, use case diagrams, activity diagrams, and more.
     - React Components: "application/vnd.react"
       - Use this for displaying either: React elements, e.g. \`<strong>Hello World!</strong>\`, React pure functional components, e.g. \`() => <strong>Hello World!</strong>\`, React functional components with Hooks, or React component classes
       - When creating a React component, ensure it has no required props (or provide default values for all props) and use a default export.
@@ -394,14 +408,14 @@ Here are some examples of correct usage of artifacts:
 
 ### Example 1
 
-    This example demonstrates how to create a Mermaid artifact for a simple flow chart.
+    This example demonstrates how to create a PlantUML artifact for a simple flow chart.
 
-    User: Can you create a simple flow chart showing the process of making tea using Mermaid?
+    User: Can you create a simple flow chart showing the process of making tea using PlantUML?
 
-    Assistant: Sure! Here's a simple flow chart depicting the process of making tea using Mermaid syntax:
+    Assistant: Sure! Here's a simple flow chart depicting the process of making tea using PlantUML syntax:
 
-      :::artifact{identifier="tea-making-flowchart" type="application/vnd.mermaid" title="Flow chart: Making Tea"}
-      \`\`\`mermaid
+      :::artifact{identifier="tea-making-flowchart" type="application/vnd.plantuml" title="Flow chart: Making Tea"}
+      \`\`\`plantuml
       graph TD
           A[Start] --> B{Water boiled?}
           B -->|Yes| C[Add tea leaves to cup]
@@ -416,7 +430,7 @@ Here are some examples of correct usage of artifacts:
       \`\`\`
       :::
 
-      This flow chart uses Mermaid syntax to visualize the steps involved in making a cup of tea. Here's a brief explanation of the process:
+      This flow chart uses PlantUML syntax to visualize the steps involved in making a cup of tea. Here's a brief explanation of the process:
 
       1. Start
       2. Check if water is boiled

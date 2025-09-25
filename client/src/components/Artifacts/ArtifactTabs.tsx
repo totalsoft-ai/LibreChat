@@ -12,12 +12,12 @@ import { cn } from '~/utils';
 
 export default function ArtifactTabs({
   artifact,
-  isMermaid,
+  isPlantUML,
   editorRef,
   previewRef,
 }: {
   artifact: Artifact;
-  isMermaid: boolean;
+  isPlantUML: boolean;
   editorRef: React.MutableRefObject<CodeEditorRef>;
   previewRef: React.MutableRefObject<SandpackPreviewRef>;
 }) {
@@ -55,7 +55,7 @@ export default function ArtifactTabs({
       </Tabs.Content>
       <Tabs.Content
         value="preview"
-        className={cn('flex-grow overflow-auto', isMermaid ? 'bg-[#282C34]' : 'bg-white')}
+        className={cn('flex-grow overflow-auto bg-white')}
       >
         <ArtifactPreview
           files={files}

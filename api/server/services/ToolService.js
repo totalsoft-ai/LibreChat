@@ -260,7 +260,14 @@ async function processRequiredActions(client, requiredActions) {
     let tool = ToolMap[currentAction.tool] ?? ActionToolMap[currentAction.tool];
 
     const handleToolOutput = async (output) => {
-      requiredActions[i].output = output;
+      function tryParse(jsonString) {
+        try {
+          const v = JSON.parse(jsonString);
+          return v && typeof v === 'object' ? [v, true] : [null, false];
+        } catch {
+          return [null, false];
+        }
+      }
 
       /** @type {FunctionToolCall & PartMetadata} */
       const toolCall = {
@@ -276,6 +283,122 @@ async function processRequiredActions(client, requiredActions) {
       };
 
       const toolCallIndex = client.mappedOrder.get(toolCall.id);
+
+      // If the tool produced LibreChat artifacts, stream them as assistant text and skip the box
+      try {
+        // Case 1: pre-formatted artifact blocks in a string
+        if (typeof output === 'string' && output.includes(':::artifact{')) {
+          let value = output;
+          // Normalize JSON-style directive: :::artifact{ {"id":"...","title":"...","mime":"...","content":"..."} }:::
+          try {
+            const re = /:::artifact\{\s*(\{[\s\S]*?\})\s*\}:::/g;
+            value = value.replace(re, (_m, json) => {
+              try {
+                const a = JSON.parse(json);
+                const identifier = a.identifier || a.id || 'artifact';
+                const title = a.title || 'Artifact';
+                const type = a.type || a.mime || 'text/plain';
+                const content = a.content || '';
+                return `:::artifact{identifier="${identifier}" type="${type}" title="${title}"}\n${content}\n:::`;
+              } catch {
+                return _m; // leave as-is if not JSON
+              }
+            });
+          } catch {logger.error('Error parsing artifact JSON:', json);}        
+          // Also normalize attribute-style keys: id=>identifier, mime=>type
+          try {
+            value = value
+              .replace(/(\{[^}]*)\bid\s*=\s*"/g, '$1identifier="')
+              .replace(/(\{[^}]*)\bmime\s*=\s*"/g, '$1type="');
+          } catch {}
+          client.addContentData({
+            [ContentTypes.TEXT]: { value },
+            type: ContentTypes.TEXT,
+          });
+          return {
+            tool_call_id: currentAction.toolCallId,
+            output: 'Rendered artifact',
+          };
+        }
+
+        // Case 1.5: Detect PlantUML code blocks and convert to artifacts for visualization
+        if (typeof output === 'string' && output.includes('@startuml') && output.includes('@enduml')) {
+          const plantUMLRegex = /@startuml[\s\S]*?@enduml/g;
+          const matches = output.match(plantUMLRegex);
+          
+          if (matches && matches.length > 0) {
+            let processedOutput = output;
+            matches.forEach((match, idx) => {
+              const identifier = `plantuml-diagram-${idx + 1}`;
+              const title = `PlantUML Diagram ${idx + 1}`;
+              const type = 'application/vnd.plantuml';
+              const artifactBlock = `:::artifact{identifier="${identifier}" title="${title}" type="${type}"}\n${match}\n:::`;
+              
+              // Replace the PlantUML code with the artifact block
+              processedOutput = processedOutput.replace(match, artifactBlock);
+            });
+            
+            client.addContentData({
+              [ContentTypes.TEXT]: { value: processedOutput },
+              type: ContentTypes.TEXT,
+            });
+            return {
+              tool_call_id: currentAction.toolCallId,
+              output: 'Rendered PlantUML artifacts',
+            };
+          }
+        }
+
+        // Case 2: JSON payload with artifacts array
+        if (typeof output === 'string') {
+          try {
+            const [parsed, isJson] = tryParse(output);
+            if (isJson) {
+              const artifacts = parsed && parsed.artifacts;
+              if (Array.isArray(artifacts) && artifacts.length > 0) {
+                const blocks = artifacts
+                  .map((a) => {
+                    const identifier = a.identifier || a.id || 'artifact';
+                    const title = a.title || 'Artifact';
+                    const type = a.type || a.mime || 'text/plain';
+                    const content = a.content || '';
+                    return `:::artifact{identifier="${identifier}" type="${type}" title="${title}"}\n${content}\n:::`;
+                  })
+                  .join('\n\n');
+                client.addContentData({
+                  [ContentTypes.TEXT]: { value: blocks },
+                  type: ContentTypes.TEXT,
+                });
+                return {
+                  tool_call_id: currentAction.toolCallId,
+                  output: 'Rendered artifact',
+                };
+              }
+              // Support JSON schema: { success: true, plantuml: [ "@startuml...@enduml", ... ] }
+              const plantuml = parsed && parsed.plantuml;
+              if (Array.isArray(plantuml) && plantuml.length > 0) {
+                const blocks = plantuml
+                  .map((code, idx) => {
+                    const identifier = `diagram-${idx}`;
+                    const title = `PlantUML Diagram ${idx + 1}`;
+                    const type = 'application/vnd.plantuml';
+                    const content = typeof code === 'string' ? code : '';
+                    return `:::artifact{identifier=\"${identifier}\" type=\"${type}\" title=\"${title}\"}\n${content}\n:::`;
+                  })
+                  .join('\n\n');
+                client.addContentData({
+                  [ContentTypes.TEXT]: { value: blocks },
+                  type: ContentTypes.TEXT,
+                });
+                return {
+                  tool_call_id: currentAction.toolCallId,
+                  output: 'Rendered artifact',
+                };
+              }
+            }
+          } catch {logger.error('Error parsing artifact JSON: @startuml', json);}
+        }
+      } catch {logger.error('Error parsing artifact JSON: case 2', json);}
 
       if (imageGenTools.has(currentAction.tool)) {
         const imageOutput = output;
