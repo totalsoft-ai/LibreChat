@@ -3,10 +3,8 @@ import {
   Login,
   VerifyEmail,
   Registration,
-  ResetPassword,
   ApiErrorWatcher,
   TwoFactorScreen,
-  RequestPasswordReset,
 } from '~/components/Auth';
 import { OAuthSuccess, OAuthError } from '~/components/OAuth';
 import { AuthContextProvider } from '~/hooks/AuthContext';
@@ -54,14 +52,6 @@ export const router = createBrowserRouter([
       {
         path: 'register',
         element: <Registration />,
-      },
-      {
-        path: 'forgot-password',
-        element: <RequestPasswordReset />,
-      },
-      {
-        path: 'reset-password',
-        element: <ResetPassword />,
       },
     ],
   },
