@@ -46,30 +46,30 @@ export const router = createBrowserRouter([
       },
     ],
   },
-  {
-    path: '/',
-    element: <StartupLayout />,
-    errorElement: <RouteErrorBoundary />,
-    children: [
-      {
-        path: 'register',
-        element: <Registration />,
-      },
-      {
-        path: 'forgot-password',
-        element: <RequestPasswordReset />,
-      },
-      {
-        path: 'reset-password',
-        element: <ResetPassword />,
-      },
-    ],
-  },
-  {
-    path: 'verify',
-    element: <VerifyEmail />,
-    errorElement: <RouteErrorBoundary />,
-  },
+//  {
+//    path: '/',
+//    element: <StartupLayout />,
+//    errorElement: <RouteErrorBoundary />,
+//    children: [
+//      {
+//        path: 'register',
+//        element: <Registration />,
+//      },
+//      {
+//        path: 'forgot-password',
+//        element: <RequestPasswordReset />,
+//      },
+//      {
+//        path: 'reset-password',
+//        element: <ResetPassword />,
+//      },
+//    ],
+//  },
+//  {
+//    path: 'verify',
+//    element: <VerifyEmail />,
+//    errorElement: <RouteErrorBoundary />,
+//  },
   {
     element: <AuthLayout />,
     errorElement: <RouteErrorBoundary />,
