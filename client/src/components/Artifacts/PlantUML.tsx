@@ -84,7 +84,7 @@ ${cleanContent}
 
         // Encode using proper PlantUML text encoding
         const encoded = encodePlantUMLText(plantUMLContent);
-        const imageUrl = `https://www.plantuml.com/plantuml/svg/~1${encoded}`;
+        const imageUrl = `http://www.plantuml.com/plantuml/svg/~1${encoded}`;
 
         setDiagramSrc(imageUrl);
         setIsLoading(false);
