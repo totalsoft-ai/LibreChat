@@ -71,6 +71,8 @@ const getBrowserInfo = async () => {
   };
 };
 
+const isEnabled = (value: unknown) => ['true', 'yes'].includes(String(value ?? '').toLowerCase());
+
 export default function RouteErrorBoundary() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -83,23 +85,18 @@ export default function RouteErrorBoundary() {
     data?: unknown;
   };
 
-  const isEnabled = (value: unknown) => ['true', 'yes'].includes(String(value ?? '').toLowerCase());
-
   const allowRegistration = isEnabled((import.meta as any).env?.VITE_ALLOW_REGISTRATION);
-  useEffect(() => {
-    const isRegisterPath = ['/register'].includes(location.pathname);
-    if (!allowRegistration && isRegisterPath) {
-      navigate('/', { replace: true });
-    }
-  }, [allowRegistration, location.pathname, navigate]);
-
   const allowEmailLogin = isEnabled((import.meta as any).env?.VITE_ALLOW_EMAIL_LOGIN);
   useEffect(() => {
-    const isResetPath = ['/forgot-password', '/reset-password'].includes(location.pathname);
-    if (!allowEmailLogin && isResetPath) {
+    const path = location.pathname;
+    const shouldRedirect =
+      (!allowRegistration && ['/register', '/auth/register'].includes(path)) ||
+      (!allowEmailLogin && ['/resetPassword', '/requestPasswordReset'].includes(path));
+
+    if (shouldRedirect) {
       navigate('/', { replace: true });
     }
-  }, [allowEmailLogin, location.pathname, navigate]);
+  }, [allowRegistration, allowEmailLogin, location.pathname, navigate]);
 
   // 404 redirect with countdown
   useEffect(() => {
