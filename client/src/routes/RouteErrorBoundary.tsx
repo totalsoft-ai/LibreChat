@@ -1,6 +1,7 @@
 /* eslint-disable i18next/no-literal-string */
 import { Button } from '@librechat/client';
-import { useRouteError } from 'react-router-dom';
+import { useRouteError, useNavigate, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 import logger from '~/utils/logger';
 
 interface UserAgentData {
@@ -71,6 +72,8 @@ const getBrowserInfo = async () => {
 };
 
 export default function RouteErrorBoundary() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const typedError = useRouteError() as {
     message?: string;
     stack?: string;
@@ -78,6 +81,25 @@ export default function RouteErrorBoundary() {
     statusText?: string;
     data?: unknown;
   };
+
+  const isEnabled = (value: unknown) =>
+    ['1', 'true', 'yes', 'on'].includes(String(value ?? '').toLowerCase());
+
+  const allowRegistration = isEnabled((import.meta as any).env?.VITE_ALLOW_REGISTRATION);
+  useEffect(() => {
+    const isRegisterPath = ['/register', '/auth/register'].includes(location.pathname);
+    if (!allowRegistration && isRegisterPath) {
+      navigate('/', { replace: true });
+    }
+  }, [allowRegistration, location.pathname, navigate]);
+
+  const allowEmailLogin = isEnabled((import.meta as any).env?.VITE_ALLOW_EMAIL_LOGIN);
+  useEffect(() => {
+    const isResetPath = ['/resetPassword', '/requestPasswordReset'].includes(location.pathname);
+    if (!allowEmailLogin && isResetPath) {
+      navigate('/', { replace: true });
+    }
+  }, [allowEmailLogin, location.pathname, navigate]);
 
   const errorDetails = {
     message: typedError.message ?? 'An unexpected error occurred',
