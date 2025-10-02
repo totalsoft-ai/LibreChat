@@ -74,7 +74,7 @@ const getBrowserInfo = async () => {
 export default function RouteErrorBoundary() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [countdown, setCountdown] = useState(5)
+  const [countdown, setCountdown] = useState(5);
   const typedError = useRouteError() as {
     message?: string;
     stack?: string;
@@ -83,8 +83,7 @@ export default function RouteErrorBoundary() {
     data?: unknown;
   };
 
-  const isEnabled = (value: unknown) =>
-    ['true', 'yes'].includes(String(value ?? '').toLowerCase());
+  const isEnabled = (value: unknown) => ['true', 'yes'].includes(String(value ?? '').toLowerCase());
 
   const allowRegistration = isEnabled((import.meta as any).env?.VITE_ALLOW_REGISTRATION);
   useEffect(() => {
@@ -118,7 +117,6 @@ export default function RouteErrorBoundary() {
       return () => clearInterval(timer);
     }
   }, [typedError?.status, navigate]);
-
 
   const errorDetails = {
     message: typedError.message ?? 'An unexpected error occurred',
@@ -175,15 +173,14 @@ export default function RouteErrorBoundary() {
         </h2>
 
         {/* 404 Redirect Message */}
-         {typedError?.status === 404 && (
-           <div className="mb-6 rounded-xl border border-blue-500/20 bg-blue-500/5 p-4 text-center">
-             <p className="text-lg font-medium text-text-primary">
-               Page not found
-             </p>
-             <p className="mt-2 text-sm text-text-secondary">
-               You will be redirected to the home page in {countdown} second{countdown !== 1 ? 's' : ''}...
-             </p>
-           </div>
+        {typedError?.status === 404 && (
+          <div className="mb-6 rounded-xl border border-blue-500/20 bg-blue-500/5 p-4 text-center">
+            <p className="text-lg font-medium text-text-primary">Page not found</p>
+            <p className="mt-2 text-sm text-text-secondary">
+              You will be redirected to the home page in {countdown} second
+              {countdown !== 1 ? 's' : ''}...
+            </p>
+          </div>
         )}
 
         {/* Error Message */}
