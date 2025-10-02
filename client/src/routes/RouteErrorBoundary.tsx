@@ -1,7 +1,7 @@
 /* eslint-disable i18next/no-literal-string */
 import { Button } from '@librechat/client';
 import { useRouteError, useNavigate, useLocation } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import logger from '~/utils/logger';
 
 interface UserAgentData {
@@ -74,6 +74,7 @@ const getBrowserInfo = async () => {
 export default function RouteErrorBoundary() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [countdown, setCountdown] = useState(5)
   const typedError = useRouteError() as {
     message?: string;
     stack?: string;
@@ -83,11 +84,11 @@ export default function RouteErrorBoundary() {
   };
 
   const isEnabled = (value: unknown) =>
-    ['1', 'true', 'yes', 'on'].includes(String(value ?? '').toLowerCase());
+    ['true', 'yes'].includes(String(value ?? '').toLowerCase());
 
   const allowRegistration = isEnabled((import.meta as any).env?.VITE_ALLOW_REGISTRATION);
   useEffect(() => {
-    const isRegisterPath = ['/register', '/auth/register'].includes(location.pathname);
+    const isRegisterPath = ['/register'].includes(location.pathname);
     if (!allowRegistration && isRegisterPath) {
       navigate('/', { replace: true });
     }
@@ -95,11 +96,29 @@ export default function RouteErrorBoundary() {
 
   const allowEmailLogin = isEnabled((import.meta as any).env?.VITE_ALLOW_EMAIL_LOGIN);
   useEffect(() => {
-    const isResetPath = ['/resetPassword', '/requestPasswordReset'].includes(location.pathname);
+    const isResetPath = ['/forgot-password', '/reset-password'].includes(location.pathname);
     if (!allowEmailLogin && isResetPath) {
       navigate('/', { replace: true });
     }
   }, [allowEmailLogin, location.pathname, navigate]);
+
+  // 404 redirect with countdown
+  useEffect(() => {
+    if (typedError?.status === 404) {
+      const timer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            navigate('/', { replace: true });
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }
+  }, [typedError?.status, navigate]);
+
 
   const errorDetails = {
     message: typedError.message ?? 'An unexpected error occurred',
@@ -154,6 +173,18 @@ export default function RouteErrorBoundary() {
         <h2 className="mb-6 text-center text-3xl font-medium tracking-tight text-text-primary">
           Oops! Something Unexpected Occurred
         </h2>
+
+        {/* 404 Redirect Message */}
+         {typedError?.status === 404 && (
+           <div className="mb-6 rounded-xl border border-blue-500/20 bg-blue-500/5 p-4 text-center">
+             <p className="text-lg font-medium text-text-primary">
+               Page not found
+             </p>
+             <p className="mt-2 text-sm text-text-secondary">
+               You will be redirected to the home page in {countdown} second{countdown !== 1 ? 's' : ''}...
+             </p>
+           </div>
+        )}
 
         {/* Error Message */}
         <div className="mb-4 rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-sm text-gray-600 dark:text-gray-200">
