@@ -112,6 +112,9 @@ endpoints:
       contextStrategy: "refine" 
       summarize: true
       summaryModel: "phi4-mini:latest"
+      headers:
+        X-User-Email: "{{LIBRECHAT_USER_EMAIL}}"
+        X-User-Id: "{{LIBRECHAT_USER_ID}}"
 
 
 memory:

@@ -375,6 +375,8 @@ router.get('/download/:userId/:file_id', async (req, res) => {
   }
 });
 
+
+
 router.post('/', async (req, res) => {
   const metadata = req.body;
   let cleanup = true;
@@ -384,6 +386,37 @@ router.post('/', async (req, res) => {
 
     metadata.temp_file_id = metadata.file_id;
     metadata.file_id = req.file_id;
+
+    // Forward file to external embeddings API only for the custom "Assistant" endpoint
+    // when the user selects the File Search option in the UI
+    try {
+      if (metadata?.endpoint === 'Assistant' && metadata?.tool_resource === 'file_search') {
+        const axios = require('axios');
+        const FormData = require('form-data');
+        const fsSync = require('fs');
+
+        const form = new FormData();
+        const originalName = req.file?.originalname || 'upload.bin';
+        form.append('files', fsSync.createReadStream(req.file.path), originalName);
+
+        // Use full user email as namespace (as requested)
+        const namespace = req.user?.email;
+        form.append('namespace', namespace);
+
+        const fastapiUrl = process.env.EMBEDDINGS_API_URL;
+        await axios.post(`${fastapiUrl}/upload/files/`, form, {
+          headers: {
+            ...form.getHeaders(),
+            'X-User-Email': req.user?.email || '',
+          },
+          maxContentLength: Infinity,
+          maxBodyLength: Infinity,
+        });
+      }
+    } catch (forwardErr) {
+      logger.warn('[/files] Embeddings forward failed (non-blocking):', forwardErr);
+    }
+
 
     if (isAgentsEndpoint(metadata.endpoint)) {
       return await processAgentFileUpload({ req, res, metadata });

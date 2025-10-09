@@ -117,6 +117,7 @@ jobs:
           "OPENID_CLIENT_ID" = "${{ vars.OPENID_CLIENT_ID }}"
           "OPENID_ISSUER" = "${{ vars.OPENID_ISSUER }}"
           "ORCHESTRATOR_URL" = "${{ vars.ORCHESTRATOR_URL }}"
+          "EMBEDDINGS_API_URL" = "${{ vars.EMBEDDINGS_API_URL }}"
         }
 
         ./custom/scripts/build-and-deploy.ps1 `
