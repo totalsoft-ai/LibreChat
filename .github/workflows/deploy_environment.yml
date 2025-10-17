@@ -1,20 +1,26 @@
-name: Build and Deploy - Totalsoft Local
+name: Deploy Environment - Totalsoft Local 
 
-on:
+on:     
   workflow_dispatch:
     inputs:
-      imageTag:
-        description: 'Docker image tag (required for feature branches)'
-        required: false
-        default: ''
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        type: choice
+        options:
+          - production
+          - dev
       imageName:
         description: 'Docker image name'
         required: false
+        type: string
         default: 'ts-librechat'
+
 
 jobs:
   build-and-deploy:
     runs-on: self-hosted
+    environment: ${{ github.event.inputs.environment }}
     
     steps:
     - name: Checkout code
@@ -22,39 +28,32 @@ jobs:
       with:
         fetch-depth: 0
       
-    - name: Set dynamic image tag
+    - name: Set image tag based on environment
       id: set-tag
       shell: pwsh
       run: |
-        $manualTag = "${{ github.event.inputs.imageTag }}"
-        
-        # If manual tag is provided, use it directly
-        if (-not [string]::IsNullOrEmpty($manualTag)) {
-          echo "IMAGE_TAG=$manualTag" >> $env:GITHUB_OUTPUT
-          exit 0
-        }
-        
-        # Get current branch name
-        $branch = git rev-parse --abbrev-ref HEAD
-        
-        # Check if this is a release branch
-        if ($branch -match "^release/(.+)$") {
-          # Extract version from branch name (e.g., release/1.2.3 → v1.2.3)
-          $version = $matches[1]
-          $tag = "v$version"
-          
-          echo "IMAGE_TAG=$tag" >> $env:GITHUB_OUTPUT
-        } elseif ($branch -eq "main") {
-          # For main branch, use latest
-          echo "IMAGE_TAG=latest" >> $env:GITHUB_OUTPUT
-        } else {
-          # For feature branches, require a manually specified tag
-          if ([string]::IsNullOrEmpty($manualTag)) {
-            Write-Error "Error: imageTag parameter is required for feature branches. Please specify a tag."
-            exit 1
+        $environment = "${{ github.event.inputs.environment }}"
+        if (-not [string]::IsNullOrEmpty($environment)) {
+          if ($environment -eq "production") {
+            echo "IMAGE_TAG=latest" >> $env:GITHUB_OUTPUT
+            echo "NS=librechat" >> $env:GITHUB_OUTPUT
+            echo "RELEASE=librechat" >> $env:GITHUB_OUTPUT
+          } elseif ($environment -eq "dev") {
+            echo "IMAGE_TAG=dev" >> $env:GITHUB_OUTPUT
+            echo "NS=librechat-dev" >> $env:GITHUB_OUTPUT
+            echo "RELEASE=librechat-dev" >> $env:GITHUB_OUTPUT
           }
         }
-      
+        exit 0
+
+    - name: Select values file for DEV only
+      if: ${{ github.event.inputs.environment == 'dev' }}
+      shell: pwsh
+      run: |
+        Copy-Item "custom\config\k8s\custom-values_dev.yaml" "custom\config\k8s\custom-values.yaml" -Force
+
+    
+    
     - name: Run build and deploy script
       shell: pwsh
       run: |
@@ -121,8 +120,8 @@ jobs:
           -ImageName "${{ github.event.inputs.imageName }}" `
           -ImageTag "${{ steps.set-tag.outputs.IMAGE_TAG }}" `
           -Registry "registry.totalsoft.local" `
-          -Namespace "librechat" `
-          -HelmReleaseName "librechat" `
+          -Namespace "${{ steps.set-tag.outputs.NS }}" `
+          -HelmReleaseName "${{ steps.set-tag.outputs.RELEASE }}" `
           -RegistryUsername "${{ secrets.REGISTRY_USERNAME }}" `
           -RegistryPassword "${{ secrets.REGISTRY_PASSWORD }}" `
           -Secrets $secretsHashtable `
