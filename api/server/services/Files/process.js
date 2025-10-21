@@ -391,7 +391,12 @@ const processFileUpload = async ({ req, res, metadata }) => {
   const isAssistantUpload = isAssistantsEndpoint(metadata.endpoint);
   const assistantSource =
     metadata.endpoint === EModelEndpoint.azureAssistants ? FileSources.azure : FileSources.openai;
-  const source = isAssistantUpload ? assistantSource : FileSources.vectordb;
+  let source = isAssistantUpload ? assistantSource : FileSources.vectordb;
+
+  // Fallback: if VectorDB is selected but RAG_API_URL is not defined, use current file strategy
+  if (source === FileSources.vectordb && !process.env.RAG_API_URL) {
+    source = req.app.locals.fileStrategy ?? FileSources.local;
+  }
   const { handleFileUpload } = getStrategyFunctions(source);
   const { file_id, temp_file_id } = metadata;
 
@@ -568,10 +573,15 @@ const processAgentFileUpload = async ({ req, res, metadata }) => {
       .json({ message: 'Agent file uploaded and processed successfully', ...result });
   }
 
-  const source =
+  let source =
     tool_resource === EToolResources.file_search
       ? FileSources.vectordb
       : req.app.locals.fileStrategy;
+
+  // Fallback: if VectorDB is selected but RAG_API_URL is not defined, use current file strategy
+  if (source === FileSources.vectordb && !process.env.RAG_API_URL) {
+    source = req.app.locals.fileStrategy ?? FileSources.local;
+  }
 
   const { handleFileUpload } = getStrategyFunctions(source);
   const { file_id, temp_file_id } = metadata;

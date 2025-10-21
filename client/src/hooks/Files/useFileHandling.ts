@@ -201,6 +201,16 @@ const useFileHandling = (params?: UseFileHandling) => {
       formData.append('message_file', 'true');
     }
 
+    // Ensure tool_resource is passed for Assistants uploads as well
+    const asstToolResource = (extendedFile as any).tool_resource ?? metadata['tool_resource'];
+    if (asstToolResource != null) {
+      formData.append('tool_resource', asstToolResource);
+      // For file_search, attach as message_file so tools can access it even without text
+      if (asstToolResource === 'file_search' && formData.get('message_file') == null) {
+        formData.append('message_file', 'true');
+      }
+    }
+
     const endpointsConfig = queryClient.getQueryData<TEndpointsConfig>([QueryKeys.endpoints]);
     const version = endpointsConfig?.[endpoint]?.version ?? defaultAssistantsVersion[endpoint];
 

@@ -375,8 +375,6 @@ router.get('/download/:userId/:file_id', async (req, res) => {
   }
 });
 
-
-
 router.post('/', async (req, res) => {
   const metadata = req.body;
   let cleanup = true;
@@ -387,10 +385,47 @@ router.post('/', async (req, res) => {
     metadata.temp_file_id = metadata.file_id;
     metadata.file_id = req.file_id;
 
+    const isAssistantEndpoint =
+      metadata?.endpoint === 'Assistant' || metadata?.endpoint === EModelEndpoint.assistants;
+
+    // Fallbacks: if upload comes from custom Assistant endpoint but tool_resource wasn't sent,
+    // infer file_search and ensure the file is a message attachment
+    if (!metadata?.tool_resource) {
+      const originalEndpoint = metadata?.original_endpoint;
+      if (
+        metadata?.endpoint === 'Assistant' ||
+        originalEndpoint === 'Assistant' ||
+        originalEndpoint === EModelEndpoint.assistants
+      ) {
+        metadata.tool_resource = 'file_search';
+        metadata.message_file = true;
+        logger.debug('[/files] Inferred tool_resource=file_search for custom Assistant endpoint');
+      }
+    }
+
+    const isAssistantFileSearch = isAssistantEndpoint && metadata?.tool_resource === 'file_search';
+    // Always allow Assistant uploads to be sent without text by attaching as message file
+    if (isAssistantEndpoint && !metadata.message_file) {
+      metadata.message_file = true;
+    }
+
+    // Normalize custom Assistant endpoint to standard assistants endpoint
+    // so we don't route through VectorDB (which requires RAG_API_URL)
+    if (isAssistantFileSearch) {
+      metadata.endpoint = EModelEndpoint.assistants;
+      // Ensure the uploaded file is attached to the message so tools can access it
+      if (!metadata.message_file) {
+        metadata.message_file = true;
+      }
+    }
+
     // Forward file to external embeddings API only for the custom "Assistant" endpoint
     // when the user selects the File Search option in the UI
     try {
-      if (metadata?.endpoint === 'Assistant' && metadata?.tool_resource === 'file_search') {
+      logger.debug(
+        `[/files] upload meta: endpoint=${metadata?.endpoint} tool_resource=${metadata?.tool_resource} file_id=${metadata?.file_id}`,
+      );
+      if (isAssistantFileSearch) {
         const axios = require('axios');
         const FormData = require('form-data');
         const fsSync = require('fs');
@@ -399,24 +434,55 @@ router.post('/', async (req, res) => {
         const originalName = req.file?.originalname || 'upload.bin';
         form.append('files', fsSync.createReadStream(req.file.path), originalName);
 
-        // Use full user email as namespace (as requested)
-        const namespace = req.user?.email;
+        // Build a namespace compatible with FastAPI validation rules
+        // - only [a-zA-Z0-9_-]
+        // - must start with a letter
+        // - length 3..MAX (we trim); MAX configurable via EMBEDDINGS_NAMESPACE_MAXLEN
+        const rawNs = (req.user?.email || req.user?.id || 'user').toString();
+        const replaced = rawNs.replace(/[@.]/g, '_');
+        const cleaned = replaced.replace(/[^a-zA-Z0-9_-]/g, '_');
+        let namespace = cleaned;
+        if (!/^[A-Za-z]/.test(namespace)) {
+          namespace = `u_${namespace}`;
+        }
+        if (namespace.length < 3) {
+          namespace = `${namespace}${'_'.repeat(3 - namespace.length)}`;
+        }
+        const maxNsLen = parseInt(process.env.EMBEDDINGS_NAMESPACE_MAXLEN || '64', 10);
+        if (Number.isFinite(maxNsLen) && namespace.length > maxNsLen) {
+          namespace = namespace.slice(0, maxNsLen);
+        }
+        logger.debug(`[/files] Using namespace for embeddings: ${namespace}`);
         form.append('namespace', namespace);
+        // Provide identifiers for the embedding service
+        form.append('file_id', metadata?.file_id || req.file_id);
+        form.append('user_id', req.user?.id || '');
 
         const fastapiUrl = process.env.EMBEDDINGS_API_URL;
-        await axios.post(`${fastapiUrl}/upload/files/`, form, {
-          headers: {
-            ...form.getHeaders(),
-            'X-User-Email': req.user?.email || '',
-          },
-          maxContentLength: Infinity,
-          maxBodyLength: Infinity,
-        });
+        if (!fastapiUrl) {
+          logger.warn(
+            '[/files] EMBEDDINGS_API_URL is not set; skipping external embeddings upload',
+          );
+        } else {
+          logger.debug('[/files] Forwarding file to EMBEDDINGS_API_URL for embedding');
+          const response = await axios.post(`${fastapiUrl}/upload/files/`, form, {
+            headers: {
+              ...form.getHeaders(),
+              'X-User-Email': req.user?.email || '',
+              'X-Namespace': namespace,
+            },
+            maxContentLength: Infinity,
+            maxBodyLength: Infinity,
+          });
+          logger.debug('[/files] Embeddings forward response status:', response?.status);
+        }
       }
     } catch (forwardErr) {
-      logger.warn('[/files] Embeddings forward failed (non-blocking):', forwardErr);
+      logger.warn(
+        '[/files] Embeddings forward failed (non-blocking):',
+        forwardErr?.message || forwardErr,
+      );
     }
-
 
     if (isAgentsEndpoint(metadata.endpoint)) {
       return await processAgentFileUpload({ req, res, metadata });
