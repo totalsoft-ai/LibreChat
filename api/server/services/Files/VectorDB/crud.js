@@ -100,28 +100,33 @@ async function uploadVectors({ req, file, file_id, entity_id }) {
 
     const formHeaders = formData.getHeaders();
 
-    const response = await axios.post(`${process.env.RAG_API_URL}/upload/files/`, formData, {
+    // Start upload in background - don't wait for response
+    axios.post(`${process.env.RAG_API_URL}/upload/files/`, formData, {
       headers: {
         accept: 'application/json',
         'X-Namespace': sanitizeNamespace(req.user?.email || req.user?.id),
         'X-User-Email': req.user?.email || '',
         ...formHeaders,
       },
+    }).then(response => {
+      const responseData = response.data;
+      logger.debug('Response from Document Loader API', responseData);
+      
+      if (responseData.status !== 'loaded') {
+        logger.warn(`Upload processing failed: ${responseData.message || 'not loaded'}`);
+      } else {
+        logger.info(`File ${file.originalname} successfully processed by Document Loader API`);
+      }
+    }).catch(error => {
+      logger.error('Background upload failed:', error.message);
     });
 
-    const responseData = response.data;
-    logger.debug('Response from Document Loader API', responseData);
-
-    if (responseData.status !== 'loaded') {
-      throw new Error(`Upload failed: ${responseData.message || 'not loaded'}`);
-    }
-
+    // Return immediately - file is "processing" not "embedded"
     return {
       bytes: file.size,
       filename: file.originalname,
-      // Mark as embedded to indicate indexed/uploaded in external system
       filepath: FileSources.vectordb,
-      embedded: true,
+      embedded: false, // Mark as processing, not yet embedded
     };
   } catch (error) {
     logAxiosError({

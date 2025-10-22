@@ -12,7 +12,7 @@ In your response, remember to follow these guidelines:
 `;
 
 function createContextHandlers(req, userMessageContent) {
-  if (!process.env.RAG_API_URL) {
+  if (!process.env.RAG_API_URL || process.env.RAG_DISABLE_QUERIES === 'true') {
     return;
   }
 
