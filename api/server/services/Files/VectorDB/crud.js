@@ -7,6 +7,25 @@ const { FileSources } = require('librechat-data-provider');
 const { generateShortLivedToken } = require('~/server/services/AuthService');
 
 /**
+ * Produces a sanitized namespace string from raw input (email or id).
+ * - lowercase, replace '-', '.', '@', whitespace with '_'
+ * - replace any non [a-z0-9_] with '_'
+ * - ensure starts with a letter by prefixing 'ns_'
+ * - trim to max 63 chars and trim leading/trailing '_'
+ */
+function sanitizeNamespace(raw) {
+  if (!raw) return 'ns_default';
+  let s = String(raw)
+    .toLowerCase()
+    .replace(/[-.@\s]/g, '_')
+    .replace(/[^a-z0-9_]/g, '_');
+  if (!/^[a-z]/.test(s)) s = `ns_${s}`;
+  if (s.length > 63) s = s.slice(0, 63);
+  s = s.replace(/^_+|_+$/g, '');
+  return s || 'ns_default';
+}
+
+/**
  * Deletes a file from the vector database. This function takes a file object, constructs the full path, and
  * verifies the path's validity before deleting the file. If the path is invalid, an error is thrown.
  *
@@ -29,6 +48,7 @@ const deleteVectors = async (req, file) => {
     return await axios.delete(`${process.env.RAG_API_URL}/documents`, {
       headers: {
         Authorization: `Bearer ${jwtToken}`,
+        'X-Namespace': sanitizeNamespace(req.user?.email || req.user?.id),
         'Content-Type': 'application/json',
         accept: 'application/json',
       },
@@ -72,40 +92,36 @@ async function uploadVectors({ req, file, file_id, entity_id }) {
   }
 
   try {
-    const jwtToken = generateShortLivedToken(req.user.id);
     const formData = new FormData();
-    formData.append('file_id', file_id);
-    formData.append('file', fs.createReadStream(file.path));
-    if (entity_id != null && entity_id) {
-      formData.append('entity_id', entity_id);
-    }
+    // FastAPI expects a list under field name "files"; send one file
+    formData.append('files', fs.createReadStream(file.path), file.originalname);
+    // Optionally include namespace as a form field instead of header:
+    // formData.append('namespace', sanitizeNamespace(req.user?.email || req.user?.id));
 
     const formHeaders = formData.getHeaders();
 
-    const response = await axios.post(`${process.env.RAG_API_URL}/embed`, formData, {
+    const response = await axios.post(`${process.env.RAG_API_URL}/upload/files/`, formData, {
       headers: {
-        Authorization: `Bearer ${jwtToken}`,
         accept: 'application/json',
+        'X-Namespace': sanitizeNamespace(req.user?.email || req.user?.id),
+        'X-User-Email': req.user?.email || '',
         ...formHeaders,
       },
     });
 
     const responseData = response.data;
-    logger.debug('Response from embedding file', responseData);
+    logger.debug('Response from Document Loader API', responseData);
 
-    if (responseData.known_type === false) {
-      throw new Error(`File embedding failed. The filetype ${file.mimetype} is not supported`);
-    }
-
-    if (!responseData.status) {
-      throw new Error('File embedding failed.');
+    if (responseData.status !== 'loaded') {
+      throw new Error(`Upload failed: ${responseData.message || 'not loaded'}`);
     }
 
     return {
       bytes: file.size,
       filename: file.originalname,
+      // Mark as embedded to indicate indexed/uploaded in external system
       filepath: FileSources.vectordb,
-      embedded: Boolean(responseData.known_type),
+      embedded: true,
     };
   } catch (error) {
     logAxiosError({
