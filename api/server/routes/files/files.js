@@ -403,7 +403,7 @@ router.post('/', async (req, res) => {
       }
     }
 
-    const isAssistantFileSearch = isAssistantEndpoint && metadata?.tool_resource === 'file_search';
+    const isAssistantFileSearch = isAssistantEndpoint;
     // Always allow Assistant uploads to be sent without text by attaching as message file
     if (isAssistantEndpoint && !metadata.message_file) {
       metadata.message_file = true;
@@ -423,10 +423,23 @@ router.post('/', async (req, res) => {
     // when the user selects the File Search option in the UI
     try {
       logger.debug(
-        `[/files] upload meta: endpoint=${metadata?.endpoint} tool_resource=${metadata?.tool_resource} file_id=${metadata?.file_id}`,
+        `[/files] upload meta: endpoint=${metadata?.endpoint} tool_resource=${metadata?.tool_resource} file_id=${metadata?.file_id} isAssistantEndpoint=${isAssistantEndpoint}`,
       );
-      if (isAssistantFileSearch) {
-        logger.debug('[/files] Processing file for Assistant endpoint with file search');
+      if (isAssistantEndpoint) {
+        // Skip images for orchestrator - only process documents
+        const isImage = req.file?.mimetype?.startsWith('image/');
+        const isDocument = req.file?.mimetype?.includes('pdf') || 
+                          req.file?.mimetype?.includes('text') || 
+                          req.file?.mimetype?.includes('document') ||
+                          req.file?.mimetype?.includes('sheet') ||
+                          req.file?.mimetype?.includes('presentation');
+        
+        if (isImage) {
+          logger.debug('[/files] Skipping image file for Assistant endpoint - only documents are sent to orchestrator');
+        } else if (!isDocument) {
+          logger.debug('[/files] Skipping non-document file for Assistant endpoint - only documents (PDF, TXT, DOC, etc.) are sent to orchestrator');
+        } else {
+          logger.debug('[/files] Processing document file for Assistant endpoint');
         const axios = require('axios');
         const FormData = require('form-data');
         const fsSync = require('fs');
@@ -470,12 +483,16 @@ router.post('/', async (req, res) => {
         } else {
           logger.debug('[/files] Sending file to orchestrator for Assistant endpoint');
           try {
-            // Create task in the format expected by orchestrator loader
+            // Create task with file metadata only (no file content)
             const task = {
               type: 'onboarding_upload_files',
               files: [{
                 filename: originalName,
-                bytes: fsSync.readFileSync(req.file.path)
+                file_id: metadata?.file_id || req.file_id,
+                mimetype: req.file?.mimetype,
+                size: req.file?.size,
+                // Send file content as base64 string for JSON transmission
+                content: fsSync.readFileSync(req.file.path).toString('base64')
               }],
               context: {
                 namespace: namespace,
@@ -483,9 +500,12 @@ router.post('/', async (req, res) => {
               }
             };
 
-            logger.debug('[/files] Sending task to orchestrator loader:', {
+            logger.debug('[/files] Sending file metadata to orchestrator:', {
               taskType: task.type,
               filename: originalName,
+              fileId: metadata?.file_id || req.file_id,
+              mimetype: req.file?.mimetype,
+              size: req.file?.size,
               namespace: namespace,
               userEmail: req.user?.email
             });
@@ -504,13 +524,14 @@ router.post('/', async (req, res) => {
             logger.debug('[/files] Orchestrator response data:', response?.data);
             
             if (response?.data?.success) {
-              logger.debug('[/files] File successfully saved to PostgreSQL via orchestrator loader:', {
+              logger.debug('[/files] File metadata successfully sent to orchestrator:', {
                 filename: originalName,
+                fileId: metadata?.file_id || req.file_id,
                 namespace: namespace,
                 userEmail: req.user?.email
               });
             } else {
-              logger.warn('[/files] Orchestrator loader failed to save file:', {
+              logger.warn('[/files] Orchestrator failed to process file metadata:', {
                 filename: originalName,
                 error: response?.data?.error
               });
@@ -519,6 +540,7 @@ router.post('/', async (req, res) => {
             logger.error('[/files] Error sending to orchestrator:', error.message);
             logger.debug('[/files] Continuing with local file processing');
           }
+        }
         }
       }
     } catch (forwardErr) {
