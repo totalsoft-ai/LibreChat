@@ -1202,6 +1202,13 @@ class BaseClient {
       }
     }
 
+    // Enhanced logging for file processing
+    logger.debug('[BaseClient] Processing attachments:', {
+      resendFiles: this.options.resendFiles,
+      attachmentsCount: this.options.attachments?.length || 0,
+      messagesCount: _messages.length
+    });
+
     /**
      *
      * @param {TMessage} message
@@ -1222,8 +1229,14 @@ class BaseClient {
       }
 
       if (fileIds.length === 0) {
+        logger.debug('[BaseClient] No files to process for message:', { messageId: message.messageId });
         return message;
       }
+
+      logger.debug('[BaseClient] Processing files for message:', { 
+        messageId: message.messageId, 
+        fileIds: fileIds 
+      });
 
       const files = await getFiles(
         {
@@ -1233,9 +1246,21 @@ class BaseClient {
         {},
       );
 
+      logger.debug('[BaseClient] Retrieved files from database:', { 
+        messageId: message.messageId, 
+        filesCount: files.length,
+        fileIds: files.map(f => f.file_id)
+      });
+
       await this.addImageURLs(message, files, this.visionMode);
 
       this.message_file_map[message.messageId] = files;
+      
+      logger.debug('[BaseClient] Files processed successfully:', { 
+        messageId: message.messageId, 
+        filesCount: files.length 
+      });
+      
       return message;
     };
 
@@ -1243,16 +1268,27 @@ class BaseClient {
 
     for (const message of _messages) {
       if (!message.files) {
+        logger.debug('[BaseClient] Message has no files:', { messageId: message.messageId });
         promises.push(message);
         continue;
       }
 
+      logger.debug('[BaseClient] Message has files, processing:', { 
+        messageId: message.messageId, 
+        filesCount: message.files.length 
+      });
       promises.push(processMessage(message));
     }
 
     const messages = await Promise.all(promises);
 
-    this.checkVisionRequest(Object.values(this.message_file_map ?? {}).flat());
+    const allFiles = Object.values(this.message_file_map ?? {}).flat();
+    logger.debug('[BaseClient] Final file processing result:', { 
+      totalFiles: allFiles.length,
+      messageFileMap: Object.keys(this.message_file_map || {})
+    });
+
+    this.checkVisionRequest(allFiles);
     return messages;
   }
 }

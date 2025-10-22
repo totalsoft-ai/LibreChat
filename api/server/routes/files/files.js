@@ -461,20 +461,27 @@ router.post('/', async (req, res) => {
         const fastapiUrl = process.env.EMBEDDINGS_API_URL;
         if (!fastapiUrl) {
           logger.warn(
-            '[/files] EMBEDDINGS_API_URL is not set; skipping external embeddings upload',
+            '[/files] EMBEDDINGS_API_URL is not set; file will be processed locally but may not be available to orchestrator',
           );
+          // Force file processing even without RAG API
+          logger.debug('[/files] Processing file locally for message attachment');
         } else {
           logger.debug('[/files] Forwarding file to EMBEDDINGS_API_URL for embedding');
-          const response = await axios.post(`${fastapiUrl}/upload/files/`, form, {
-            headers: {
-              ...form.getHeaders(),
-              'X-User-Email': req.user?.email || '',
-              'X-Namespace': namespace,
-            },
-            maxContentLength: Infinity,
-            maxBodyLength: Infinity,
-          });
-          logger.debug('[/files] Embeddings forward response status:', response?.status);
+          try {
+            const response = await axios.post(`${fastapiUrl}/upload/files/`, form, {
+              headers: {
+                ...form.getHeaders(),
+                'X-User-Email': req.user?.email || '',
+                'X-Namespace': namespace,
+              },
+              maxContentLength: Infinity,
+              maxBodyLength: Infinity,
+            });
+            logger.debug('[/files] Embeddings forward response status:', response?.status);
+          } catch (error) {
+            logger.error('[/files] Error forwarding to embeddings API:', error.message);
+            logger.debug('[/files] Continuing with local file processing');
+          }
         }
       }
     } catch (forwardErr) {
