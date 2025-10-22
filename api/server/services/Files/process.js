@@ -42,36 +42,47 @@ const { logger } = require('~/config');
  * @returns
  */
 const processFiles = async (files, fileIds) => {
-  const promises = [];
-  const seen = new Set();
+  // Enhanced file processing with better logging
+  logger.debug('[processFiles] Processing files:', { 
+    fileCount: files?.length || 0, 
+    fileIds: fileIds?.length || 0 
+  });
 
-  for (let file of files) {
-    const { file_id } = file;
-    if (seen.has(file_id)) {
-      continue;
-    }
-    seen.add(file_id);
-    promises.push(updateFileUsage({ file_id }));
+  // Use the new forceFileProcessing function for better file handling
+  if (files && files.length > 0) {
+    const processedFiles = await forceFileProcessing(files);
+    logger.debug('[processFiles] Files processed successfully:', { 
+      totalFiles: files.length,
+      processedFiles: processedFiles.length 
+    });
+    return processedFiles;
   }
 
-  if (!fileIds) {
+  // Fallback to original logic for fileIds
+  if (fileIds && fileIds.length > 0) {
+    const promises = [];
+    const seen = new Set();
+
+    for (let file_id of fileIds) {
+      if (seen.has(file_id)) {
+        continue;
+      }
+      seen.add(file_id);
+      logger.debug('[processFiles] Processing file by ID:', { file_id });
+      promises.push(updateFileUsage({ file_id }));
+    }
+
     const results = await Promise.all(promises);
-    // Filter out null results from failed updateFileUsage calls
-    return results.filter((result) => result != null);
+    const validResults = results.filter((result) => result != null);
+    logger.debug('[processFiles] File IDs processed:', { 
+      totalFileIds: fileIds.length,
+      validResults: validResults.length 
+    });
+    return validResults;
   }
 
-  for (let file_id of fileIds) {
-    if (seen.has(file_id)) {
-      continue;
-    }
-    seen.add(file_id);
-    promises.push(updateFileUsage({ file_id }));
-  }
-
-  // TODO: calculate token cost when image is first uploaded
-  const results = await Promise.all(promises);
-  // Filter out null results from failed updateFileUsage calls
-  return results.filter((result) => result != null);
+  logger.warn('[processFiles] No files or fileIds provided');
+  return [];
 };
 
 /**
@@ -396,6 +407,7 @@ const processFileUpload = async ({ req, res, metadata }) => {
   // Fallback: if VectorDB is selected but RAG_API_URL is not defined, use current file strategy
   if (source === FileSources.vectordb && !process.env.RAG_API_URL) {
     source = req.app.locals.fileStrategy ?? FileSources.local;
+    logger.warn('[processFileUpload] RAG_API_URL not set, falling back to local file strategy');
   }
   const { handleFileUpload } = getStrategyFunctions(source);
   const { file_id, temp_file_id } = metadata;
@@ -581,6 +593,7 @@ const processAgentFileUpload = async ({ req, res, metadata }) => {
   // Fallback: if VectorDB is selected but RAG_API_URL is not defined, use current file strategy
   if (source === FileSources.vectordb && !process.env.RAG_API_URL) {
     source = req.app.locals.fileStrategy ?? FileSources.local;
+    logger.warn('[processAgentFileUpload] RAG_API_URL not set, falling back to local file strategy');
   }
 
   const { handleFileUpload } = getStrategyFunctions(source);
@@ -964,6 +977,49 @@ function filterFile({ req, image, isAvatar }) {
   }
 }
 
+/**
+ * Forces file processing for message attachments
+ * This ensures files are properly attached to messages even without RAG
+ */
+const forceFileProcessing = async (files) => {
+  if (!files || files.length === 0) {
+    return [];
+  }
+
+  logger.debug('[forceFileProcessing] Forcing file processing for:', { 
+    fileCount: files.length,
+    fileIds: files.map(f => f.file_id)
+  });
+
+  const processedFiles = [];
+  
+  for (const file of files) {
+    try {
+      // Force file usage update
+      const result = await updateFileUsage({ file_id: file.file_id });
+      if (result) {
+        processedFiles.push(result);
+        logger.debug('[forceFileProcessing] Successfully processed file:', { 
+          file_id: file.file_id,
+          filename: file.filename 
+        });
+      }
+    } catch (error) {
+      logger.error('[forceFileProcessing] Error processing file:', { 
+        file_id: file.file_id,
+        error: error.message 
+      });
+    }
+  }
+
+  logger.debug('[forceFileProcessing] Processed files result:', { 
+    totalFiles: files.length,
+    processedFiles: processedFiles.length 
+  });
+
+  return processedFiles;
+};
+
 module.exports = {
   filterFile,
   processFiles,
@@ -975,4 +1031,5 @@ module.exports = {
   processDeleteRequest,
   processAgentFileUpload,
   retrieveAndProcessFile,
+  forceFileProcessing,
 };
