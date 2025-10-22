@@ -426,6 +426,7 @@ router.post('/', async (req, res) => {
         `[/files] upload meta: endpoint=${metadata?.endpoint} tool_resource=${metadata?.tool_resource} file_id=${metadata?.file_id}`,
       );
       if (isAssistantFileSearch) {
+        logger.debug('[/files] Processing file for Assistant endpoint with file search');
         const axios = require('axios');
         const FormData = require('form-data');
         const fsSync = require('fs');
@@ -458,28 +459,64 @@ router.post('/', async (req, res) => {
         form.append('file_id', metadata?.file_id || req.file_id);
         form.append('user_id', req.user?.id || '');
 
-        const fastapiUrl = process.env.EMBEDDINGS_API_URL;
-        if (!fastapiUrl) {
+        // For Assistant endpoint, send files to orchestrator in the correct format
+        const orchestratorUrl = process.env.ORCHESTRATOR_URL;
+        if (!orchestratorUrl) {
           logger.warn(
-            '[/files] EMBEDDINGS_API_URL is not set; file will be processed locally but may not be available to orchestrator',
+            '[/files] ORCHESTRATOR_URL is not set; file will be processed locally but may not be available to orchestrator',
           );
-          // Force file processing even without RAG API
+          // Force file processing even without orchestrator
           logger.debug('[/files] Processing file locally for message attachment');
         } else {
-          logger.debug('[/files] Forwarding file to EMBEDDINGS_API_URL for embedding');
+          logger.debug('[/files] Sending file to orchestrator for Assistant endpoint');
           try {
-            const response = await axios.post(`${fastapiUrl}/upload/files/`, form, {
-              headers: {
-                ...form.getHeaders(),
-                'X-User-Email': req.user?.email || '',
-                'X-Namespace': namespace,
-              },
-              maxContentLength: Infinity,
-              maxBodyLength: Infinity,
+            // Create task in the format expected by orchestrator loader
+            const task = {
+              type: 'onboarding_upload_files',
+              files: [{
+                filename: originalName,
+                bytes: fsSync.readFileSync(req.file.path)
+              }],
+              context: {
+                namespace: namespace,
+                user_email: req.user?.email || ''
+              }
+            };
+
+            logger.debug('[/files] Sending task to orchestrator loader:', {
+              taskType: task.type,
+              filename: originalName,
+              namespace: namespace,
+              userEmail: req.user?.email
             });
-            logger.debug('[/files] Embeddings forward response status:', response?.status);
+
+            const response = await axios.post(`${orchestratorUrl}/agent/work`, task, {
+              headers: {
+                'Content-Type': 'application/json',
+                'X-User-Email': req.user?.email || '',
+                'X-User-Id': req.user?.id || '',
+                'x-api-key': process.env.ORCHESTRATOR_API_KEY || ''
+              },
+              timeout: 60000
+            });
+            
+            logger.debug('[/files] Orchestrator response status:', response?.status);
+            logger.debug('[/files] Orchestrator response data:', response?.data);
+            
+            if (response?.data?.success) {
+              logger.debug('[/files] File successfully saved to PostgreSQL via orchestrator loader:', {
+                filename: originalName,
+                namespace: namespace,
+                userEmail: req.user?.email
+              });
+            } else {
+              logger.warn('[/files] Orchestrator loader failed to save file:', {
+                filename: originalName,
+                error: response?.data?.error
+              });
+            }
           } catch (error) {
-            logger.error('[/files] Error forwarding to embeddings API:', error.message);
+            logger.error('[/files] Error sending to orchestrator:', error.message);
             logger.debug('[/files] Continuing with local file processing');
           }
         }
