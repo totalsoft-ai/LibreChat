@@ -42,7 +42,7 @@ mcpServers:
         token_url: https://erp-reports.totalsoft.local/oauth/token
         client_id: ${KEYCLOAK_CLIENT_ID}
         client_secret: ${KEYCLOAK_CLIENT_SECRET}        
-        redirect_uri: http://librechat-dev.totalsoft.local/oauth/callback
+        redirect_uri: https://librechat-dev.totalsoft.local/oauth/callback
         scope: "read execute"
 
 # Definition of custom endpoints
