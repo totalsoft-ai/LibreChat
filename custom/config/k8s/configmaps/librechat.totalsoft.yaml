@@ -12,7 +12,7 @@ cache: false
 
 # Custom interface configuration
 interface:
-  customWelcome: "Welcome to LibreChat! Enjoy your experience."
+  customWelcome: "Hello {{user.name}}!"
   endpointsMenu: true
   modelSelect: true
   parameters: true
@@ -32,17 +32,17 @@ actions:
 
 
 mcpServers:
-  spring-mcp:
+  charisma-reports-informator:
       startup: false
       requiresOAuth: true
       type: streamable-http
-      url: ${MCP_SERVER_BASEURL}/mcp
+      url: ${CHARISMA_REPORTS_INFORMATOR}/mcp
       oauth:
-        authorization_url: https://mcp.totalsoft.local/oauth/authorize       
-        token_url: https://mcp.totalsoft.local/oauth/token
+        authorization_url: https://erp-reports.totalsoft.local/oauth/authorize        
+        token_url: https://erp-reports.totalsoft.local/oauth/token
         client_id: ${KEYCLOAK_CLIENT_ID}
-        client_secret: ${KEYCLOAK_CLIENT_SECRET}
-        redirect_uri: https://librechat.totalsoft.local/oauth/callback
+        client_secret: ${KEYCLOAK_CLIENT_SECRET}        
+        redirect_uri: http://librechat-dev.totalsoft.local/oauth/callback
         scope: "read execute"
 
 # Definition of custom endpoints
@@ -102,3 +102,31 @@ endpoints:
         default: ["Test_Gemma_Retrained:latest"]
         fetch: true
       streamRate: 35
+    - name: "Assistant"
+      baseURL: "${ORCHESTRATOR_URL}"
+      apiKey: "$ORCHESTRATOR_API_KEY}"
+      titleMessageRole: "user"
+      models:
+        default: ["gemma3:4b"]
+      maxContextTokens: 16000
+      contextStrategy: "refine" 
+      summarize: true
+      summaryModel: "phi4-mini:latest"
+      headers:
+        X-User-Email: "{{LIBRECHAT_USER_EMAIL}}"
+        X-User-Id: "{{LIBRECHAT_USER_ID}}"
+
+
+memory:
+  disabled: false
+  personalize: true
+  tokenLimit: 3000
+  messageWindowSize: 8
+  agent:
+    provider: "Local Models"
+    model: "phi4-mini:latest"
+    instructions: |
+      You are a memory assistant. Store only user-approved, useful facts and preferences.
+    model_parameters:
+      temperature: 0.2
+      max_tokens: 1000

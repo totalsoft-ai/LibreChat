@@ -122,17 +122,17 @@ export default function useArtifacts() {
     setCurrentArtifactId(orderedArtifactIds[newIndex]);
   };
 
-  const isMermaid = useMemo(() => {
+  const isPlantUML = useMemo(() => {
     if (currentArtifact?.type == null) {
       return false;
     }
     const key = getKey(currentArtifact.type, currentArtifact.language);
-    return key.includes('mermaid');
+    return key.includes('plantuml');
   }, [currentArtifact?.type, currentArtifact?.language]);
 
   return {
     activeTab,
-    isMermaid,
+    isPlantUML,
     setActiveTab,
     currentIndex,
     cycleArtifact,

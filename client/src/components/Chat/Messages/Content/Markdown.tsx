@@ -30,7 +30,15 @@ const Markdown = memo(({ content = '', isLatestMessage }: TContentProps) => {
     if (isInitializing) {
       return '';
     }
-    return LaTeXParsing ? preprocessLaTeX(content) : content;
+    const base = LaTeXParsing ? preprocessLaTeX(content) : content;
+    // Auto-wrap bare @startuml ... @enduml blocks so they render as diagrams
+    try {
+      const pattern = /(^|\n)@startuml[\s\S]*?@enduml(\n|$)/g;
+      if (pattern.test(base)) {
+        return base.replace(pattern, (m) => `\n\n\`\`\`plantuml\n${m.trim()}\n\`\`\`\n\n`);
+      }
+    } catch {}
+    return base;
   }, [content, LaTeXParsing, isInitializing]);
 
   const rehypePlugins = useMemo(

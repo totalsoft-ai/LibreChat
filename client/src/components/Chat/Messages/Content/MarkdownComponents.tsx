@@ -9,6 +9,7 @@ import { useCodeBlockContext } from '~/Providers';
 import { handleDoubleClick } from '~/utils';
 import { useLocalize } from '~/hooks';
 import store from '~/store';
+import PlantUMLDiagram from '../../../Artifacts/PlantUML';
 
 type TCodeProps = {
   inline?: boolean;
@@ -24,6 +25,7 @@ export const code: React.ElementType = memo(({ className, children }: TCodeProps
   const match = /language-(\w+)/.exec(className ?? '');
   const lang = match && match[1];
   const isMath = lang === 'math';
+  const isPlantUML = lang === 'plantuml' || lang === 'puml' || lang === 'uml';
   const isSingleLine = typeof children === 'string' && children.split('\n').length === 1;
 
   const { getNextIndex, resetCounter } = useCodeBlockContext();
@@ -35,6 +37,9 @@ export const code: React.ElementType = memo(({ className, children }: TCodeProps
 
   if (isMath) {
     return <>{children}</>;
+  } else if (isPlantUML && typeof children === 'string') {
+    // Render PlantUML diagrams in normal chat when fenced as ```plantuml
+    return <PlantUMLDiagram content={children} />;
   } else if (isSingleLine) {
     return (
       <code onDoubleClick={handleDoubleClick} className={className}>

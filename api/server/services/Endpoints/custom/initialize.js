@@ -13,6 +13,7 @@ const { fetchModels } = require('~/server/services/ModelService');
 const OpenAIClient = require('~/app/clients/OpenAIClient');
 const { isUserProvided } = require('~/server/utils');
 const getLogStores = require('~/cache/getLogStores');
+const { getAllUserMemories } = require('~/models');
 
 const { PROXY } = process.env;
 
@@ -128,6 +129,29 @@ const initializeClient = async ({ req, res, endpointOption, optionsOnly, overrid
     ...endpointOption,
   };
 
+  // If not summarizing, cap history to the last 5 messages to control context size
+  try {
+    if (!endpointConfig.summarize && Array.isArray(req.body?.messages)) {
+      req.body.messages = req.body.messages.slice(-5);
+    }
+  } catch {}
+
+  // Build a short memory prefix from user's saved memories (top 5, newest first)
+  let memoryPrefix = '';
+  try {
+    const userMems = await getAllUserMemories(req.user.id);
+    if (Array.isArray(userMems) && userMems.length > 0) {
+      const top = userMems
+        .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+        .slice(0, 5)
+        .map((m, i) => `${i + 1}. ${m.value}`)
+        .join('\n');
+      if (top && top.trim() !== '') {
+        memoryPrefix = `Personalization Context:\n${top}\n\n`;
+      }
+    }
+  } catch {}
+
   if (optionsOnly) {
     const modelOptions = endpointOption?.model_parameters ?? {};
     if (endpoint !== Providers.OLLAMA) {
@@ -142,6 +166,12 @@ const initializeClient = async ({ req, res, endpointOption, optionsOnly, overrid
       if (options != null) {
         options.useLegacyContent = true;
         options.endpointTokenConfig = endpointTokenConfig;
+        // Inject memory prefix into system context
+        const existing = options.llmConfig?.promptPrefix ?? '';
+        options.llmConfig.promptPrefix = `${memoryPrefix}${existing}`;
+        // Also inject into additional instructions to increase influence
+        //const existingAddl = options.llmConfig?.additional_instructions ?? '';
+        //options.llmConfig.additional_instructions = `${memoryPrefix}${existingAddl}`;
       }
       if (!clientOptions.streamRate) {
         return options;
@@ -163,6 +193,14 @@ const initializeClient = async ({ req, res, endpointOption, optionsOnly, overrid
       useLegacyContent: true,
       llmConfig: modelOptions,
     };
+  }
+
+  // Non-options branch: inject memory prefix via client options
+  if (memoryPrefix) {
+    const existingPrefix = clientOptions.promptPrefix ?? '';
+    clientOptions.promptPrefix = `${memoryPrefix}${existingPrefix}`;
+    //const existingAddl = clientOptions.additional_instructions ?? '';
+    //clientOptions.additional_instructions = `${memoryPrefix}${existingAddl}`;
   }
 
   const client = new OpenAIClient(apiKey, clientOptions);

@@ -1,6 +1,7 @@
 /* eslint-disable i18next/no-literal-string */
 import { Button } from '@librechat/client';
-import { useRouteError } from 'react-router-dom';
+import { useRouteError, useNavigate, useLocation } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import logger from '~/utils/logger';
 
 interface UserAgentData {
@@ -70,7 +71,12 @@ const getBrowserInfo = async () => {
   };
 };
 
+const isEnabled = (value: unknown) => ['true', 'yes'].includes(String(value ?? '').toLowerCase());
+
 export default function RouteErrorBoundary() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [countdown, setCountdown] = useState(5);
   const typedError = useRouteError() as {
     message?: string;
     stack?: string;
@@ -78,6 +84,36 @@ export default function RouteErrorBoundary() {
     statusText?: string;
     data?: unknown;
   };
+
+  const allowRegistration = isEnabled((import.meta as any).env?.VITE_ALLOW_REGISTRATION);
+  const allowEmailLogin = isEnabled((import.meta as any).env?.VITE_ALLOW_EMAIL_LOGIN);
+  useEffect(() => {
+    const path = location.pathname;
+    const shouldRedirect =
+      (!allowRegistration && ['/register', '/auth/register'].includes(path)) ||
+      (!allowEmailLogin && ['/resetPassword', '/requestPasswordReset'].includes(path));
+
+    if (shouldRedirect) {
+      navigate('/', { replace: true });
+    }
+  }, [allowRegistration, allowEmailLogin, location.pathname, navigate]);
+
+  // 404 redirect with countdown
+  useEffect(() => {
+    if (typedError?.status === 404) {
+      const timer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            navigate('/', { replace: true });
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }
+  }, [typedError?.status, navigate]);
 
   const errorDetails = {
     message: typedError.message ?? 'An unexpected error occurred',
@@ -132,6 +168,17 @@ export default function RouteErrorBoundary() {
         <h2 className="mb-6 text-center text-3xl font-medium tracking-tight text-text-primary">
           Oops! Something Unexpected Occurred
         </h2>
+
+        {/* 404 Redirect Message */}
+        {typedError?.status === 404 && (
+          <div className="mb-6 rounded-xl border border-blue-500/20 bg-blue-500/5 p-4 text-center">
+            <p className="text-lg font-medium text-text-primary">Page not found</p>
+            <p className="mt-2 text-sm text-text-secondary">
+              You will be redirected to the home page in {countdown} second
+              {countdown !== 1 ? 's' : ''}...
+            </p>
+          </div>
+        )}
 
         {/* Error Message */}
         <div className="mb-4 rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-sm text-gray-600 dark:text-gray-200">
