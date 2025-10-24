@@ -3,6 +3,7 @@ const { EModelEndpoint, ArtifactModes } = require('librechat-data-provider');
 const { generateShadcnPrompt } = require('~/app/clients/prompts/shadcn-docs/generate');
 const { components } = require('~/app/clients/prompts/shadcn-docs/components');
 
+/** @deprecated */
 // eslint-disable-next-line no-unused-vars
 const artifactsPromptV1 = dedent`The assistant can create and reference artifacts during conversations.
   
@@ -124,6 +125,7 @@ Here are some examples of correct usage of artifacts:
     </assistant_response>
   </example>
 </examples>`;
+
 const artifactsPrompt = dedent`The assistant can create and reference artifacts during conversations.
   
 Artifacts are for substantial, self-contained content that users might modify or reuse, displayed in a separate UI window for clarity.
@@ -177,6 +179,10 @@ Artifacts are for substantial, self-contained content that users might modify or
     - PlantUML Diagrams: "application/vnd.plantuml"
       - The user interface will render PlantUML diagrams placed within the artifact tags.
       - PlantUML supports various diagram types including sequence diagrams, class diagrams, use case diagrams, activity diagrams, and more.
+    - Markdown: "text/markdown" or "text/md"
+      - The user interface will render Markdown content placed within the artifact tags.
+      - Supports standard Markdown syntax including headers, lists, links, images, code blocks, tables, and more.
+      - Both "text/markdown" and "text/md" are accepted as valid MIME types for Markdown content.
     - React Components: "application/vnd.react"
       - Use this for displaying either: React elements, e.g. \`<strong>Hello World!</strong>\`, React pure functional components, e.g. \`() => <strong>Hello World!</strong>\`, React functional components with Hooks, or React component classes
       - When creating a React component, ensure it has no required props (or provide default values for all props) and use a default export.
@@ -382,6 +388,10 @@ Artifacts are for substantial, self-contained content that users might modify or
     - PlantUML Diagrams: "application/vnd.plantuml"
       - The user interface will render PlantUML diagrams placed within the artifact tags.
       - PlantUML supports various diagram types including sequence diagrams, class diagrams, use case diagrams, activity diagrams, and more.
+    - Markdown: "text/markdown" or "text/md"
+      - The user interface will render Markdown content placed within the artifact tags.
+      - Supports standard Markdown syntax including headers, lists, links, images, code blocks, tables, and more.
+      - Both "text/markdown" and "text/md" are accepted as valid MIME types for Markdown content.
     - React Components: "application/vnd.react"
       - Use this for displaying either: React elements, e.g. \`<strong>Hello World!</strong>\`, React pure functional components, e.g. \`() => <strong>Hello World!</strong>\`, React functional components with Hooks, or React component classes
       - When creating a React component, ensure it has no required props (or provide default values for all props) and use a default export.

@@ -1,14 +1,19 @@
-import { Switch } from '@librechat/client';
 import { RecoilState, useRecoilState } from 'recoil';
-import HoverCardSettings from './HoverCardSettings';
+import { Switch, InfoHoverCard, ESide } from '@librechat/client';
 import { useLocalize } from '~/hooks';
+
+type LocalizeFn = ReturnType<typeof useLocalize>;
+type LocalizeKey = Parameters<LocalizeFn>[0];
 
 interface ToggleSwitchProps {
   stateAtom: RecoilState<boolean>;
-  localizationKey: string;
-  hoverCardText?: string;
+  localizationKey: LocalizeKey;
+  hoverCardText?: LocalizeKey;
   switchId: string;
   onCheckedChange?: (value: boolean) => void;
+  showSwitch?: boolean;
+  disabled?: boolean;
+  strongLabel?: boolean;
 }
 
 const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
@@ -17,22 +22,31 @@ const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
   hoverCardText,
   switchId,
   onCheckedChange,
+  showSwitch = true,
+  disabled = false,
+  strongLabel = false,
 }) => {
-  const [switchState, setSwitchState] = useRecoilState<boolean>(stateAtom);
+  const [switchState, setSwitchState] = useRecoilState(stateAtom);
   const localize = useLocalize();
 
   const handleCheckedChange = (value: boolean) => {
     setSwitchState(value);
-    if (onCheckedChange) {
-      onCheckedChange(value);
-    }
+    onCheckedChange?.(value);
   };
+
+  const labelId = `${switchId}-label`;
+
+  if (!showSwitch) {
+    return null;
+  }
 
   return (
     <div className="flex items-center justify-between">
       <div className="flex items-center space-x-2">
-        <div>{localize(localizationKey as any)}</div>
-        {hoverCardText && <HoverCardSettings side="bottom" text={hoverCardText} />}
+        <div id={labelId}>
+          {strongLabel ? <strong>{localize(localizationKey)}</strong> : localize(localizationKey)}
+        </div>
+        {hoverCardText && <InfoHoverCard side={ESide.Bottom} text={localize(hoverCardText)} />}
       </div>
       <Switch
         id={switchId}
@@ -40,6 +54,8 @@ const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
         onCheckedChange={handleCheckedChange}
         className="ml-4"
         data-testid={switchId}
+        aria-labelledby={labelId}
+        disabled={disabled}
       />
     </div>
   );
