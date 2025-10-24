@@ -2,85 +2,91 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 
-// Import your JSON translations
+// Only import English as default/fallback - other languages will be lazy loaded
 import translationEn from './en/translation.json';
-import translationAr from './ar/translation.json';
-import translationCa from './ca/translation.json';
-import translationCs from './cs/translation.json';
-import translationDa from './da/translation.json';
-import translationDe from './de/translation.json';
-import translationEs from './es/translation.json';
-import translationEt from './et/translation.json';
-import translationFa from './fa/translation.json';
-import translationFr from './fr/translation.json';
-import translationIt from './it/translation.json';
-import translationPl from './pl/translation.json';
-import translationPt_BR from './pt-BR/translation.json';
-import translationPt_PT from './pt-PT/translation.json';
-import translationRu from './ru/translation.json';
-import translationJa from './ja/translation.json';
-import translationKa from './ka/translation.json';
-import translationSv from './sv/translation.json';
-import translationKo from './ko/translation.json';
-import translationLv from './lv/translation.json';
-import translationTh from './th/translation.json';
-import translationTr from './tr/translation.json';
-import translationUg from './ug/translation.json';
-import translationVi from './vi/translation.json';
-import translationNl from './nl/translation.json';
-import translationId from './id/translation.json';
-import translationHe from './he/translation.json';
-import translationHu from './hu/translation.json';
-import translationHy from './hy/translation.json';
-import translationFi from './fi/translation.json';
-import translationZh_Hans from './zh-Hans/translation.json';
-import translationZh_Hant from './zh-Hant/translation.json';
-import translationBo from './bo/translation.json';
-import translationUk from './uk/translation.json';
-import translationBs from './bs/translation.json';
-import translationNb from './nb/translation.json';
-import translationSl from './sl/translation.json';
 
 export const defaultNS = 'translation';
 
+// Supported languages list
+export const supportedLanguages = [
+  'en', 'ar', 'bs', 'ca', 'cs', 'zh-Hans', 'zh-Hant', 'da', 'de', 'es', 'et',
+  'fa', 'fr', 'it', 'nb', 'pl', 'pt-BR', 'pt-PT', 'ru', 'ja', 'ka', 'sv',
+  'ko', 'lv', 'th', 'tr', 'ug', 'vi', 'nl', 'id', 'he', 'hu', 'hy', 'fi',
+  'bo', 'sl', 'uk',
+] as const;
+
+// Map of language codes to their dynamic import functions
+const languageLoaders: Record<string, () => Promise<{ default: any }>> = {
+  ar: () => import('./ar/translation.json'),
+  bs: () => import('./bs/translation.json'),
+  ca: () => import('./ca/translation.json'),
+  cs: () => import('./cs/translation.json'),
+  'zh-Hans': () => import('./zh-Hans/translation.json'),
+  'zh-Hant': () => import('./zh-Hant/translation.json'),
+  da: () => import('./da/translation.json'),
+  de: () => import('./de/translation.json'),
+  es: () => import('./es/translation.json'),
+  et: () => import('./et/translation.json'),
+  fa: () => import('./fa/translation.json'),
+  fr: () => import('./fr/translation.json'),
+  it: () => import('./it/translation.json'),
+  nb: () => import('./nb/translation.json'),
+  pl: () => import('./pl/translation.json'),
+  'pt-BR': () => import('./pt-BR/translation.json'),
+  'pt-PT': () => import('./pt-PT/translation.json'),
+  ru: () => import('./ru/translation.json'),
+  ja: () => import('./ja/translation.json'),
+  ka: () => import('./ka/translation.json'),
+  sv: () => import('./sv/translation.json'),
+  ko: () => import('./ko/translation.json'),
+  lv: () => import('./lv/translation.json'),
+  th: () => import('./th/translation.json'),
+  tr: () => import('./tr/translation.json'),
+  ug: () => import('./ug/translation.json'),
+  vi: () => import('./vi/translation.json'),
+  nl: () => import('./nl/translation.json'),
+  id: () => import('./id/translation.json'),
+  he: () => import('./he/translation.json'),
+  hu: () => import('./hu/translation.json'),
+  hy: () => import('./hy/translation.json'),
+  fi: () => import('./fi/translation.json'),
+  bo: () => import('./bo/translation.json'),
+  sl: () => import('./sl/translation.json'),
+  uk: () => import('./uk/translation.json'),
+};
+
+// Cache for loaded languages
+const loadedLanguages = new Set<string>(['en']);
+
+/**
+ * Dynamically load a language translation
+ * @param language - Language code to load
+ * @returns Promise that resolves when language is loaded
+ */
+export async function loadLanguage(language: string): Promise<void> {
+  // Already loaded or English (pre-loaded)
+  if (loadedLanguages.has(language) || language === 'en') {
+    return;
+  }
+
+  const loader = languageLoaders[language];
+  if (!loader) {
+    console.warn(`Language "${language}" is not supported`);
+    return;
+  }
+
+  try {
+    const translation = await loader();
+    i18n.addResourceBundle(language, defaultNS, translation.default, true, true);
+    loadedLanguages.add(language);
+  } catch (error) {
+    console.error(`Failed to load language "${language}":`, error);
+  }
+}
+
+// Initial resources with only English
 export const resources = {
   en: { translation: translationEn },
-  ar: { translation: translationAr },
-  bs: { translation: translationBs },
-  ca: { translation: translationCa },
-  cs: { translation: translationCs },
-  'zh-Hans': { translation: translationZh_Hans },
-  'zh-Hant': { translation: translationZh_Hant },
-  da: { translation: translationDa },
-  de: { translation: translationDe },
-  es: { translation: translationEs },
-  et: { translation: translationEt },
-  fa: { translation: translationFa },
-  fr: { translation: translationFr },
-  it: { translation: translationIt },
-  nb: { translation: translationNb },
-  pl: { translation: translationPl },
-  'pt-BR': { translation: translationPt_BR },
-  'pt-PT': { translation: translationPt_PT },
-  ru: { translation: translationRu },
-  ja: { translation: translationJa },
-  ka: { translation: translationKa },
-  sv: { translation: translationSv },
-  ko: { translation: translationKo },
-  lv: { translation: translationLv },
-  th: { translation: translationTh },
-  tr: { translation: translationTr },
-  ug: { translation: translationUg },
-  vi: { translation: translationVi },
-  nl: { translation: translationNl },
-  id: { translation: translationId },
-  he: { translation: translationHe },
-  hu: { translation: translationHu },
-  hy: { translation: translationHy },
-  fi: { translation: translationFi },
-  bo: { translation: translationBo },
-  sl: { translation: translationSl },
-  uk: { translation: translationUk },
 } as const;
 
 i18n
@@ -100,5 +106,24 @@ i18n
     resources,
     interpolation: { escapeValue: false },
   });
+
+// Load the detected language after initialization
+i18n.on('initialized', () => {
+  const currentLanguage = i18n.language;
+  if (currentLanguage && currentLanguage !== 'en') {
+    loadLanguage(currentLanguage).catch((error) => {
+      console.error('Failed to load initial language:', error);
+    });
+  }
+});
+
+// Listen for language changes and load them dynamically
+i18n.on('languageChanged', (language) => {
+  if (language && language !== 'en' && !loadedLanguages.has(language)) {
+    loadLanguage(language).catch((error) => {
+      console.error('Failed to load language on change:', error);
+    });
+  }
+});
 
 export default i18n;

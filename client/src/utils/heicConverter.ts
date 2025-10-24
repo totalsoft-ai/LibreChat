@@ -1,4 +1,11 @@
-import { heicTo, isHeic } from 'heic-to';
+/**
+ * Dynamically import the heic-to library
+ * This ensures the 2.19 MB library is only loaded when actually needed
+ */
+const loadHeicLibrary = async () => {
+  const module = await import('heic-to');
+  return module;
+};
 
 /**
  * Check if a file is in HEIC format
@@ -7,6 +14,7 @@ import { heicTo, isHeic } from 'heic-to';
  */
 export const isHEICFile = async (file: File): Promise<boolean> => {
   try {
+    const { isHeic } = await loadHeicLibrary();
     return await isHeic(file);
   } catch (error) {
     console.warn('Error checking if file is HEIC:', error);
@@ -28,6 +36,12 @@ export const convertHEICToJPEG = async (
   onProgress?: (progress: number) => void,
 ): Promise<File> => {
   try {
+    // Report loading library
+    onProgress?.(0.1);
+
+    // Dynamically load the library
+    const { heicTo } = await loadHeicLibrary();
+
     // Report conversion start
     onProgress?.(0.3);
 
