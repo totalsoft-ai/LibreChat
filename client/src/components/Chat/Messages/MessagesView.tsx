@@ -5,6 +5,7 @@ import { CSSTransition } from 'react-transition-group';
 import type { TMessage } from 'librechat-data-provider';
 import { useScreenshot, useMessageScrolling, useLocalize } from '~/hooks';
 import ScrollToBottom from '~/components/Messages/ScrollToBottom';
+import { ErrorBoundary } from '~/components/ui';
 import { MessagesViewProvider } from '~/Providers';
 import { fontSizeAtom } from '~/store/fontSize';
 import MultiMessage from './MultiMessage';
@@ -98,8 +99,16 @@ function MessagesViewContent({
 
 export default function MessagesView({ messagesTree }: { messagesTree?: TMessage[] | null }) {
   return (
-    <MessagesViewProvider>
-      <MessagesViewContent messagesTree={messagesTree} />
-    </MessagesViewProvider>
+    <ErrorBoundary
+      userMessage="We couldn't load the messages. Please refresh the page or try again later."
+      onError={(error, errorInfo) => {
+        console.error('MessagesView Error:', error, errorInfo);
+        // In production, send to error reporting service
+      }}
+    >
+      <MessagesViewProvider>
+        <MessagesViewContent messagesTree={messagesTree} />
+      </MessagesViewProvider>
+    </ErrorBoundary>
   );
 }
