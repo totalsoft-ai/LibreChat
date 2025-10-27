@@ -129,3 +129,23 @@ jobs:
           -RegistryPassword "${{ secrets.REGISTRY_PASSWORD }}" `
           -Secrets $secretsHashtable `
           -EnvVars $envVarsHashtable
+
+    - name: Cleanup Docker image after successful deployment
+      if: success()
+      shell: pwsh
+      run: |
+        $imageName = "${{ github.event.inputs.imageName }}"
+        $imageTag = "${{ steps.set-tag.outputs.IMAGE_TAG }}"
+        $registry = "registry.totalsoft.local"
+        $fullImageName = "${registry}/${imageName}:${imageTag}"
+        
+        Write-Host "Cleaning up Docker image: $fullImageName"
+        
+        # Remove only the specific Docker image used in this deployment
+        try {
+          docker rmi $fullImageName
+          Write-Host "Successfully removed local Docker image: $fullImageName"
+        } catch {
+          Write-Host "Warning: Could not remove local Docker image: $fullImageName"
+          Write-Host "Error: $($_.Exception.Message)"
+        }
