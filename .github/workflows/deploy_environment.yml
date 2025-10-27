@@ -39,7 +39,8 @@ jobs:
             echo "NS=librechat" >> $env:GITHUB_OUTPUT
             echo "RELEASE=librechat" >> $env:GITHUB_OUTPUT
           } elseif ($environment -eq "dev") {
-            echo "IMAGE_TAG=dev" >> $env:GITHUB_OUTPUT
+            $dateTag = "dev-$(Get-Date -Format 'yyyyMMdd')"
+            echo "IMAGE_TAG=$dateTag" >> $env:GITHUB_OUTPUT
             echo "NS=librechat-dev" >> $env:GITHUB_OUTPUT
             echo "RELEASE=librechat-dev" >> $env:GITHUB_OUTPUT
           }
@@ -128,7 +129,6 @@ jobs:
           -RegistryPassword "${{ secrets.REGISTRY_PASSWORD }}" `
           -Secrets $secretsHashtable `
           -EnvVars $envVarsHashtable
-
     - name: Cleanup Docker image after successful deployment
       if: success()
       shell: pwsh

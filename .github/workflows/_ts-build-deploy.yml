@@ -129,7 +129,6 @@ jobs:
           -RegistryPassword "${{ secrets.REGISTRY_PASSWORD }}" `
           -Secrets $secretsHashtable `
           -EnvVars $envVarsHashtable
-
     - name: Cleanup Docker image after successful deployment
       if: success()
       shell: pwsh
