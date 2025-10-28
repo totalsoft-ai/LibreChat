@@ -310,11 +310,16 @@ async function deleteMessagesSince(req, { messageId, conversationId }) {
  */
 async function getMessages(filter, select) {
   try {
+    const query = Message.find(filter);
+
     if (select) {
-      return await Message.find(filter).select(select).sort({ createdAt: 1 }).lean();
+      query.select(select);
+    } else {
+      // Exclude heavy fields by default
+      query.select('-__v');
     }
 
-    return await Message.find(filter).sort({ createdAt: 1 }).lean();
+    return await query.sort({ createdAt: 1 }).lean();
   } catch (err) {
     logger.error('Error getting messages:', err);
     throw err;
@@ -334,7 +339,9 @@ async function getMessage({ user, messageId }) {
     return await Message.findOne({
       user,
       messageId,
-    }).lean();
+    })
+      .select('-__v') // Exclude version key
+      .lean();
   } catch (err) {
     logger.error('Error getting message:', err);
     throw err;

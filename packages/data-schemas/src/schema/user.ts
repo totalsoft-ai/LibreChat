@@ -150,4 +150,9 @@ const userSchema = new Schema<IUser>(
   { timestamps: true },
 );
 
+// Indexes for common query patterns
+userSchema.index({ role: 1 }); // For role-based queries
+userSchema.index({ provider: 1 }); // For provider-based filtering
+userSchema.index({ createdAt: -1 }); // For sorting users by registration date
+
 export default userSchema;

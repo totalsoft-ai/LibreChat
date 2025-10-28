@@ -58,9 +58,12 @@ Frontend development tasks for LibreChat. See [CLAUDE_FRONTEND.md](./CLAUDE_FRON
 ### State Management
 
 - [ ] 🔴 Complete Recoil to Jotai migration
-  - [ ] Audit all Recoil imports: `grep -r "useRecoilState" client/`
+  - [x] ✅ Migrated search state (searchAtom) - 8 files updated (2025-01-27)
+  - [x] ✅ Migrated fontSize state (fontSizeAtom) - completed earlier
+  - [ ] Audit all Recoil imports: `grep -r "useRecoilState" client/` (~461 remaining uses)
   - [ ] Convert remaining Recoil atoms to Jotai
   - [ ] Remove Recoil dependency
+  - **Progress:** 2 atoms migrated (search, fontSize), many more remain
   - **File:** `client/src/store/`, `client/src/components/`
 
 - [ ] 🔴 Fix React Query cache invalidation issues

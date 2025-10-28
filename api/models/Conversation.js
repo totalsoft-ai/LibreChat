@@ -125,6 +125,8 @@ module.exports = {
         {
           new: true,
           upsert: true,
+          // Select only necessary fields to reduce memory usage
+          select: 'conversationId title user endpoint model agent_id assistant_id spec iconURL createdAt updatedAt messages',
         },
       );
 
@@ -227,7 +229,9 @@ module.exports = {
         user,
         conversationId: { $in: conversationIds },
         $or: [{ expiredAt: { $exists: false } }, { expiredAt: null }],
-      }).lean();
+      })
+        .select('conversationId endpoint title createdAt updatedAt user model agent_id assistant_id spec iconURL')
+        .lean();
 
       results.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
 

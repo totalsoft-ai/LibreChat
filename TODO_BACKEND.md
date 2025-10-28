@@ -34,12 +34,20 @@ Backend development tasks for LibreChat. See [CLAUDE_BACKEND.md](./CLAUDE_BACKEN
   - **File:** `api/server/controllers/`, `packages/data-schemas/`
 
 ### Database & Performance
-- [ ] 🔴 Optimize slow database queries
-  - [ ] Add indexes for frequently queried fields
-  - [ ] Review `User`, `Conversation`, `Message` model queries
-  - [ ] Use `.lean()` for read-only operations
-  - [ ] Add query profiling in development
-  - **File:** `api/models/`, `api/db/`
+- [x] 🔴 Optimize slow database queries ✅ 2025-10-28
+  - [x] Add indexes for frequently queried fields
+    - [x] Added compound indexes for Conversation model (user+updatedAt, user+isArchived+updatedAt, user+tags+updatedAt, user+expiredAt)
+    - [x] Added compound indexes for Message model (conversationId+createdAt, conversationId+user, user+createdAt)
+    - [x] Added indexes for User model (role, provider, createdAt)
+  - [x] Review `User`, `Conversation`, `Message` model queries
+    - [x] Optimized queries with `.lean()` for read-only operations in Conversation.js and Message.js
+    - [x] Added `.select()` to limit returned fields and reduce memory usage
+  - [x] Add query profiling in development
+    - [x] Created query profiler middleware in `api/server/middleware/queryProfiler.js`
+    - [x] Integrated profiler in database connection setup
+    - [x] Added environment variables for configuration (ENABLE_QUERY_PROFILER, SLOW_QUERY_THRESHOLD, LOG_ALL_QUERIES)
+  - [x] Created documentation in `docs/database-optimization.md`
+  - **File:** `api/models/`, `api/db/`, `packages/data-schemas/src/schema/`, `api/server/middleware/queryProfiler.js`
 
 - [x] 🔴 Fix memory leaks in long-running processes ✅ 2025-10-27
   - [x] Review event listener cleanup
