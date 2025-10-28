@@ -4,7 +4,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Recent Updates
 
-### 2025-10-28: Database Query Optimization
+### 2025-10-28: Conversation Export & Database Optimization
+
+**Conversation Export Feature:**
+- **Export Service**: New ExportService supporting JSON, Markdown, HTML, and PDF formats
+- **API Endpoints**:
+  - `GET /api/export/:conversationId?format={format}` - Export conversation in specified format
+  - `GET /api/export/` - Get list of supported export formats
+- **Security**: JWT authentication required, HTML escaping for XSS prevention
+- **Files**: `api/server/services/ExportService.js`, `api/server/routes/export.js`, `docs/export-api.md`
+- **Testing**: Comprehensive test coverage with 15+ test cases in `ExportService.spec.js`
+- **Features**: Full conversation data export including metadata, messages, and user feedback
+
+**Database Query Optimization:**
 - **Performance**: Comprehensive database optimization achieving 8-10x query performance improvement and 60-75% memory reduction
 - **Indexes**: Added 13 strategic compound indexes across Conversation, Message, and User models
   - Conversation: `user+updatedAt`, `user+isArchived+updatedAt`, `user+tags+updatedAt`, `user+expiredAt`

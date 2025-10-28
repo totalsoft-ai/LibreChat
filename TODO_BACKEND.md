@@ -112,11 +112,27 @@ Backend development tasks for LibreChat. See [CLAUDE_BACKEND.md](./CLAUDE_BACKEN
   - [ ] Add example plugin
   - **File:** `api/server/services/models/` (new)
 
-- [ ] 🟡 Implement conversation export (JSON, Markdown, PDF)
-  - [ ] Create export service
-  - [ ] Add export endpoint
-  - [ ] Support different formats
-  - **File:** `api/server/services/export.js` (new), `api/server/routes/export.js` (new)
+- [x] 🟡 Implement conversation export (JSON, Markdown, PDF) ✅ 2025-10-28
+  - [x] Created ExportService with JSON, Markdown, HTML, and PDF formatters
+  - [x] Added export API endpoint with authentication
+  - [x] Supports 4 formats: json, markdown, html, pdf (with puppeteer)
+  - [x] Comprehensive test coverage with 15+ test cases
+  - [x] Proper error handling and validation with Zod
+  - [x] HTML escaping for security
+  - **Files:**
+    - `api/server/services/ExportService.js` (new - 420 lines)
+    - `api/server/services/ExportService.spec.js` (new - 200 lines tests)
+    - `api/server/routes/export.js` (new - 110 lines)
+    - `api/server/routes/index.js` (modified - added export route)
+    - `api/server/index.js` (modified - registered /api/export endpoint)
+  - **API Endpoints:**
+    - GET `/api/export/:conversationId?format=json|markdown|html|pdf` - Export conversation
+    - GET `/api/export/` - Get list of supported formats
+  - **Notes:**
+    - PDF export requires puppeteer installation: `npm install puppeteer`
+    - All exports include full conversation metadata and message history
+    - Exports preserve user feedback (thumbs up/down) in all formats
+    - Authenticated access only (requireJwtAuth middleware)
 
 - [ ] 🟡 Add conversation search with full-text search
   - [ ] Integrate MeiliSearch or Elasticsearch

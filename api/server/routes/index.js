@@ -17,6 +17,7 @@ const models = require('./models');
 const convos = require('./convos');
 const config = require('./config');
 const agents = require('./agents');
+const exportRoute = require('./export');
 const roles = require('./roles');
 const oauth = require('./oauth');
 const files = require('./files');
@@ -57,5 +58,6 @@ module.exports = {
   assistants,
   categories,
   staticRoute,
+  exportRoute,
   accessPermissions,
 };

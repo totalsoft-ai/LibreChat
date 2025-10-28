@@ -4,7 +4,27 @@ Backend-specific guidance for LibreChat development. For general project overvie
 
 ## Recent Updates
 
-### 2025-10-28: Database Query Optimization
+### 2025-10-28: Conversation Export & Database Optimization
+
+**Conversation Export Feature:**
+- **ExportService**: New service for exporting conversations in multiple formats
+  - Location: `api/server/services/ExportService.js`
+  - Formats: JSON (structured data), Markdown (readable), HTML (styled), PDF (print-ready)
+  - Methods: `exportToJSON()`, `exportToMarkdown()`, `exportToHTML()`, `exportToPDF()`
+- **API Routes**: New export endpoints at `/api/export`
+  - `GET /api/export/:conversationId?format={format}` - Export conversation
+  - `GET /api/export/` - Get supported formats
+  - Location: `api/server/routes/export.js`
+- **Security Features**:
+  - JWT authentication with `requireJwtAuth` middleware
+  - HTML escaping via `escapeHTML()` function to prevent XSS attacks
+  - User authorization - users can only export their own conversations
+- **Data Export**: Includes full conversation data (metadata, messages, timestamps, feedback, token counts)
+- **Testing**: Comprehensive test coverage (15+ tests) in `ExportService.spec.js`
+- **Documentation**: Complete API documentation at `docs/export-api.md`
+- **PDF Support**: Optional PDF export using puppeteer (requires `npm install puppeteer`)
+
+**Database Query Optimization:**
 - **Indexes**: Added strategic compound indexes for Conversation, Message, and User models to optimize frequent query patterns
   - Conversation: `user+updatedAt`, `user+isArchived+updatedAt`, `user+tags+updatedAt`, `user+expiredAt`
   - Message: `conversationId+createdAt`, `conversationId+user`, `user+createdAt`
@@ -176,6 +196,7 @@ The main server file that:
 - File processing
 - Email services
 - Complex business operations
+- **ExportService** - Conversation export in multiple formats (JSON, Markdown, HTML, PDF)
 
 **`api/models/`** - Mongoose models for MongoDB collections
 - Define schemas and data validation
