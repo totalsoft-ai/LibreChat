@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import debounce from 'lodash/debounce';
-import { useRecoilValue } from 'recoil';
+import { useAtomValue } from 'jotai';
 import { TrashIcon, ArchiveRestore, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import {
   Button,
@@ -25,7 +25,7 @@ import { MinimalIcon } from '~/components/Endpoints';
 import { NotificationSeverity } from '~/common';
 import { useLocalize } from '~/hooks';
 import { formatDate } from '~/utils';
-import store from '~/store';
+import { searchAtom } from '~/store/search';
 
 const DEFAULT_PARAMS: ConversationListParams = {
   isArchived: true,
@@ -42,7 +42,7 @@ export default function ArchivedChatsTable({
   const localize = useLocalize();
   const isSmallScreen = useMediaQuery('(max-width: 768px)');
   const { showToast } = useToastContext();
-  const isSearchEnabled = useRecoilValue(store.search);
+  const isSearchEnabled = useAtomValue(searchAtom);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [queryParams, setQueryParams] = useState<ConversationListParams>(DEFAULT_PARAMS);
   const [deleteConversation, setDeleteConversation] = useState<TConversation | null>(null);
