@@ -39,7 +39,7 @@ jobs:
             echo "NS=librechat" >> $env:GITHUB_OUTPUT
             echo "RELEASE=librechat" >> $env:GITHUB_OUTPUT
           } elseif ($environment -eq "dev") {
-            $dateTag = "dev-$(Get-Date -Format 'yyyyMMdd')"
+            $dateTag = "dev-$(Get-Date -Format 'yyyyMMdd-HHmm')"
             echo "IMAGE_TAG=$dateTag" >> $env:GITHUB_OUTPUT
             echo "NS=librechat-dev" >> $env:GITHUB_OUTPUT
             echo "RELEASE=librechat-dev" >> $env:GITHUB_OUTPUT
