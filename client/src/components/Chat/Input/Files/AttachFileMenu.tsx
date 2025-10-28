@@ -151,7 +151,10 @@ const AttachFileMenu = ({
         });
       }
 
-      if (capabilities.fileSearchEnabled && fileSearchAllowedByAgent) {
+      // Allow File Search option in simple chat as well (no agent required)
+      const canShowFileSearch =
+        capabilities.fileSearchEnabled && (fileSearchAllowedByAgent || !agentId);
+      if (canShowFileSearch) {
         items.push({
           label: localize('com_ui_upload_file_search'),
           onClick: () => {
@@ -212,6 +215,7 @@ const AttachFileMenu = ({
     sharePointEnabled,
     codeAllowedByAgent,
     fileSearchAllowedByAgent,
+    agentId,
     setIsSharePointDialogOpen,
   ]);
 
