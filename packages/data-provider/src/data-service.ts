@@ -57,6 +57,31 @@ export function deleteSharedLink(shareId: string): Promise<m.TDeleteSharedLinkRe
   return request.delete(endpoints.shareMessages(shareId));
 }
 
+export async function exportConversationAPI(
+  conversationId: string,
+  format: 'json' | 'markdown' | 'md' | 'html' | 'pdf' = 'json',
+): Promise<Blob> {
+  const response: AxiosResponse<Blob> = await request.get(
+    endpoints.exportConversation(conversationId, format),
+    {
+      responseType: 'blob',
+    },
+  );
+  return response.data;
+}
+
+export function getExportFormats(): Promise<{
+  formats: Array<{
+    format: string;
+    description: string;
+    contentType: string;
+    available: boolean;
+  }>;
+  defaultFormat: string;
+}> {
+  return request.get(endpoints.exportFormats());
+}
+
 export function updateUserKey(payload: t.TUpdateUserKeyRequest) {
   const { value } = payload;
   if (!value) {

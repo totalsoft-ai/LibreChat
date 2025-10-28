@@ -10,6 +10,7 @@ import {
   ToolCallTypes,
   imageGenTools,
   isImageVisionTool,
+  useExportConversationMutation,
 } from 'librechat-data-provider';
 import type {
   TMessageContentParts,
@@ -17,6 +18,7 @@ import type {
   TMessage,
   TPreset,
 } from 'librechat-data-provider';
+import { useToastContext } from '@librechat/client';
 import useBuildMessageTree from '~/hooks/Messages/useBuildMessageTree';
 import { useScreenshot } from '~/hooks/ScreenshotContext';
 import { cleanupPreset } from '~/utils';
@@ -45,6 +47,8 @@ export default function useExportConversation({
   const queryClient = useQueryClient();
   const { captureScreenshot } = useScreenshot();
   const buildMessageTree = useBuildMessageTree();
+  const { showToast } = useToastContext();
+  const exportMutation = useExportConversationMutation();
 
   const { conversationId: paramId } = useParams();
 
@@ -373,16 +377,61 @@ export default function useExportConversation({
     });
   };
 
+  const exportViaAPI = async (format: 'json' | 'markdown' | 'pdf') => {
+    if (!conversation?.conversationId) {
+      showToast({
+        message: 'No conversation to export',
+        status: 'error',
+      });
+      return;
+    }
+
+    try {
+      const blob = await exportMutation.mutateAsync({
+        conversationId: conversation.conversationId,
+        format,
+      });
+
+      // Determine file extension and content type
+      const extension = format === 'markdown' ? 'md' : format;
+      const contentTypeMap = {
+        json: 'application/json',
+        markdown: 'text/markdown',
+        pdf: 'application/pdf',
+      };
+
+      download(blob, `${filename}.${extension}`, contentTypeMap[format]);
+
+      showToast({
+        message: `Conversation exported as ${format.toUpperCase()}`,
+        status: 'success',
+      });
+    } catch (error) {
+      console.error('Export failed:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      showToast({
+        message: `Failed to export conversation: ${errorMessage}`,
+        status: 'error',
+      });
+    }
+  };
+
   const exportConversation = () => {
+    // Use backend API for JSON, Markdown, and PDF (server-side generation with better formatting)
     if (type === 'json') {
-      exportJSON();
-    } else if (type == 'text') {
+      exportViaAPI('json');
+    } else if (type === 'markdown') {
+      exportViaAPI('markdown');
+    } else if (type === 'pdf') {
+      exportViaAPI('pdf');
+    }
+    // Use client-side export for others
+    else if (type === 'text') {
       exportText();
-    } else if (type == 'markdown') {
-      exportMarkdown();
-    } else if (type == 'csv') {
+    } else if (type === 'csv') {
       exportCSV();
-    } else if (type == 'screenshot') {
+    } else if (type === 'screenshot') {
       exportScreenshot();
     }
   };

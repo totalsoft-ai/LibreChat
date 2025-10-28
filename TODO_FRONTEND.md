@@ -121,11 +121,24 @@ Frontend development tasks for LibreChat. See [CLAUDE_FRONTEND.md](./CLAUDE_FRON
     - `client/src/components/Chat/Messages/SearchButtons.tsx` (updated)
     - `client/src/components/Nav/__tests__/SearchBar.test.tsx` (new, 16 tests)
 
-- [ ] 🟡 Implement conversation export (JSON, Markdown, PDF)
-  - [ ] Add export button to conversation menu
-  - [ ] Support multiple formats
-  - [ ] Add progress indicator for large exports
-  - **File:** `client/src/components/Chat/ExportButton.jsx` (new)
+- [x] 🟡 Implement conversation export (JSON, Markdown, PDF) ✅ 2025-10-28
+  - [x] Added PDF format to export options
+  - [x] Integrated backend API for JSON, Markdown, and PDF exports
+  - [x] Created API endpoints in data-provider
+  - [x] Updated useExportConversation hook to use backend API
+  - [x] Added error handling with toast notifications
+  - [x] Kept client-side exports for text, CSV, and screenshot
+  - **Files:**
+    - `packages/data-provider/src/api-endpoints.ts` (added exportConversation, exportFormats)
+    - `packages/data-provider/src/data-service.ts` (added exportConversationAPI, getExportFormats)
+    - `packages/data-provider/src/react-query/react-query-service.ts` (added useExportConversationMutation)
+    - `client/src/components/Nav/ExportConversation/ExportModal.tsx` (added PDF option)
+    - `client/src/hooks/Conversations/useExportConversation.ts` (integrated backend API)
+  - **API Integration:**
+    - Server-side export for JSON, Markdown, PDF (better formatting, includes feedback)
+    - Client-side fallback for text, CSV, screenshot
+    - Blob download with proper content types
+    - Error handling with user-friendly messages
 
 - [ ] 🟡 Add conversation folders/categories
   - [ ] Create Folder management UI

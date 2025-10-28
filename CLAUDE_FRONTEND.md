@@ -2,9 +2,32 @@
 
 Frontend-specific guidance for LibreChat development. For general project overview, see [CLAUDE.md](./CLAUDE.md).
 
-## Recent Updates (2025-01-27)
+## Recent Updates
 
-### Search Functionality Migration (2025-01-27)
+### 2025-10-28: Conversation Export Integration
+
+**Frontend Export Feature:**
+- **PDF Export**: Added PDF format to export modal dropdown
+- **Backend API Integration**: Integrated server-side export API for JSON, Markdown, and PDF formats
+- **Data Provider Updates**:
+  - Added `exportConversation()` and `exportFormats()` API endpoints
+  - Created `exportConversationAPI()` data service function
+  - Added `useExportConversationMutation()` React Query hook
+- **Hook Enhancement**: Updated `useExportConversation` hook to use backend API for better formatting
+  - Server-side export for JSON, Markdown, PDF (includes user feedback, better formatting)
+  - Client-side fallback for text, CSV, screenshot
+  - Blob download with proper content types
+  - Toast notifications for success/error states
+- **Files Modified**:
+  - `packages/data-provider/src/api-endpoints.ts` (added export endpoints)
+  - `packages/data-provider/src/data-service.ts` (added API service functions)
+  - `packages/data-provider/src/react-query/react-query-service.ts` (added mutation hook)
+  - `client/src/components/Nav/ExportConversation/ExportModal.tsx` (added PDF option)
+  - `client/src/hooks/Conversations/useExportConversation.ts` (integrated backend API)
+
+### 2025-01-27: Search & Error Handling
+
+**Search Functionality Migration:**
 - **Recoil to Jotai Migration**: Completed full migration of search state management from Recoil to Jotai, following architectural best practices
 - **Files Updated**: 8 files migrated including SearchBar, Nav, routes, hooks, and settings components
 - **Store Enhancement**: Created `searchAtom` with derived atoms for query and debouncedQuery management
