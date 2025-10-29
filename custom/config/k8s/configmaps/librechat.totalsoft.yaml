@@ -50,10 +50,10 @@ mcpServers:
         type: streamable-http
         url: ${CHARISMA_REPORTS_INFORMATOR}/mcp
         oauth:
-          authorization_url: https://erp-reports.totalsoft.local/oauth/authorize        
+          authorization_url: https://erp-reports.totalsoft.local/oauth/authorize
           token_url: https://erp-reports.totalsoft.local/oauth/token
           client_id: ${KEYCLOAK_CLIENT_ID}
-          client_secret: ${KEYCLOAK_CLIENT_SECRET}        
+          client_secret: ${KEYCLOAK_CLIENT_SECRET}
           redirect_uri: https://librechat-dev.totalsoft.local/oauth/callback
           scope: "read execute"
 
