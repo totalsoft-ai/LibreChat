@@ -45,7 +45,9 @@ function setupQueryProfiler(mongoose, options = {}) {
 
         if (isSlow) {
           logger.warn(message, details);
-          logger.warn(`[QueryProfiler] SLOW QUERY DETECTED: Consider adding indexes or optimizing this query`);
+          logger.warn(
+            `[QueryProfiler] SLOW QUERY DETECTED: Consider adding indexes or optimizing this query`,
+          );
         } else {
           logger.debug(message, details);
         }
@@ -82,7 +84,7 @@ function setupQueryProfiler(mongoose, options = {}) {
             operation: operation,
             executionTime: `${executionTime}ms`,
             query: JSON.stringify(this.getQuery()),
-            resultCount: Array.isArray(result) ? result.length : (result ? 1 : 0),
+            resultCount: Array.isArray(result) ? result.length : result ? 1 : 0,
           };
 
           if (isSlow) {

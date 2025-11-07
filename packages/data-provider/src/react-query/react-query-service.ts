@@ -228,8 +228,13 @@ export const useExportConversationMutation = (): UseMutationResult<
   unknown
 > => {
   return useMutation(
-    ({ conversationId, format }: { conversationId: string; format: 'json' | 'markdown' | 'md' | 'html' | 'pdf' }) =>
-      dataService.exportConversationAPI(conversationId, format),
+    ({
+      conversationId,
+      format,
+    }: {
+      conversationId: string;
+      format: 'json' | 'markdown' | 'md' | 'html' | 'pdf';
+    }) => dataService.exportConversationAPI(conversationId, format),
   );
 };
 

@@ -11,8 +11,7 @@ const timerRegistry = new WeakMap();
  * Global timer tracking for debugging purposes (development mode only)
  * @type {Map<number, { type: string; createdAt: number; stack?: string }>}
  */
-const globalTimerTracking =
-  process.env.NODE_ENV === 'development' ? new Map() : null;
+const globalTimerTracking = process.env.NODE_ENV === 'development' ? new Map() : null;
 
 let timerId = 0;
 

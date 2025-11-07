@@ -132,10 +132,7 @@ const markdownDependencies = {
 };
 
 const dependenciesMap: Record<
-  | keyof typeof artifactFilename
-  | 'text/markdown'
-  | 'text/md'
-  | 'text/plain',
+  keyof typeof artifactFilename | 'text/markdown' | 'text/md' | 'text/plain',
   Record<string, string>
 > = {
   'application/vnd.plantuml': Object.assign({ pako: '^2.1.0' }, standardDependencies),

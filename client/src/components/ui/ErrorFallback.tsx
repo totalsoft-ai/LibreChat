@@ -79,7 +79,7 @@ export default function ErrorFallback({
       {resetError && (
         <button
           onClick={resetError}
-          className="rounded-md bg-surface-primary px-4 py-2 text-sm font-medium text-text-primary hover:bg-surface-primary-hover focus:outline-none focus:ring-2 focus:ring-ring"
+          className="hover:bg-surface-primary-hover rounded-md bg-surface-primary px-4 py-2 text-sm font-medium text-text-primary focus:outline-none focus:ring-2 focus:ring-ring"
           aria-label="Try again"
         >
           Try Again

@@ -92,7 +92,9 @@ export default function useChatFunctions({
   ) => {
     setShowStopButton(false);
     resetLatestMultiMessage();
-    if (!!isSubmitting || text === '') {
+    // Allow sending if text exists OR if there are files attached
+    const hasFiles = files && files.size > 0;
+    if (!!isSubmitting || (text === '' && !hasFiles)) {
       return;
     }
 

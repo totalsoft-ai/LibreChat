@@ -182,7 +182,9 @@ async function processRequiredActions(client, requiredActions) {
                 return _m; // leave as-is if not JSON
               }
             });
-          } catch {logger.error('Error parsing artifact JSON:', json);}        
+          } catch {
+            logger.error('Error parsing artifact JSON:', json);
+          }
           // Also normalize attribute-style keys: id=>identifier, mime=>type
           try {
             value = value
@@ -200,10 +202,14 @@ async function processRequiredActions(client, requiredActions) {
         }
 
         // Case 1.5: Detect PlantUML code blocks and convert to artifacts for visualization
-        if (typeof output === 'string' && output.includes('@startuml') && output.includes('@enduml')) {
+        if (
+          typeof output === 'string' &&
+          output.includes('@startuml') &&
+          output.includes('@enduml')
+        ) {
           const plantUMLRegex = /@startuml[\s\S]*?@enduml/g;
           const matches = output.match(plantUMLRegex);
-          
+
           if (matches && matches.length > 0) {
             let processedOutput = output;
             matches.forEach((match, idx) => {
@@ -211,11 +217,11 @@ async function processRequiredActions(client, requiredActions) {
               const title = `PlantUML Diagram ${idx + 1}`;
               const type = 'application/vnd.plantuml';
               const artifactBlock = `:::artifact{identifier="${identifier}" title="${title}" type="${type}"}\n${match}\n:::`;
-              
+
               // Replace the PlantUML code with the artifact block
               processedOutput = processedOutput.replace(match, artifactBlock);
             });
-            
+
             client.addContentData({
               [ContentTypes.TEXT]: { value: processedOutput },
               type: ContentTypes.TEXT,
@@ -274,9 +280,13 @@ async function processRequiredActions(client, requiredActions) {
                 };
               }
             }
-          } catch {logger.error('Error parsing artifact JSON: @startuml', json);}
+          } catch {
+            logger.error('Error parsing artifact JSON: @startuml', json);
+          }
         }
-      } catch {logger.error('Error parsing artifact JSON: case 2', json);}
+      } catch {
+        logger.error('Error parsing artifact JSON: case 2', json);
+      }
 
       if (imageGenTools.has(currentAction.tool)) {
         const imageOutput = output;

@@ -408,8 +408,7 @@ export default function useExportConversation({
       });
     } catch (error) {
       console.error('Export failed:', error);
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       showToast({
         message: `Failed to export conversation: ${errorMessage}`,
         status: 'error',

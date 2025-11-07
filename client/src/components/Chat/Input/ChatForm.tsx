@@ -153,7 +153,8 @@ const ChatForm = memo(({ index = 0 }: { index?: number }) => {
   useQueryParams({ textAreaRef });
 
   const { ref, ...registerProps } = methods.register('text', {
-    required: true,
+    // Allow empty text when there are attached files
+    required: !(files && files.size > 0),
     onChange: useCallback(
       (e: React.ChangeEvent<HTMLTextAreaElement>) =>
         methods.setValue('text', e.target.value, { shouldValidate: true }),
@@ -327,10 +328,11 @@ const ChatForm = memo(({ index = 0 }: { index?: number }) => {
                   <StopButton stop={handleStopGenerating} setShowStopButton={setShowStopButton} />
                 ) : (
                   endpoint && (
-                    <SendButton
+                  <SendButton
                       ref={submitButtonRef}
                       control={methods.control}
-                      disabled={filesLoading || isSubmitting || disableInputs || isNotAppendable}
+                    hasFiles={files && files.size > 0}
+                    disabled={filesLoading || isSubmitting || disableInputs || isNotAppendable}
                     />
                   )
                 )}

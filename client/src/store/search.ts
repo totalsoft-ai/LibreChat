@@ -19,10 +19,7 @@ export const searchAtom = atom<SearchState>({
 });
 
 // Optional: Persist search preferences
-export const searchEnabledAtom = atomWithStorage<boolean | null>(
-  'search-enabled',
-  null,
-);
+export const searchEnabledAtom = atomWithStorage<boolean | null>('search-enabled', null);
 
 // Derived atom for search query
 export const searchQueryAtom = atom(

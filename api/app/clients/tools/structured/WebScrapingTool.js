@@ -10,14 +10,16 @@ class WebScrapingTool extends Tool {
       'Extract content from web pages and URLs. Can also upload content to Notion if requested. Supports various content types including PDFs, HTML pages, and dynamic content.';
     this.schema = z.object({
       url: z.string().describe('The URL to scrape content from'),
-      upload_to_notion: z.boolean().optional().describe('Whether to upload the extracted content to Notion (default: false)'),
+      upload_to_notion: z
+        .boolean()
+        .optional()
+        .describe('Whether to upload the extracted content to Notion (default: false)'),
     });
   }
 
   async _call(input) {
     try {
-      const { url, upload_to_notion = false } =
-        typeof input === 'string' ? { url: input } : input;
+      const { url, upload_to_notion = false } = typeof input === 'string' ? { url: input } : input;
 
       if (!url) {
         throw new Error('URL is required for web scraping');
@@ -94,4 +96,4 @@ class WebScrapingTool extends Tool {
   }
 }
 
-module.exports = { WebScrapingTool }; 
+module.exports = { WebScrapingTool };

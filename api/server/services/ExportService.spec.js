@@ -177,9 +177,13 @@ describe('ExportService', () => {
     it('should throw error if puppeteer is not installed', async () => {
       // Mock require to throw error
       const originalRequire = require;
-      jest.mock('puppeteer', () => {
-        throw new Error('Cannot find module');
-      }, { virtual: true });
+      jest.mock(
+        'puppeteer',
+        () => {
+          throw new Error('Cannot find module');
+        },
+        { virtual: true },
+      );
 
       await expect(ExportService.exportToPDF(mockUserId, mockConversationId)).rejects.toThrow(
         'Puppeteer is not installed',

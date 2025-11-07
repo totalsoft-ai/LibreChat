@@ -122,9 +122,7 @@ class ExportService {
       markdown += `---\n\n`;
 
       // Sort messages by creation time
-      const sortedMessages = messages.sort(
-        (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
-      );
+      const sortedMessages = messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
       for (const msg of sortedMessages) {
         const role = msg.isCreatedByUser ? '**User**' : '**Assistant**';
@@ -170,9 +168,7 @@ class ExportService {
     try {
       const { conversation, messages } = await this.getConversationData(userId, conversationId);
 
-      const sortedMessages = messages.sort(
-        (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
-      );
+      const sortedMessages = messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
       let html = `
 <!DOCTYPE html>

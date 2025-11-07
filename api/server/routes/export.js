@@ -29,7 +29,9 @@ router.get('/:conversationId', requireJwtAuth, async (req, res) => {
     const { conversationId, format } = validated;
     const userId = req.user.id;
 
-    logger.info(`[Export] User ${userId} requesting export of conversation ${conversationId} in ${format} format`);
+    logger.info(
+      `[Export] User ${userId} requesting export of conversation ${conversationId} in ${format} format`,
+    );
 
     // Export the conversation
     const { data, filename, contentType } = await ExportService.exportConversation(
