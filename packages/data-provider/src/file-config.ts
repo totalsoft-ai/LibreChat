@@ -12,6 +12,7 @@ export const supportsFiles = {
   [EModelEndpoint.anthropic]: true,
   [EModelEndpoint.custom]: true,
   [EModelEndpoint.bedrock]: true,
+  Assistant: true, // Custom Assistant endpoint with RAG support
 };
 
 export const excelFileTypes = [
@@ -223,6 +224,10 @@ export const fileConfig = {
     [EModelEndpoint.assistants]: assistantsFileConfig,
     [EModelEndpoint.azureAssistants]: assistantsFileConfig,
     [EModelEndpoint.agents]: assistantsFileConfig,
+    Assistant: {
+      ...assistantsFileConfig,
+      capabilities: ['file_search'], // Enable file_search capability for RAG
+    }, // Custom Assistant endpoint with RAG support
     [EModelEndpoint.anthropic]: {
       fileLimit: 10,
       fileSizeLimit: defaultSizeLimit,

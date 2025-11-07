@@ -35,6 +35,10 @@ const { Readable } = require('stream');
 
 const router = express.Router();
 
+// Mount webhook routes (no auth required for external services)
+const webhooksRouter = require('./webhooks');
+router.use('/webhooks', webhooksRouter);
+
 router.get('/', async (req, res) => {
   try {
     const appConfig = req.config;
@@ -394,152 +398,15 @@ router.post('/', async (req, res) => {
       }
     }
 
-    const isAssistantFileSearch = isAssistantEndpoint;
     // Always allow Assistant uploads to be sent without text by attaching as message file
     if (isAssistantEndpoint && !metadata.message_file) {
       metadata.message_file = true;
     }
 
-    // Normalize custom Assistant endpoint to standard assistants endpoint
-    // so we don't route through VectorDB (which requires RAG_API_URL)
-    if (isAssistantFileSearch) {
-      metadata.endpoint = EModelEndpoint.assistants;
-      // Ensure the uploaded file is attached to the message so tools can access it
-      if (!metadata.message_file) {
-        metadata.message_file = true;
-      }
-    }
-
-    // Forward file to external embeddings API only for the custom "Assistant" endpoint
-    // when the user selects the File Search option in the UI
-    try {
-      logger.debug(
-        `[/files] upload meta: endpoint=${metadata?.endpoint} tool_resource=${metadata?.tool_resource} file_id=${metadata?.file_id} isAssistantEndpoint=${isAssistantEndpoint}`,
-      );
-      if (isAssistantEndpoint) {
-        // Skip images for orchestrator - only process documents
-        const isImage = req.file?.mimetype?.startsWith('image/');
-        const isDocument = req.file?.mimetype?.includes('pdf') || 
-                          req.file?.mimetype?.includes('text') || 
-                          req.file?.mimetype?.includes('document') ||
-                          req.file?.mimetype?.includes('sheet') ||
-                          req.file?.mimetype?.includes('presentation');
-        
-        if (isImage) {
-          logger.debug('[/files] Skipping image file for Assistant endpoint - only documents are sent to orchestrator');
-        } else if (!isDocument) {
-          logger.debug('[/files] Skipping non-document file for Assistant endpoint - only documents (PDF, TXT, DOC, etc.) are sent to orchestrator');
-        } else {
-          logger.debug('[/files] Processing document file for Assistant endpoint');
-        const axios = require('axios');
-        const FormData = require('form-data');
-        const fsSync = require('fs');
-
-        const form = new FormData();
-        const originalName = req.file?.originalname || 'upload.bin';
-        form.append('files', fsSync.createReadStream(req.file.path), originalName);
-
-        // Build a namespace compatible with FastAPI validation rules
-        // - only [a-zA-Z0-9_-]
-        // - must start with a letter
-        // - length 3..MAX (we trim); MAX configurable via EMBEDDINGS_NAMESPACE_MAXLEN
-        const rawNs = (req.user?.email || req.user?.id || 'user').toString();
-        const replaced = rawNs.replace(/[@.]/g, '_');
-        const cleaned = replaced.replace(/[^a-zA-Z0-9_-]/g, '_');
-        let namespace = cleaned;
-        if (!/^[A-Za-z]/.test(namespace)) {
-          namespace = `u_${namespace}`;
-        }
-        if (namespace.length < 3) {
-          namespace = `${namespace}${'_'.repeat(3 - namespace.length)}`;
-        }
-        const maxNsLen = parseInt(process.env.EMBEDDINGS_NAMESPACE_MAXLEN || '64', 10);
-        if (Number.isFinite(maxNsLen) && namespace.length > maxNsLen) {
-          namespace = namespace.slice(0, maxNsLen);
-        }
-        logger.debug(`[/files] Using namespace for embeddings: ${namespace}`);
-        form.append('namespace', namespace);
-        // Provide identifiers for the embedding service
-        form.append('file_id', metadata?.file_id || req.file_id);
-        form.append('user_id', req.user?.id || '');
-
-        // For Assistant endpoint, send files to orchestrator in the correct format
-        const orchestratorUrl = process.env.ORCHESTRATOR_URL;
-        if (!orchestratorUrl) {
-          logger.warn(
-            '[/files] ORCHESTRATOR_URL is not set; file will be processed locally but may not be available to orchestrator',
-          );
-          // Force file processing even without orchestrator
-          logger.debug('[/files] Processing file locally for message attachment');
-        } else {
-          logger.debug('[/files] Sending file to orchestrator for Assistant endpoint');
-          try {
-            // Create task with file metadata only (no file content)
-            const task = {
-              type: 'onboarding_upload_files',
-              files: [{
-                filename: originalName,
-                file_id: metadata?.file_id || req.file_id,
-                mimetype: req.file?.mimetype,
-                size: req.file?.size,
-                // Send file content as base64 string for JSON transmission
-                content: fsSync.readFileSync(req.file.path).toString('base64')
-              }],
-              context: {
-                namespace: namespace,
-                user_email: req.user?.email || ''
-              }
-            };
-
-            logger.debug('[/files] Sending file metadata to orchestrator:', {
-              taskType: task.type,
-              filename: originalName,
-              fileId: metadata?.file_id || req.file_id,
-              mimetype: req.file?.mimetype,
-              size: req.file?.size,
-              namespace: namespace,
-              userEmail: req.user?.email
-            });
-
-            const response = await axios.post(`${orchestratorUrl}/agent/work`, task, {
-              headers: {
-                'Content-Type': 'application/json',
-                'X-User-Email': req.user?.email || '',
-                'X-User-Id': req.user?.id || '',
-                'x-api-key': process.env.ORCHESTRATOR_API_KEY || ''
-              },
-              timeout: 60000
-            });
-            
-            logger.debug('[/files] Orchestrator response status:', response?.status);
-            logger.debug('[/files] Orchestrator response data:', response?.data);
-            
-            if (response?.data?.success) {
-              logger.debug('[/files] File metadata successfully sent to orchestrator:', {
-                filename: originalName,
-                fileId: metadata?.file_id || req.file_id,
-                namespace: namespace,
-                userEmail: req.user?.email
-              });
-            } else {
-              logger.warn('[/files] Orchestrator failed to process file metadata:', {
-                filename: originalName,
-                error: response?.data?.error
-              });
-            }
-          } catch (error) {
-            logger.error('[/files] Error sending to orchestrator:', error.message);
-            logger.debug('[/files] Continuing with local file processing');
-          }
-        }
-        }
-      }
-    } catch (forwardErr) {
-      logger.warn(
-        '[/files] Embeddings forward failed (non-blocking):',
-        forwardErr?.message || forwardErr,
-      );
-    }
+    // Log upload metadata for debugging
+    logger.debug(
+      `[/files] upload meta: endpoint=${metadata?.endpoint} tool_resource=${metadata?.tool_resource} file_id=${metadata?.file_id} isAssistantEndpoint=${isAssistantEndpoint}`,
+    );
 
     if (isAgentsEndpoint(metadata.endpoint)) {
       return await processAgentFileUpload({ req, res, metadata });

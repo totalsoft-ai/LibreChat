@@ -46,7 +46,14 @@ const getToolFilesByIds = async (fileIds, toolResourceSet) => {
       filter.$or.push({ text: { $exists: true, $ne: null }, context: FileContext.agents });
     }
     if (toolResourceSet.has(EToolResources.file_search)) {
-      filter.$or.push({ embedded: true });
+      // Feature flag to skip embedded check for testing/debugging RAG queries
+      const skipEmbeddedCheck = process.env.RAG_SKIP_EMBEDDED_CHECK === 'true';
+      if (!skipEmbeddedCheck) {
+        filter.$or.push({ embedded: true });
+      } else {
+        // Allow all files for file_search when feature flag is enabled
+        filter.$or.push({ source: { $exists: true } });
+      }
     }
     if (toolResourceSet.has(EToolResources.execute_code)) {
       filter.$or.push({ 'metadata.fileIdentifier': { $exists: true } });

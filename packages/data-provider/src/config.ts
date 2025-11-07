@@ -328,6 +328,7 @@ export const endpointSchema = baseEndpointSchema.merge(
     customOrder: z.number().optional(),
     directEndpoint: z.boolean().optional(),
     titleMessageRole: z.string().optional(),
+    capabilities: z.array(z.nativeEnum(AgentCapabilities)).optional(),
   }),
 );
 

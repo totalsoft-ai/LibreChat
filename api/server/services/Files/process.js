@@ -67,17 +67,17 @@ const createSanitizedUploadWrapper = (uploadFunction) => {
  */
 const processFiles = async (files, fileIds) => {
   // Enhanced file processing with better logging
-  logger.debug('[processFiles] Processing files:', { 
-    fileCount: files?.length || 0, 
-    fileIds: fileIds?.length || 0 
+  logger.debug('[processFiles] Processing files:', {
+    fileCount: files?.length || 0,
+    fileIds: fileIds?.length || 0,
   });
 
   // Use the new forceFileProcessing function for better file handling
   if (files && files.length > 0) {
     const processedFiles = await forceFileProcessing(files);
-    logger.debug('[processFiles] Files processed successfully:', { 
+    logger.debug('[processFiles] Files processed successfully:', {
       totalFiles: files.length,
-      processedFiles: processedFiles.length 
+      processedFiles: processedFiles.length,
     });
     return processedFiles;
   }
@@ -98,9 +98,9 @@ const processFiles = async (files, fileIds) => {
 
     const results = await Promise.all(promises);
     const validResults = results.filter((result) => result != null);
-    logger.debug('[processFiles] File IDs processed:', { 
+    logger.debug('[processFiles] File IDs processed:', {
       totalFileIds: fileIds.length,
-      validResults: validResults.length 
+      validResults: validResults.length,
     });
     return validResults;
   }
@@ -144,9 +144,13 @@ function enqueueDeleteOperation({ req, file, deleteFile, promises, resolvedFileI
     // Add directly to promises
     promises.push(
       deleteFile(req, file)
-        .then(() => resolvedFileIds.push(file.file_id))
+        .then(() => {
+          logger.info(`[enqueueDeleteOperation] Successfully deleted file ${file.file_id}, adding to resolvedFileIds`);
+          resolvedFileIds.push(file.file_id);
+        })
         .catch((err) => {
-          logger.error('Error deleting file', err);
+          logger.error(`[enqueueDeleteOperation] Error deleting file ${file.file_id}:`, err);
+          // Do NOT add to resolvedFileIds - file will NOT be deleted from MongoDB
           return Promise.reject(err);
         }),
     );
@@ -267,7 +271,16 @@ const processDeleteRequest = async ({ req, files }) => {
   }
 
   await Promise.allSettled(promises);
+
+  logger.info(
+    `[processDeleteRequest] Deleting ${resolvedFileIds.length} files from MongoDB: ${JSON.stringify(resolvedFileIds)}`,
+  );
+
   await deleteFiles(resolvedFileIds);
+
+  logger.info(
+    `[processDeleteRequest] Successfully deleted ${resolvedFileIds.length} files from MongoDB`,
+  );
 };
 
 /**
@@ -522,6 +535,10 @@ const processAgentFileUpload = async ({ req, res, metadata }) => {
 
   let messageAttachment = !!metadata.message_file;
 
+  logger.info(
+    `[processAgentFileUpload] Starting file upload - file_id: ${file_id}, filename: ${file?.originalname}, agent_id: ${agent_id}, tool_resource: ${tool_resource}, messageAttachment: ${messageAttachment}`,
+  );
+
   if (agent_id && !tool_resource && !messageAttachment) {
     throw new Error('No tool resource provided for agent file upload');
   }
@@ -739,7 +756,15 @@ const processAgentFileUpload = async ({ req, res, metadata }) => {
     width,
   });
 
+  logger.info(
+    `[processAgentFileUpload] Creating file in MongoDB - file_id: ${file_id}, filename: ${fileInfo.filename}, source: ${source}, embedded: ${embedded}`,
+  );
+
   const result = await createFile(fileInfo, true);
+
+  logger.info(
+    `[processAgentFileUpload] Successfully created file in MongoDB - file_id: ${file_id}, result file_id: ${result.file_id}`,
+  );
 
   res.status(200).json({ message: 'Agent file uploaded and processed successfully', ...result });
 };
@@ -1067,35 +1092,35 @@ const forceFileProcessing = async (files) => {
     return [];
   }
 
-  logger.debug('[forceFileProcessing] Forcing file processing for:', { 
+  logger.debug('[forceFileProcessing] Forcing file processing for:', {
     fileCount: files.length,
-    fileIds: files.map(f => f.file_id)
+    fileIds: files.map((f) => f.file_id),
   });
 
   const processedFiles = [];
-  
+
   for (const file of files) {
     try {
       // Force file usage update
       const result = await updateFileUsage({ file_id: file.file_id });
       if (result) {
         processedFiles.push(result);
-        logger.debug('[forceFileProcessing] Successfully processed file:', { 
+        logger.debug('[forceFileProcessing] Successfully processed file:', {
           file_id: file.file_id,
-          filename: file.filename 
+          filename: file.filename,
         });
       }
     } catch (error) {
-      logger.error('[forceFileProcessing] Error processing file:', { 
+      logger.error('[forceFileProcessing] Error processing file:', {
         file_id: file.file_id,
-        error: error.message 
+        error: error.message,
       });
     }
   }
 
-  logger.debug('[forceFileProcessing] Processed files result:', { 
+  logger.debug('[forceFileProcessing] Processed files result:', {
     totalFiles: files.length,
-    processedFiles: processedFiles.length 
+    processedFiles: processedFiles.length,
   });
 
   return processedFiles;

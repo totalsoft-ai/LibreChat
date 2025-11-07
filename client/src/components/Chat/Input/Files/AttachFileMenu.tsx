@@ -53,6 +53,14 @@ const AttachFileMenu = ({
   conversationId,
   endpointFileConfig,
 }: AttachFileMenuProps) => {
+  // VERSION CHECK: Log when component renders for Assistant
+  if (endpoint === 'Assistant') {
+    console.log('[AttachFileMenu] Component loaded - VERSION WITH HARDCODED FIX', {
+      endpoint,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
   const localize = useLocalize();
   const isUploadDisabled = disabled ?? false;
   const inputRef = useRef<HTMLInputElement>(null);
@@ -81,7 +89,27 @@ const AttachFileMenu = ({
    * Allow defining agent capabilities on a per-endpoint basis
    * Use definition for agents endpoint for ephemeral agents
    * */
-  const capabilities = useAgentCapabilities(agentsConfig?.capabilities ?? defaultAgentCapabilities);
+  // HARDCODED FIX: Force file_search capability for Assistant endpoint
+  const endpointCapabilities =
+    endpoint === 'Assistant'
+      ? ['file_search']
+      : (endpointFileConfig?.capabilities ??
+        agentsConfig?.capabilities ??
+        defaultAgentCapabilities);
+  const capabilities = useAgentCapabilities(endpointCapabilities);
+
+  // DEBUG: Log capabilities for Assistant endpoint
+  if (endpoint === 'Assistant') {
+    console.log('[AttachFileMenu] DEBUG for Assistant endpoint:', {
+      endpoint,
+      endpointFileConfig,
+      'endpointFileConfig?.capabilities': endpointFileConfig?.capabilities,
+      'agentsConfig?.capabilities': agentsConfig?.capabilities,
+      endpointCapabilities,
+      capabilities,
+      agentId,
+    });
+  }
 
   const { fileSearchAllowedByAgent, codeAllowedByAgent, provider } = useAgentToolPermissions(
     agentId,
@@ -150,8 +178,25 @@ const AttachFileMenu = ({
           icon: <FileType2Icon className="icon-md" />,
         });
       }
+      // HARDCODED FIX: Always allow file_search for Assistant endpoint
+      const canShowFileSearch =
+        endpoint === 'Assistant'
+          ? capabilities.fileSearchEnabled
+          : capabilities.fileSearchEnabled && (fileSearchAllowedByAgent || !agentId);
 
-      if (capabilities.fileSearchEnabled && fileSearchAllowedByAgent) {
+      // DEBUG: Log File Search visibility decision
+      if (endpoint === 'Assistant') {
+        console.log('[AttachFileMenu] File Search visibility check:', {
+          'capabilities.fileSearchEnabled': capabilities.fileSearchEnabled,
+          fileSearchAllowedByAgent,
+          agentId,
+          '!agentId': !agentId,
+          canShowFileSearch,
+          'FORCED FOR ASSISTANT': true,
+        });
+      }
+
+      if (canShowFileSearch) {
         items.push({
           label: localize('com_ui_upload_file_search'),
           onClick: () => {
@@ -207,6 +252,7 @@ const AttachFileMenu = ({
     provider,
     endpointType,
     capabilities,
+    agentId,
     setToolResource,
     setEphemeralAgent,
     sharePointEnabled,

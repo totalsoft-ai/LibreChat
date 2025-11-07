@@ -41,6 +41,7 @@ export type EndpointFileConfig = {
   fileSizeLimit?: number;
   totalSizeLimit?: number;
   supportedMimeTypes?: RegExp[];
+  capabilities?: string[]; // Agent capabilities for the endpoint
 };
 
 export type FileConfig = {
