@@ -149,9 +149,10 @@ export default function AgentPanel() {
     (data: AgentForm) => {
       const tools = data.tools ?? [];
 
-      if (data.execute_code === true) {
-        tools.push(Tools.execute_code);
-      }
+      // Code Interpreter - Commented out to hide from interface
+      // if (data.execute_code === true) {
+      //   tools.push(Tools.execute_code);
+      // }
       if (data.file_search === true) {
         tools.push(Tools.file_search);
       }

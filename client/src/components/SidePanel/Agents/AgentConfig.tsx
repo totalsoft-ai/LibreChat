@@ -28,7 +28,7 @@ import SearchForm from './Search/Form';
 import FileSearch from './FileSearch';
 import Artifacts from './Artifacts';
 import AgentTool from './AgentTool';
-import CodeForm from './Code/Form';
+// import CodeForm from './Code/Form';
 import MCPTools from './MCPTools';
 
 const labelClass = 'mb-2 text-token-text-primary block font-medium';
@@ -128,25 +128,26 @@ export default function AgentConfig({ createMutation }: Pick<AgentPanelProps, 'c
     return _agent.knowledge_files ?? [];
   }, [agent, agent_id, mergedFileMap]);
 
-  const code_files = useMemo(() => {
-    if (typeof agent === 'string') {
-      return [];
-    }
+  // Code Interpreter - Commented out to hide from interface
+  // const code_files = useMemo(() => {
+  //   if (typeof agent === 'string') {
+  //     return [];
+  //   }
 
-    if (agent?.id !== agent_id) {
-      return [];
-    }
+  //   if (agent?.id !== agent_id) {
+  //     return [];
+  //   }
 
-    if (agent.code_files) {
-      return agent.code_files;
-    }
+  //   if (agent.code_files) {
+  //     return agent.code_files;
+  //   }
 
-    const _agent = processAgentOption({
-      agent,
-      fileMap: mergedFileMap,
-    });
-    return _agent.code_files ?? [];
-  }, [agent, agent_id, mergedFileMap]);
+  //   const _agent = processAgentOption({
+  //     agent,
+  //     fileMap: mergedFileMap,
+  //   });
+  //   return _agent.code_files ?? [];
+  // }, [agent, agent_id, mergedFileMap]);
 
   const handleAddActions = useCallback(() => {
     if (isEphemeralAgent(agent_id)) {
@@ -297,8 +298,8 @@ export default function AgentConfig({ createMutation }: Pick<AgentPanelProps, 'c
             <label className="text-token-text-primary block font-medium">
               {localize('com_assistants_capabilities')}
             </label>
-            {/* Code Execution */}
-            {codeEnabled && <CodeForm agent_id={agent_id} files={code_files} />}
+            {/* Code Execution - Commented out to hide from interface */}
+            {/* {codeEnabled && <CodeForm agent_id={agent_id} files={code_files} />} */}
             {/* Web Search */}
             {webSearchEnabled && <SearchForm />}
             {/* File Context */}

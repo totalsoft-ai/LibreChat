@@ -50,10 +50,12 @@ export default function useAgentCapabilities(
     [capabilities],
   );
 
-  const codeEnabled = useMemo(
-    () => capabilities?.includes(AgentCapabilities.execute_code) ?? false,
-    [capabilities],
-  );
+  // Code Interpreter - Commented out to hide from interface
+  // const codeEnabled = useMemo(
+  //   () => capabilities?.includes(AgentCapabilities.execute_code) ?? false,
+  //   [capabilities],
+  // );
+  const codeEnabled = false; // Force disabled
 
   return {
     ocrEnabled,
