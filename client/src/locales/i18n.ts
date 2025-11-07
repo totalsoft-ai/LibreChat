@@ -131,6 +131,15 @@ const languageCodeMap: Record<string, string> = {
   'zh-Hant': 'zh-Hant',
 };
 
+/**
+ * Normalize language code from full locale (e.g., 'fr-FR') to simple code (e.g., 'fr')
+ * @param language - Full locale code or simple language code
+ * @returns Normalized language code that matches supportedLanguages array
+ */
+export function normalizeLanguageCode(language: string): string {
+  return languageCodeMap[language] || language;
+}
+
 // Cache for loaded languages
 const loadedLanguages = new Set<string>(['en']);
 
@@ -142,7 +151,7 @@ const loadedLanguages = new Set<string>(['en']);
 export async function loadLanguage(language: string): Promise<void> {
   // Normalize the language code using the mapping
   // e.g., 'es-ES' -> 'es', 'pt-BR' -> 'pt-BR' (some codes don't need mapping)
-  const normalizedLang = languageCodeMap[language] || language;
+  const normalizedLang = normalizeLanguageCode(language);
 
   console.log(`[i18n] loadLanguage called with: "${language}", normalized to: "${normalizedLang}"`);
 
@@ -240,7 +249,7 @@ i18n.on('languageChanged', (language) => {
   console.log(`[i18n] Loaded languages cache:`, Array.from(loadedLanguages));
 
   if (language && language !== 'en') {
-    const normalizedLang = languageCodeMap[language] || language;
+    const normalizedLang = normalizeLanguageCode(language);
     // Only load if not already loaded (check both original and normalized codes)
     if (!loadedLanguages.has(language) && !loadedLanguages.has(normalizedLang)) {
       console.log(`[i18n] Loading language "${language}" after language change...`);
