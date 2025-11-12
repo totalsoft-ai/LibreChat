@@ -39,7 +39,8 @@ jobs:
             echo "NS=librechat" >> $env:GITHUB_OUTPUT
             echo "RELEASE=librechat" >> $env:GITHUB_OUTPUT
           } elseif ($environment -eq "dev") {
-            echo "IMAGE_TAG=dev" >> $env:GITHUB_OUTPUT
+            $dateTag = "dev-$(Get-Date -Format 'yyyyMMdd-HHmm')"
+            echo "IMAGE_TAG=$dateTag" >> $env:GITHUB_OUTPUT
             echo "NS=librechat-dev" >> $env:GITHUB_OUTPUT
             echo "RELEASE=librechat-dev" >> $env:GITHUB_OUTPUT
           }
@@ -115,6 +116,7 @@ jobs:
           "ORCHESTRATOR_URL" = "${{ vars.ORCHESTRATOR_URL }}"
           "EMBEDDINGS_API_URL" = "${{ vars.EMBEDDINGS_API_URL }}"
           "RAG_API_URL" = "${{ vars.RAG_API_URL }}"
+          "CHARISMA_REPORTS_INFORMATOR" = "${{ vars.CHARISMA_REPORTS_INFORMATOR }}"
           "RAG_DISABLE_QUERIES" = "true"
         }
 
@@ -128,3 +130,22 @@ jobs:
           -RegistryPassword "${{ secrets.REGISTRY_PASSWORD }}" `
           -Secrets $secretsHashtable `
           -EnvVars $envVarsHashtable
+    # - name: Cleanup Docker image after successful deployment
+    #   if: success()
+    #   shell: pwsh
+    #   run: |
+    #     $imageName = "${{ github.event.inputs.imageName }}"
+    #     $imageTag = "${{ steps.set-tag.outputs.IMAGE_TAG }}"
+    #     $registry = "registry.totalsoft.local"
+    #     $fullImageName = "${registry}/${imageName}:${imageTag}"
+    #     
+    #     Write-Host "Cleaning up Docker image: $fullImageName"
+    #     
+    #     # Remove only the specific Docker image used in this deployment
+    #     try {
+    #       docker rmi $fullImageName
+    #       Write-Host "Successfully removed local Docker image: $fullImageName"
+    #     } catch {
+    #       Write-Host "Warning: Could not remove local Docker image: $fullImageName"
+    #       Write-Host "Error: $($_.Exception.Message)"
+    #     }

@@ -258,6 +258,7 @@ const AttachFileMenu = ({
     sharePointEnabled,
     codeAllowedByAgent,
     fileSearchAllowedByAgent,
+    agentId,
     setIsSharePointDialogOpen,
   ]);
 
