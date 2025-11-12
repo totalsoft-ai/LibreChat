@@ -117,7 +117,8 @@ jobs:
           "EMBEDDINGS_API_URL" = "${{ vars.EMBEDDINGS_API_URL }}"
           "RAG_API_URL" = "${{ vars.RAG_API_URL }}"
           "CHARISMA_REPORTS_INFORMATOR" = "${{ vars.CHARISMA_REPORTS_INFORMATOR }}"
-          "RAG_DISABLE_QUERIES" = "true"
+          "RAG_DISABLE_QUERIES" = "${{ vars.RAG_DISABLE_QUERIES }}"
+          "LIBRECHAT_WEBHOOK_URL" = "${{ vars.LIBRECHAT_WEBHOOK_URL }}"
         }
 
         ./custom/scripts/build-and-deploy.ps1 `
