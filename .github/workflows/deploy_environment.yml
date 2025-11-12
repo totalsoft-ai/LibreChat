@@ -119,6 +119,7 @@ jobs:
           "CHARISMA_REPORTS_INFORMATOR" = "${{ vars.CHARISMA_REPORTS_INFORMATOR }}"
           "RAG_DISABLE_QUERIES" = "${{ vars.RAG_DISABLE_QUERIES }}"
           "LIBRECHAT_WEBHOOK_URL" = "${{ vars.LIBRECHAT_WEBHOOK_URL }}"
+          "RAG_SKIP_EMBEDDED_CHECK" ="${{ vars.RAG_SKIP_EMBEDDED_CHECK }}"
         }
 
         ./custom/scripts/build-and-deploy.ps1 `
