@@ -22,10 +22,12 @@ class CodeReviewTool extends Tool {
       code: z.string().optional(),
       filename: z.string().optional(),
       language: z.string().optional(),
-      file_data: z.object({
-        name: z.string(),
-        content: z.string(),
-      }).optional(),
+      file_data: z
+        .object({
+          name: z.string(),
+          content: z.string(),
+        })
+        .optional(),
     });
   }
 
@@ -110,4 +112,4 @@ class CodeReviewTool extends Tool {
   }
 }
 
-module.exports = CodeReviewTool; 
+module.exports = CodeReviewTool;

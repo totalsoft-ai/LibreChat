@@ -1,5 +1,5 @@
 import { Link } from 'lucide-react';
-import { useRecoilValue } from 'recoil';
+import { useAtomValue } from 'jotai';
 import { QueryKeys } from 'librechat-data-provider';
 import { useQueryClient } from '@tanstack/react-query';
 import type { TMessage, TConversation } from 'librechat-data-provider';
@@ -7,12 +7,12 @@ import type { InfiniteData } from '@tanstack/react-query';
 import type { ConversationCursorData } from '~/utils';
 import { useLocalize, useNavigateToConvo } from '~/hooks';
 import { findConversationInInfinite } from '~/utils';
-import store from '~/store';
+import { searchAtom } from '~/store/search';
 
 export default function SearchButtons({ message }: { message: TMessage }) {
   const localize = useLocalize();
   const queryClient = useQueryClient();
-  const search = useRecoilValue(store.search);
+  const search = useAtomValue(searchAtom);
   const { navigateToConvo } = useNavigateToConvo();
   const conversationId = message.conversationId ?? '';
 

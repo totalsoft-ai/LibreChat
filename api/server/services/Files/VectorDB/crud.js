@@ -37,21 +37,45 @@ function sanitizeNamespace(raw) {
  *          file path is invalid or if there is an error in deletion.
  */
 const deleteVectors = async (req, file) => {
-  if (!file.embedded || !process.env.RAG_API_URL) {
+  if (!process.env.RAG_API_URL) {
+    logger.debug(
+      `[deleteVectors] Skipping vector deletion - RAG_API_URL not configured`,
+    );
     return;
   }
+
+  // Always attempt deletion if RAG_API_URL is configured
+  // This handles files that may have been embedded but webhook wasn't called
+  logger.debug(
+    `[deleteVectors] Attempting vector deletion - file_id: ${file.file_id}, filename: ${file.filename}, embedded status: ${file.embedded}`,
+  );
   try {
     const jwtToken = generateShortLivedToken(req.user.id);
+    const userIdentifier = req.user?.email || req.user?.id;
+    const namespace = sanitizeNamespace(userIdentifier);
 
-    return await axios.delete(`${process.env.RAG_API_URL}/documents`, {
+    // RAG API uses source path as document identifier: "./uploads/public/{filename}"
+    const sourceToDelete = `./uploads/public/${file.filename}`;
+
+    logger.info(
+      `[deleteVectors] Deleting file from RAG - source: ${sourceToDelete}, file_id: ${file.file_id}, user: ${userIdentifier}, namespace: ${namespace}`,
+    );
+
+    const response = await axios.delete(`${process.env.RAG_API_URL}/documents`, {
       headers: {
         Authorization: `Bearer ${jwtToken}`,
-        'X-Namespace': sanitizeNamespace(req.user?.email || req.user?.id),
+        'X-Namespace': namespace,
+        'X-File-ID': file.file_id,
         'Content-Type': 'application/json',
         accept: 'application/json',
       },
       data: [file.file_id],
     });
+
+    logger.info(
+      `[deleteVectors] Successfully deleted from RAG - file_id: ${file.file_id}, namespace: ${namespace}`,
+    );
+    return response;
   } catch (error) {
     logAxiosError({
       error,
@@ -62,7 +86,9 @@ const deleteVectors = async (req, file) => {
       error.response.status !== 404 &&
       (error.response.status < 200 || error.response.status >= 300)
     ) {
-      logger.warn('Error deleting vectors, file will not be deleted');
+      logger.warn(
+        `[deleteVectors] Error deleting vectors for file ${file.file_id}, file will not be deleted`,
+      );
       throw new Error(error.message || 'An error occurred during file deletion.');
     }
   }
@@ -90,39 +116,71 @@ async function uploadVectors({ req, file, file_id, entity_id, storageMetadata })
   }
 
   try {
+    const userIdentifier = req.user?.email || req.user?.id;
+    const namespace = sanitizeNamespace(userIdentifier);
+
+    logger.info(
+      `[uploadVectors] Starting upload to RAG - file: ${file.originalname}, file_id: ${file_id}, user: ${userIdentifier}, namespace: ${namespace}`,
+    );
+
     const formData = new FormData();
-    // FastAPI expects a list under field name "files"; send one file
-    formData.append('files', fs.createReadStream(file.path), file.originalname);
+    // RAG API expects a single file field named "file"
+    formData.append('file', fs.createReadStream(file.path), file.originalname);
+    // Send file_id as FormData parameter for RAG API to track file
+    formData.append('file_id', file_id);
     // Optionally include namespace as a form field instead of header:
-    // formData.append('namespace', sanitizeNamespace(req.user?.email || req.user?.id));
+    // formData.append('namespace', namespace);
 
     // Include storage metadata for RAG API to store with embeddings
     if (storageMetadata) {
       formData.append('storage_metadata', JSON.stringify(storageMetadata));
+      logger.debug(`[uploadVectors] Including storage metadata for ${file.originalname}`);
     }
 
     const formHeaders = formData.getHeaders();
 
     // Start upload in background - don't wait for response
-    axios.post(`${process.env.RAG_API_URL}/upload/files/`, formData, {
-      headers: {
-        accept: 'application/json',
-        'X-Namespace': sanitizeNamespace(req.user?.email || req.user?.id),
-        'X-User-Email': req.user?.email || '',
-        ...formHeaders,
-      },
-    }).then(response => {
-      const responseData = response.data;
-      logger.debug('Response from Document Loader API', responseData);
-      
-      if (responseData.status !== 'loaded') {
-        logger.warn(`Upload processing failed: ${responseData.message || 'not loaded'}`);
-      } else {
-        logger.info(`File ${file.originalname} successfully processed by Document Loader API`);
-      }
-    }).catch(error => {
-      logger.error('Background upload failed:', error.message);
-    });
+    axios
+      .post(`${process.env.RAG_API_URL}/embed`, formData, {
+        headers: {
+          accept: 'application/json',
+          'X-Namespace': namespace,
+          'X-File-ID': file_id,
+          'X-User-Email': req.user?.email || '',
+          ...formHeaders,
+        },
+      })
+      .then((response) => {
+        const responseData = response.data;
+        logger.debug(
+          `[uploadVectors] Response from RAG API for ${file.originalname}:`,
+          responseData,
+        );
+
+        // RAG API returns: { status: true/false, message: "..." }
+        // OR { status: "loaded"/"processing", ... }
+        const isSuccess = responseData.status === true || responseData.status === 'loaded';
+
+        if (!isSuccess) {
+          logger.warn(
+            `[uploadVectors] Upload processing failed for ${file.originalname} (namespace: ${namespace}): ${responseData.message || 'processing failed'}`,
+          );
+        } else {
+          logger.info(
+            `[uploadVectors] File ${file.originalname} successfully processed by RAG API (namespace: ${namespace}, file_id: ${file_id}, status: ${responseData.status})`,
+          );
+        }
+      })
+      .catch((error) => {
+        logger.error(
+          `[uploadVectors] Background upload failed for ${file.originalname} (namespace: ${namespace}):`,
+          error.message,
+        );
+      });
+
+    logger.info(
+      `[uploadVectors] Upload initiated for ${file.originalname}, returning immediately with embedded: false`,
+    );
 
     // Return immediately - file is "processing" not "embedded"
     return {
@@ -143,4 +201,5 @@ async function uploadVectors({ req, file, file_id, entity_id, storageMetadata })
 module.exports = {
   deleteVectors,
   uploadVectors,
+  sanitizeNamespace,
 };

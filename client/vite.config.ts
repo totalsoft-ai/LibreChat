@@ -6,6 +6,7 @@ import { defineConfig } from 'vite';
 import { compression } from 'vite-plugin-compression2';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
 import { VitePWA } from 'vite-plugin-pwa';
+import { visualizer } from 'rollup-plugin-visualizer';
 
 // https://vitejs.dev/config/
 const backendPort = process.env.BACKEND_PORT && Number(process.env.BACKEND_PORT) || 3080;
@@ -35,6 +36,12 @@ export default defineConfig(({ command }) => ({
   plugins: [
     react(),
     nodePolyfills(),
+    visualizer({
+      filename: './dist/stats.html',
+      open: false,
+      gzipSize: true,
+      brotliSize: true,
+    }),
     VitePWA({
       injectRegister: 'auto', // 'auto' | 'manual' | 'disabled'
       registerType: 'autoUpdate', // 'prompt' | 'autoUpdate'
@@ -223,9 +230,13 @@ export default defineConfig(({ command }) => ({
             // Everything else falls into a generic vendor chunk.
             return 'vendor';
           }
-          // Create a separate chunk for all locale files under src/locales.
-          if (normalizedId.includes('/src/locales/')) {
-            return 'locales';
+          // Create separate chunks for each locale file (dynamic imports)
+          if (normalizedId.includes('/src/locales/') && normalizedId.includes('/translation.json')) {
+            const localeMatch = normalizedId.match(/locales\/([^/]+)\/translation\.json/);
+            if (localeMatch && localeMatch[1] !== 'en') {
+              // Each locale gets its own chunk (except English which is preloaded)
+              return `locale-${localeMatch[1]}`;
+            }
           }
           // Let Rollup decide automatically for any other files.
           return null;

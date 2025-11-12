@@ -9,6 +9,23 @@ const { getBufferMetadata } = require('~/server/utils');
 const paths = require('~/config/paths');
 
 /**
+ * Sanitizes a namespace string for PostgreSQL compatibility
+ * @param {string} raw - Raw user email or ID
+ * @returns {string} Sanitized namespace
+ */
+function sanitizeNamespace(raw) {
+  if (!raw) return 'ns_default';
+  let s = String(raw)
+    .toLowerCase()
+    .replace(/[-.@\s]/g, '_')
+    .replace(/[^a-z0-9_]/g, '_');
+  if (!/^[a-z]/.test(s)) s = `ns_${s}`;
+  if (s.length > 63) s = s.slice(0, 63);
+  s = s.replace(/^_+|_+$/g, '');
+  return s || 'ns_default';
+}
+
+/**
  * Saves a file to a specified output path with a new filename.
  *
  * @param {Express.Multer.File} file - The file object to be saved. Should contain properties like 'originalname' and 'path'.
@@ -202,22 +219,59 @@ const unlinkFile = async (filepath) => {
  *          file path is invalid or if there is an error in deletion.
  */
 const deleteLocalFile = async (req, file) => {
+  logger.info(
+    `[deleteLocalFile] Starting deletion - file_id: ${file.file_id}, filepath: ${file.filepath}, source: ${file.source}`,
+  );
+
   const appConfig = req.config;
   const { publicPath, uploads } = appConfig.paths;
 
   /** Filepath stripped of query parameters (e.g., ?manual=true) */
   const cleanFilepath = file.filepath.split('?')[0];
 
-  if (file.embedded && process.env.RAG_API_URL) {
+  // Always attempt to delete from RAG if RAG_API_URL is configured
+  // This handles files that may have been embedded but webhook wasn't called
+  if (process.env.RAG_API_URL) {
     const jwtToken = generateShortLivedToken(req.user.id);
-    axios.delete(`${process.env.RAG_API_URL}/documents`, {
-      headers: {
-        Authorization: `Bearer ${jwtToken}`,
-        'Content-Type': 'application/json',
-        accept: 'application/json',
-      },
-      data: [file.file_id],
-    });
+    const userIdentifier = req.user?.email || req.user?.id;
+    const namespace = sanitizeNamespace(userIdentifier);
+
+    // RAG API uses source path as document identifier: "./uploads/public/{filename}"
+    const sourceToDelete = `./uploads/public/${file.filename}`;
+
+    logger.info(
+      `[deleteLocalFile] Attempting to delete from RAG - source: ${sourceToDelete}, file_id: ${file.file_id}, user: ${userIdentifier}, namespace: ${namespace}, embedded: ${file.embedded}`,
+    );
+
+    axios
+      .delete(`${process.env.RAG_API_URL}/documents`, {
+        headers: {
+          Authorization: `Bearer ${jwtToken}`,
+          'X-Namespace': namespace,
+          'X-File-ID': file.file_id,
+          'Content-Type': 'application/json',
+          accept: 'application/json',
+        },
+        data: [file.file_id],
+      })
+      .then((response) => {
+        logger.info(
+          `[deleteLocalFile] Successfully deleted from RAG - source: ${sourceToDelete}, file_id: ${file.file_id}`,
+        );
+      })
+      .catch((error) => {
+        // 404 is expected if file wasn't embedded
+        if (error.response?.status === 404) {
+          logger.debug(
+            `[deleteLocalFile] File ${sourceToDelete} not found in RAG (not embedded or already deleted)`,
+          );
+        } else {
+          logger.error(
+            `[deleteLocalFile] Error deleting from RAG API for file ${sourceToDelete}:`,
+            error.message,
+          );
+        }
+      });
   }
 
   if (cleanFilepath.startsWith(`/uploads/${req.user.id}`)) {
@@ -236,6 +290,7 @@ const deleteLocalFile = async (req, file) => {
     }
 
     await unlinkFile(filepath);
+    logger.info(`[deleteLocalFile] Successfully deleted file from user uploads - file_id: ${file.file_id}`);
     return;
   }
 
@@ -252,6 +307,7 @@ const deleteLocalFile = async (req, file) => {
   }
 
   await unlinkFile(filepath);
+  logger.info(`[deleteLocalFile] Successfully deleted file from public path - file_id: ${file.file_id}`);
 };
 
 /**

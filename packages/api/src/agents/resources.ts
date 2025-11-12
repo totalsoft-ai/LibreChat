@@ -100,7 +100,9 @@ const categorizeFileForToolResources = ({
     return;
   }
 
-  if (file.embedded === true) {
+  // Feature flag to skip embedded check for testing/debugging RAG queries
+  const skipEmbeddedCheck = process.env.RAG_SKIP_EMBEDDED_CHECK === 'true';
+  if (file.embedded === true || skipEmbeddedCheck) {
     addFileToResource({
       file,
       resourceType: EToolResources.file_search,

@@ -1,0 +1,368 @@
+<svg width="1400" height="1600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .title { font-family: 'Arial', sans-serif; font-size: 24px; font-weight: bold; fill: #1a202c; }
+      .subtitle { font-family: 'Arial', sans-serif; font-size: 14px; fill: #4a5568; }
+      .box-title { font-family: 'Arial', sans-serif; font-size: 14px; font-weight: bold; fill: #1a202c; }
+      .box-text { font-family: 'Arial', sans-serif; font-size: 11px; fill: #2d3748; }
+      .small-text { font-family: 'Arial', sans-serif; font-size: 9px; fill: #4a5568; }
+      .layer-label { font-family: 'Arial', sans-serif; font-size: 16px; font-weight: bold; fill: #2d3748; }
+      .arrow { fill: none; stroke: #4299e1; stroke-width: 2; marker-end: url(#arrowhead); }
+      .arrow-data { fill: none; stroke: #48bb78; stroke-width: 2; marker-end: url(#arrowhead-data); stroke-dasharray: 5,5; }
+      .arrow-state { fill: none; stroke: #ed8936; stroke-width: 2; marker-end: url(#arrowhead-state); }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#4299e1" />
+    </marker>
+    <marker id="arrowhead-data" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#48bb78" />
+    </marker>
+    <marker id="arrowhead-state" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#ed8936" />
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="700" y="30" class="title" text-anchor="middle">LibreChat Frontend Architecture</text>
+  <text x="700" y="50" class="subtitle" text-anchor="middle">React 18 • Vite • Jotai • React Query • Tailwind CSS</text>
+
+  <!-- Legend -->
+  <g transform="translate(20, 70)">
+    <rect x="0" y="0" width="300" height="50" fill="#f7fafc" stroke="#cbd5e0" rx="5"/>
+    <text x="10" y="20" class="box-text" font-weight="bold">Legend:</text>
+    <line x1="10" y1="30" x2="50" y2="30" class="arrow"/>
+    <text x="55" y="35" class="small-text">Component Flow</text>
+    <line x1="150" y1="30" x2="190" y2="30" class="arrow-data"/>
+    <text x="195" y="35" class="small-text">Data Flow</text>
+  </g>
+
+  <!-- LAYER 1: Entry Point -->
+  <g transform="translate(0, 140)">
+    <rect x="20" y="0" width="160" height="30" fill="#edf2f7" rx="3"/>
+    <text x="25" y="20" class="layer-label">⬇ ENTRY POINT</text>
+
+    <rect x="220" y="5" width="960" height="80" fill="#ebf8ff" stroke="#4299e1" stroke-width="2" rx="5"/>
+    <text x="240" y="30" class="box-title">main.jsx - Application Bootstrap</text>
+    <text x="240" y="50" class="box-text">• React 18 createRoot()</text>
+    <text x="240" y="65" class="box-text">• i18n initialization (lazy-loaded 36 languages)</text>
+    <text x="240" y="80" class="box-text">• ApiErrorBoundaryProvider wrapper</text>
+    <text x="700" y="50" class="box-text">• Global CSS (style.css, mobile.css)</text>
+    <text x="700" y="65" class="box-text">• KaTeX for math rendering</text>
+  </g>
+
+  <!-- Arrow down -->
+  <path d="M 700 230 L 700 260" class="arrow"/>
+
+  <!-- LAYER 2: Root App Component -->
+  <g transform="translate(0, 260)">
+    <rect x="20" y="0" width="160" height="30" fill="#edf2f7" rx="3"/>
+    <text x="25" y="20" class="layer-label">⬇ ROOT APP</text>
+
+    <rect x="220" y="5" width="960" height="120" fill="#f0fff4" stroke="#48bb78" stroke-width="2" rx="5"/>
+    <text x="240" y="30" class="box-title">App.jsx - Global Providers & Router</text>
+
+    <g transform="translate(240, 40)">
+      <rect x="0" y="0" width="280" height="70" fill="white" stroke="#cbd5e0" rx="3"/>
+      <text x="10" y="20" class="box-text" font-weight="bold">React Query Provider</text>
+      <text x="10" y="35" class="small-text">• QueryClient configuration</text>
+      <text x="10" y="48" class="small-text">• Server state management</text>
+      <text x="10" y="61" class="small-text">• Auto caching & refetching</text>
+    </g>
+
+    <g transform="translate(540, 40)">
+      <rect x="0" y="0" width="200" height="70" fill="white" stroke="#cbd5e0" rx="3"/>
+      <text x="10" y="20" class="box-text" font-weight="bold">React Router</text>
+      <text x="10" y="35" class="small-text">• createBrowserRouter</text>
+      <text x="10" y="48" class="small-text">• Route definitions</text>
+      <text x="10" y="61" class="small-text">• Protected routes</text>
+    </g>
+
+    <g transform="translate(760, 40)">
+      <rect x="0" y="0" width="200" height="70" fill="white" stroke="#cbd5e0" rx="3"/>
+      <text x="10" y="20" class="box-text" font-weight="bold">Theme Provider</text>
+      <text x="10" y="35" class="small-text">• Dark/Light mode</text>
+      <text x="10" y="48" class="small-text">• Tailwind CSS</text>
+      <text x="10" y="61" class="small-text">• Custom theming</text>
+    </g>
+  </g>
+
+  <!-- Arrow down -->
+  <path d="M 700 390 L 700 420" class="arrow"/>
+
+  <!-- LAYER 3: Routing Layer -->
+  <g transform="translate(0, 420)">
+    <rect x="20" y="0" width="160" height="30" fill="#edf2f7" rx="3"/>
+    <text x="25" y="20" class="layer-label">⬇ ROUTES</text>
+
+    <rect x="220" y="5" width="960" height="100" fill="#fef5e7" stroke="#f59e0b" stroke-width="2" rx="5"/>
+    <text x="240" y="30" class="box-title">routes/index.tsx - Route Configuration</text>
+
+    <g transform="translate(240, 40)">
+      <rect x="0" y="0" width="140" height="55" fill="white" stroke="#cbd5e0" rx="3"/>
+      <text x="10" y="20" class="box-text" font-weight="bold">ChatRoute</text>
+      <text x="10" y="35" class="small-text">/chat/:id?</text>
+      <text x="10" y="48" class="small-text">Main chat UI</text>
+    </g>
+
+    <g transform="translate(400, 40)">
+      <rect x="0" y="0" width="140" height="55" fill="white" stroke="#cbd5e0" rx="3"/>
+      <text x="10" y="20" class="box-text" font-weight="bold">Dashboard</text>
+      <text x="10" y="35" class="small-text">/dashboard</text>
+      <text x="10" y="48" class="small-text">Agent mgmt</text>
+    </g>
+
+    <g transform="translate(560, 40)">
+      <rect x="0" y="0" width="140" height="55" fill="white" stroke="#cbd5e0" rx="3"/>
+      <text x="10" y="20" class="box-text" font-weight="bold">Search</text>
+      <text x="10" y="35" class="small-text">/search</text>
+      <text x="10" y="48" class="small-text">Search view</text>
+    </g>
+
+    <g transform="translate(720, 40)">
+      <rect x="0" y="0" width="140" height="55" fill="white" stroke="#cbd5e0" rx="3"/>
+      <text x="10" y="20" class="box-text" font-weight="bold">ShareRoute</text>
+      <text x="10" y="35" class="small-text">/share/:id</text>
+      <text x="10" y="48" class="small-text">Public shares</text>
+    </g>
+  </g>
+
+  <!-- Arrow down -->
+  <path d="M 380 530 L 380 560" class="arrow"/>
+
+  <!-- LAYER 4: Main UI Components -->
+  <g transform="translate(0, 560)">
+    <rect x="20" y="0" width="160" height="30" fill="#edf2f7" rx="3"/>
+    <text x="25" y="20" class="layer-label">⬇ UI LAYER</text>
+
+    <rect x="220" y="5" width="960" height="250" fill="#fce7f3" stroke="#ec4899" stroke-width="2" rx="5"/>
+    <text x="240" y="30" class="box-title">components/ - Feature-Based Components</text>
+
+    <!-- Chat Components -->
+    <g transform="translate(240, 40)">
+      <rect x="0" y="0" width="220" height="200" fill="white" stroke="#cbd5e0" rx="3"/>
+      <text x="10" y="20" class="box-text" font-weight="bold">💬 Chat/</text>
+      <text x="10" y="38" class="small-text">• ChatView (with ErrorBoundary)</text>
+      <text x="10" y="52" class="small-text">• Landing</text>
+      <text x="10" y="66" class="small-text">• ExportAndShareMenu</text>
+      <text x="10" y="80" class="small-text">• AddMultiConvo</text>
+      <text x="10" y="94" class="small-text">• Input/ (chat input area)</text>
+      <text x="15" y="108" class="small-text">  - TextareaHeader</text>
+      <text x="15" y="122" class="small-text">  - SendButton, StopButton</text>
+      <text x="15" y="136" class="small-text">  - Files/ (FileUpload, etc.)</text>
+      <text x="15" y="150" class="small-text">  - Mention, WebSearch</text>
+      <text x="10" y="164" class="small-text">• Menus/ (BookmarkMenu, etc.)</text>
+      <text x="10" y="178" class="small-text">• Messages/ (MessagesView)</text>
+      <text x="10" y="192" class="small-text">Context: ChatContext, ChatFormContext</text>
+    </g>
+
+    <!-- Nav Components -->
+    <g transform="translate(480, 40)">
+      <rect x="0" y="0" width="220" height="200" fill="white" stroke="#cbd5e0" rx="3"/>
+      <text x="10" y="20" class="box-text" font-weight="bold">🧭 Nav/</text>
+      <text x="10" y="38" class="small-text">• Sidebar navigation</text>
+      <text x="10" y="52" class="small-text">• SearchBar (Jotai state)</text>
+      <text x="10" y="66" class="small-text">• ConversationList</text>
+      <text x="10" y="80" class="small-text">• UserMenu</text>
+      <text x="10" y="94" class="small-text">• SettingsTabs/</text>
+      <text x="15" y="108" class="small-text">  - General</text>
+      <text x="15" y="122" class="small-text">  - Data (export, archives)</text>
+      <text x="15" y="136" class="small-text">  - SharedLinks</text>
+      <text x="10" y="150" class="small-text">• ExportConversation/</text>
+      <text x="15" y="164" class="small-text">  - ExportModal (PDF support)</text>
+      <text x="10" y="178" class="small-text">Context: SearchContext</text>
+    </g>
+
+    <!-- Other Components -->
+    <g transform="translate(720, 40)">
+      <rect x="0" y="0" width="220" height="200" fill="white" stroke="#cbd5e0" rx="3"/>
+      <text x="10" y="20" class="box-text" font-weight="bold">🔧 Other Features</text>
+      <text x="10" y="38" class="small-text">• Agents/ (marketplace UI)</text>
+      <text x="15" y="52" class="small-text">  - AgentCard, AgentGrid</text>
+      <text x="15" y="66" class="small-text">  - VirtualizedAgentGrid</text>
+      <text x="10" y="80" class="small-text">• Artifacts/ (code artifacts)</text>
+      <text x="15" y="94" class="small-text">  - Code, Mermaid, PlantUML</text>
+      <text x="10" y="108" class="small-text">• Auth/ (Login, Registration)</text>
+      <text x="10" y="122" class="small-text">• Bookmarks/</text>
+      <text x="10" y="136" class="small-text">• Audio/ (TTS)</text>
+      <text x="10" y="150" class="small-text">• ui/ (ErrorBoundary, etc.)</text>
+      <text x="10" y="164" class="small-text">• a11y/ (LiveAnnouncer)</text>
+    </g>
+  </g>
+
+  <!-- LAYER 5: State Management -->
+  <g transform="translate(0, 840)">
+    <rect x="20" y="0" width="160" height="30" fill="#edf2f7" rx="3"/>
+    <text x="25" y="20" class="layer-label">⬅➡ STATE</text>
+
+    <rect x="220" y="5" width="460" height="180" fill="#ede9fe" stroke="#8b5cf6" stroke-width="2" rx="5"/>
+    <text x="240" y="30" class="box-title">store/ - Jotai Atoms (UI State)</text>
+
+    <g transform="translate(240, 40)">
+      <rect x="0" y="0" width="200" height="130" fill="white" stroke="#cbd5e0" rx="3"/>
+      <text x="10" y="20" class="box-text" font-weight="bold">Atomic State</text>
+      <text x="10" y="38" class="small-text">• search.ts (migrated ✅)</text>
+      <text x="10" y="52" class="small-text">• fontSize.ts (migrated ✅)</text>
+      <text x="10" y="66" class="small-text">• artifacts.ts</text>
+      <text x="10" y="80" class="small-text">• agents.ts, prompts.ts</text>
+      <text x="10" y="94" class="small-text">• settings.ts, user.ts</text>
+      <text x="10" y="108" class="small-text">• mcp.ts, toast.ts</text>
+      <text x="10" y="122" class="small-text">• endpoints.ts, misc.ts</text>
+    </g>
+
+    <g transform="translate(460, 40)">
+      <rect x="0" y="0" width="200" height="130" fill="#fff3cd" stroke="#ffc107" rx="3"/>
+      <text x="10" y="20" class="box-text" font-weight="bold">⚠ Legacy (Avoid)</text>
+      <text x="10" y="38" class="small-text">Recoil atoms being migrated</text>
+      <text x="10" y="52" class="small-text">to Jotai. DO NOT use for</text>
+      <text x="10" y="66" class="small-text">new features!</text>
+      <text x="10" y="90" class="small-text">~461 Recoil uses remain</text>
+    </g>
+  </g>
+
+  <g transform="translate(700, 840)">
+    <rect x="0" y="5" width="480" height="180" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="5"/>
+    <text x="20" y="30" class="box-title">packages/data-provider/ - Server State</text>
+
+    <g transform="translate(20, 40)">
+      <rect x="0" y="0" width="220" height="130" fill="white" stroke="#cbd5e0" rx="3"/>
+      <text x="10" y="20" class="box-text" font-weight="bold">React Query Hooks</text>
+      <text x="10" y="38" class="small-text">• useGetConversationsQuery</text>
+      <text x="10" y="52" class="small-text">• useCreateConversationMutation</text>
+      <text x="10" y="66" class="small-text">• useExportConversationMutation</text>
+      <text x="10" y="80" class="small-text">• useGetAgentsQuery</text>
+      <text x="10" y="94" class="small-text">• useGetPromptsQuery</text>
+      <text x="10" y="108" class="small-text">• Auto caching & invalidation</text>
+      <text x="10" y="122" class="small-text">• Optimistic updates</text>
+    </g>
+
+    <g transform="translate(240, 40)">
+      <rect x="0" y="0" width="220" height="130" fill="white" stroke="#cbd5e0" rx="3"/>
+      <text x="10" y="20" class="box-text" font-weight="bold">API Client</text>
+      <text x="10" y="38" class="small-text">• api-endpoints.ts</text>
+      <text x="10" y="52" class="small-text">• data-service.ts</text>
+      <text x="10" y="66" class="small-text">• Axios-based requests</text>
+      <text x="10" y="80" class="small-text">• exportConversation()</text>
+      <text x="10" y="94" class="small-text">• exportFormats()</text>
+      <text x="10" y="108" class="small-text">• Error handling</text>
+    </g>
+  </g>
+
+  <!-- Arrows: State to Components -->
+  <path d="M 450 840 L 450 810" class="arrow-state"/>
+  <path d="M 940 840 L 700 810" class="arrow-data"/>
+
+  <!-- LAYER 6: Backend Integration -->
+  <g transform="translate(0, 1050)">
+    <rect x="20" y="0" width="160" height="30" fill="#edf2f7" rx="3"/>
+    <text x="25" y="20" class="layer-label">⬇ BACKEND</text>
+
+    <rect x="220" y="5" width="960" height="120" fill="#fee" stroke="#ef4444" stroke-width="2" rx="5"/>
+    <text x="240" y="30" class="box-title">Backend API Integration</text>
+
+    <g transform="translate(240, 40)">
+      <rect x="0" y="0" width="280" height="70" fill="white" stroke="#cbd5e0" rx="3"/>
+      <text x="10" y="20" class="box-text" font-weight="bold">REST API Endpoints</text>
+      <text x="10" y="35" class="small-text">• /api/conversations (GET, POST, PUT, DELETE)</text>
+      <text x="10" y="48" class="small-text">• /api/messages (POST, stream)</text>
+      <text x="10" y="61" class="small-text">• /api/export/:id (JSON, MD, PDF)</text>
+    </g>
+
+    <g transform="translate(540, 40)">
+      <rect x="0" y="0" width="200" height="70" fill="white" stroke="#cbd5e0" rx="3"/>
+      <text x="10" y="20" class="box-text" font-weight="bold">Authentication</text>
+      <text x="10" y="35" class="small-text">• JWT tokens</text>
+      <text x="10" y="48" class="small-text">• OAuth2 (9 providers)</text>
+      <text x="10" y="61" class="small-text">• Session management</text>
+    </g>
+
+    <g transform="translate(760, 40)">
+      <rect x="0" y="0" width="200" height="70" fill="white" stroke="#cbd5e0" rx="3"/>
+      <text x="10" y="20" class="box-text" font-weight="bold">WebSocket (Future)</text>
+      <text x="10" y="35" class="small-text">• Real-time updates</text>
+      <text x="10" y="48" class="small-text">• Typing indicators</text>
+      <text x="10" y="61" class="small-text">• Message streaming</text>
+    </g>
+  </g>
+
+  <!-- Arrow up: Backend to Data Provider -->
+  <path d="M 700 1050 L 700 1020" class="arrow-data"/>
+
+  <!-- LAYER 7: Context Providers -->
+  <g transform="translate(0, 1200)">
+    <rect x="20" y="0" width="160" height="30" fill="#edf2f7" rx="3"/>
+    <text x="25" y="20" class="layer-label">🔄 CONTEXTS</text>
+
+    <rect x="220" y="5" width="960" height="140" fill="#e0e7ff" stroke="#6366f1" stroke-width="2" rx="5"/>
+    <text x="240" y="30" class="box-title">Providers/ - React Context Providers (17 total)</text>
+
+    <g transform="translate(240, 40)">
+      <text x="0" y="15" class="small-text">• ChatContext - Active conversation state</text>
+      <text x="0" y="30" class="small-text">• AgentsContext, AgentsMapContext - Agent management</text>
+      <text x="0" y="45" class="small-text">• ArtifactsContext, ArtifactContext - Code artifacts</text>
+      <text x="0" y="60" class="small-text">• BookmarkContext - Conversation bookmarks</text>
+      <text x="0" y="75" class="small-text">• SearchContext - Search functionality</text>
+      <text x="0" y="90" class="small-text">• AssistantsContext, FileMapContext, ToolCallsMapContext</text>
+    </g>
+
+    <g transform="translate(640, 40)">
+      <text x="0" y="15" class="small-text">• ChatFormContext, CustomFormContext - Form state</text>
+      <text x="0" y="30" class="small-text">• DashboardContext - Dashboard state</text>
+      <text x="0" y="45" class="small-text">• EditorContext, CodeBlockContext - Code editing</text>
+      <text x="0" y="60" class="small-text">• SidePanelContext, ActivePanelContext - UI panels</text>
+      <text x="0" y="75" class="small-text">• ShareContext, SetConvoContext</text>
+      <text x="0" y="90" class="small-text">• AnnouncerContext (a11y) - Screen reader support</text>
+    </g>
+  </g>
+
+  <!-- LAYER 8: Key Patterns & Features -->
+  <g transform="translate(0, 1370)">
+    <rect x="20" y="0" width="160" height="30" fill="#edf2f7" rx="3"/>
+    <text x="25" y="20" class="layer-label">✨ FEATURES</text>
+
+    <rect x="220" y="5" width="960" height="160" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="5"/>
+    <text x="240" y="30" class="box-title">Key Frontend Features & Patterns</text>
+
+    <g transform="translate(240, 40)">
+      <rect x="0" y="0" width="280" height="110" fill="white" stroke="#cbd5e0" rx="3"/>
+      <text x="10" y="20" class="box-text" font-weight="bold">Performance Optimizations</text>
+      <text x="10" y="38" class="small-text">✅ Lazy loading i18n (36 languages)</text>
+      <text x="10" y="52" class="small-text">✅ Lazy loading HEIC converter (544 KB)</text>
+      <text x="10" y="66" class="small-text">✅ Code splitting with Vite</text>
+      <text x="10" y="80" class="small-text">✅ VirtualizedAgentGrid for large lists</text>
+      <text x="10" y="94" class="small-text">✅ Bundle size reduced ~50%</text>
+    </g>
+
+    <g transform="translate(540, 40)">
+      <rect x="0" y="0" width="200" height="110" fill="white" stroke="#cbd5e0" rx="3"/>
+      <text x="10" y="20" class="box-text" font-weight="bold">Error Handling</text>
+      <text x="10" y="38" class="small-text">✅ ErrorBoundary (32 tests)</text>
+      <text x="10" y="52" class="small-text">✅ ErrorFallback UI</text>
+      <text x="10" y="66" class="small-text">✅ ChatView error boundary</text>
+      <text x="10" y="80" class="small-text">✅ Sentry-ready integration</text>
+      <text x="10" y="94" class="small-text">✅ Accessibility-first</text>
+    </g>
+
+    <g transform="translate(760, 40)">
+      <rect x="0" y="0" width="200" height="110" fill="white" stroke="#cbd5e0" rx="3"/>
+      <text x="10" y="20" class="box-text" font-weight="bold">Accessibility (a11y)</text>
+      <text x="10" y="38" class="small-text">• LiveAnnouncer for updates</text>
+      <text x="10" y="52" class="small-text">• ARIA labels throughout</text>
+      <text x="10" y="66" class="small-text">• Keyboard navigation</text>
+      <text x="10" y="80" class="small-text">• Screen reader support</text>
+      <text x="10" y="94" class="small-text">• Focus management</text>
+    </g>
+  </g>
+
+  <!-- Bottom notes -->
+  <g transform="translate(220, 1550)">
+    <text x="0" y="0" class="small-text" font-weight="bold">Data Flow:</text>
+    <text x="0" y="15" class="small-text">1. User interacts with UI Components</text>
+    <text x="0" y="28" class="small-text">2. Components read/write Jotai atoms for UI state</text>
+    <text x="0" y="41" class="small-text">3. Components use React Query hooks for server data</text>
+    <text x="400" y="15" class="small-text">4. React Query calls data-provider API client</text>
+    <text x="400" y="28" class="small-text">5. API client makes REST calls to backend</text>
+    <text x="400" y="41" class="small-text">6. Backend responses cached by React Query</text>
+    <text x="800" y="15" class="small-text">7. UI updates automatically on state changes</text>
+    <text x="800" y="28" class="small-text">8. Context providers share state across tree</text>
+  </g>
+</svg>

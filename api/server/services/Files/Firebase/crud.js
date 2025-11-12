@@ -3,9 +3,26 @@ const path = require('path');
 const axios = require('axios');
 const fetch = require('node-fetch');
 const { logger } = require('@librechat/data-schemas');
-const { getFirebaseStorage } = require('@librechat/api');
+const { getFirebaseStorage, generateShortLivedToken } = require('@librechat/api');
 const { ref, uploadBytes, getDownloadURL, deleteObject } = require('firebase/storage');
 const { getBufferMetadata } = require('~/server/utils');
+
+/**
+ * Sanitizes a namespace string for PostgreSQL compatibility
+ * @param {string} raw - Raw user email or ID
+ * @returns {string} Sanitized namespace
+ */
+function sanitizeNamespace(raw) {
+  if (!raw) return 'ns_default';
+  let s = String(raw)
+    .toLowerCase()
+    .replace(/[-.@\s]/g, '_')
+    .replace(/[^a-z0-9_]/g, '_');
+  if (!/^[a-z]/.test(s)) s = `ns_${s}`;
+  if (s.length > 63) s = s.slice(0, 63);
+  s = s.replace(/^_+|_+$/g, '');
+  return s || 'ns_default';
+}
 
 /**
  * Deletes a file from Firebase Storage.
@@ -167,16 +184,49 @@ function extractFirebaseFilePath(urlString) {
  *          Throws an error if there is an issue with deletion.
  */
 const deleteFirebaseFile = async (req, file) => {
-  if (file.embedded && process.env.RAG_API_URL) {
-    const jwtToken = req.headers.authorization.split(' ')[1];
-    axios.delete(`${process.env.RAG_API_URL}/documents`, {
-      headers: {
-        Authorization: `Bearer ${jwtToken}`,
-        'Content-Type': 'application/json',
-        accept: 'application/json',
-      },
-      data: [file.file_id],
-    });
+  // Always attempt to delete from RAG if RAG_API_URL is configured
+  // This handles files that may have been embedded but webhook wasn't called
+  if (process.env.RAG_API_URL) {
+    const jwtToken = generateShortLivedToken(req.user.id);
+    const userIdentifier = req.user?.email || req.user?.id;
+    const namespace = sanitizeNamespace(userIdentifier);
+
+    // RAG API uses source path as document identifier: "./uploads/public/{filename}"
+    const sourceToDelete = `./uploads/public/${file.filename}`;
+
+    logger.info(
+      `[deleteFirebaseFile] Attempting to delete from RAG - source: ${sourceToDelete}, file_id: ${file.file_id}, user: ${userIdentifier}, namespace: ${namespace}, embedded: ${file.embedded}`,
+    );
+
+    axios
+      .delete(`${process.env.RAG_API_URL}/documents`, {
+        headers: {
+          Authorization: `Bearer ${jwtToken}`,
+          'X-Namespace': namespace,
+          'X-File-ID': file.file_id,
+          'Content-Type': 'application/json',
+          accept: 'application/json',
+        },
+        data: [file.file_id],
+      })
+      .then((response) => {
+        logger.info(
+          `[deleteFirebaseFile] Successfully deleted from RAG - source: ${sourceToDelete}, file_id: ${file.file_id}`,
+        );
+      })
+      .catch((error) => {
+        // 404 is expected if file wasn't embedded
+        if (error.response?.status === 404) {
+          logger.debug(
+            `[deleteFirebaseFile] File ${sourceToDelete} not found in RAG (not embedded or already deleted)`,
+          );
+        } else {
+          logger.error(
+            `[deleteFirebaseFile] Error deleting from RAG API for file ${sourceToDelete}:`,
+            error.message,
+          );
+        }
+      });
   }
 
   const fileName = extractFirebaseFilePath(file.filepath);

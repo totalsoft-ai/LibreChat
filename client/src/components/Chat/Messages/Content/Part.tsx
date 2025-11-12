@@ -197,15 +197,14 @@ const Part = memo(
             width: width + 'px',
           }}
         />
-            );
-           } else if (part.type === 'application/vnd.plantuml') {
-       // Handle PlantUML diagrams
-       const plantUMLContent = part['application/vnd.plantuml'];
-       if (typeof plantUMLContent === 'string') {
-         return <PlantUMLDiagram content={plantUMLContent} />;
-       }
-     }
-              
+      );
+    } else if (part.type === 'application/vnd.plantuml') {
+      // Handle PlantUML diagrams
+      const plantUMLContent = part['application/vnd.plantuml'];
+      if (typeof plantUMLContent === 'string') {
+        return <PlantUMLDiagram content={plantUMLContent} />;
+      }
+    }
 
     return null;
   },

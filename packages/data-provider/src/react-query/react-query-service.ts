@@ -221,6 +221,23 @@ export const useDeletePresetMutation = (): UseMutationResult<
   });
 };
 
+export const useExportConversationMutation = (): UseMutationResult<
+  Blob,
+  unknown,
+  { conversationId: string; format: 'json' | 'markdown' | 'md' | 'html' | 'pdf' },
+  unknown
+> => {
+  return useMutation(
+    ({
+      conversationId,
+      format,
+    }: {
+      conversationId: string;
+      format: 'json' | 'markdown' | 'md' | 'html' | 'pdf';
+    }) => dataService.exportConversationAPI(conversationId, format),
+  );
+};
+
 export const useUpdateTokenCountMutation = (): UseMutationResult<
   t.TUpdateTokenCountResponse,
   unknown,

@@ -1,4 +1,5 @@
 const { logger } = require('@librechat/data-schemas');
+const { clearAllTimers, cleanupEventEmitter } = require('./utils/memoryManagement');
 
 /** WeakMap to hold temporary data associated with requests */
 const requestDataMap = new WeakMap();
@@ -40,6 +41,14 @@ function disposeClient(client) {
   }
 
   try {
+    // Clear all managed timers associated with this client
+    clearAllTimers(client);
+
+    // Clean up any EventEmitter instances
+    if (client.emitter) {
+      cleanupEventEmitter(client.emitter);
+      client.emitter = null;
+    }
     if (client.user) {
       client.user = null;
     }

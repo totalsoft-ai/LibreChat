@@ -115,6 +115,14 @@ export const forkConversation = () => `${conversationsRoot}/fork`;
 
 export const duplicateConversation = () => `${conversationsRoot}/duplicate`;
 
+export const exportConversation = (conversationId: string, format?: string) => {
+  const exportRoot = `${BASE_URL}/api/export`;
+  const query = format ? `?format=${encodeURIComponent(format)}` : '';
+  return `${exportRoot}/${conversationId}${query}`;
+};
+
+export const exportFormats = () => `${BASE_URL}/api/export`;
+
 export const search = (q: string, cursor?: string | null) =>
   `${BASE_URL}/api/search?q=${q}${cursor ? `&cursor=${cursor}` : ''}`;
 

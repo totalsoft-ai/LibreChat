@@ -47,7 +47,9 @@ function createContextHandlers(req, userMessageContent) {
   };
 
   const processFile = async (file) => {
-    if (file.embedded && !processedIds.has(file.file_id)) {
+    // Feature flag to skip embedded check for testing/debugging RAG queries
+    const skipEmbeddedCheck = process.env.RAG_SKIP_EMBEDDED_CHECK === 'true';
+    if ((file.embedded || skipEmbeddedCheck) && !processedIds.has(file.file_id)) {
       try {
         const promise = query(file);
         queryPromises.push(promise);

@@ -37,7 +37,7 @@ const {
   DocumentFlowTool,
   DocumentSummarizerTool,
   TextTranslatorTool,
-  WebScrapingTool
+  WebScrapingTool,
 } = require('../');
 const { primeFiles: primeCodeFiles } = require('~/server/services/Files/Code/process');
 const { createFileSearchTool, primeFiles: primeSearchFiles } = require('./fileSearch');

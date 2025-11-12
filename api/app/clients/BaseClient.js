@@ -1284,7 +1284,9 @@ class BaseClient {
         allFiles.push(file);
         continue;
       }
-      if (file.embedded === true || file.metadata?.fileIdentifier != null) {
+      // Feature flag to skip embedded check for testing/debugging RAG queries
+      const skipEmbeddedCheck = process.env.RAG_SKIP_EMBEDDED_CHECK === 'true';
+      if (file.embedded === true || file.metadata?.fileIdentifier != null || skipEmbeddedCheck) {
         allFiles.push(file);
         continue;
       }
@@ -1357,7 +1359,7 @@ class BaseClient {
     logger.debug('[BaseClient] Processing attachments:', {
       resendFiles: this.options.resendFiles,
       attachmentsCount: this.options.attachments?.length || 0,
-      messagesCount: _messages.length
+      messagesCount: _messages.length,
     });
 
     /**
@@ -1380,13 +1382,15 @@ class BaseClient {
       }
 
       if (fileIds.length === 0) {
-        logger.debug('[BaseClient] No files to process for message:', { messageId: message.messageId });
+        logger.debug('[BaseClient] No files to process for message:', {
+          messageId: message.messageId,
+        });
         return message;
       }
 
-      logger.debug('[BaseClient] Processing files for message:', { 
-        messageId: message.messageId, 
-        fileIds: fileIds 
+      logger.debug('[BaseClient] Processing files for message:', {
+        messageId: message.messageId,
+        fileIds: fileIds,
       });
 
       const files = await getFiles(
@@ -1400,19 +1404,19 @@ class BaseClient {
       logger.debug('[BaseClient] Retrieved files from database:', {
         messageId: message.messageId,
         filesCount: files.length,
-        fileIds: files.map(f => f.file_id)
+        fileIds: files.map((f) => f.file_id),
       });
 
       await this.addFileContextToMessage(message, files);
       await this.processAttachments(message, files);
 
       this.message_file_map[message.messageId] = files;
-      
-      logger.debug('[BaseClient] Files processed successfully:', { 
-        messageId: message.messageId, 
-        filesCount: files.length 
+
+      logger.debug('[BaseClient] Files processed successfully:', {
+        messageId: message.messageId,
+        filesCount: files.length,
       });
-      
+
       return message;
     };
 
@@ -1425,9 +1429,9 @@ class BaseClient {
         continue;
       }
 
-      logger.debug('[BaseClient] Message has files, processing:', { 
-        messageId: message.messageId, 
-        filesCount: message.files.length 
+      logger.debug('[BaseClient] Message has files, processing:', {
+        messageId: message.messageId,
+        filesCount: message.files.length,
       });
       promises.push(processMessage(message));
     }
@@ -1435,9 +1439,9 @@ class BaseClient {
     const messages = await Promise.all(promises);
 
     const allFiles = Object.values(this.message_file_map ?? {}).flat();
-    logger.debug('[BaseClient] Final file processing result:', { 
+    logger.debug('[BaseClient] Final file processing result:', {
       totalFiles: allFiles.length,
-      messageFileMap: Object.keys(this.message_file_map || {})
+      messageFileMap: Object.keys(this.message_file_map || {}),
     });
 
     this.checkVisionRequest(allFiles);

@@ -22,15 +22,23 @@ class DocumentFlowTool extends Tool {
       requirements: z.string().optional(),
       doc_type: z.enum(['all', 'prd', 'execution', 'diagrams']).optional(),
       return_format: z.enum(['text', 'pdf']).optional(),
-      file_data: z.object({
-        name: z.string(),
-        content: z.string(),
-      }).optional(),
+      file_data: z
+        .object({
+          name: z.string(),
+          content: z.string(),
+        })
+        .optional(),
     });
   }
 
   async _call(input) {
-    const { action, requirements, doc_type = 'all', return_format = 'text', file_data } = this.schema.parse(input);
+    const {
+      action,
+      requirements,
+      doc_type = 'all',
+      return_format = 'text',
+      file_data,
+    } = this.schema.parse(input);
 
     switch (action) {
       case 'generate_documentation':
@@ -155,4 +163,4 @@ class DocumentFlowTool extends Tool {
   }
 }
 
-module.exports = DocumentFlowTool; 
+module.exports = DocumentFlowTool;

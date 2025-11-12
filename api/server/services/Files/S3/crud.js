@@ -150,6 +150,55 @@ async function deleteFileFromS3(req, file) {
     throw new Error(message);
   }
 
+  // Always attempt to delete from RAG if RAG_API_URL is configured
+  // This handles files that may have been embedded but webhook wasn't called
+  if (process.env.RAG_API_URL) {
+    const axios = require('axios');
+    const { generateShortLivedToken } = require('@librechat/api');
+    const { sanitizeNamespace } = require('../VectorDB/crud');
+
+    const jwtToken = generateShortLivedToken(req.user.id);
+    const userIdentifier = req.user?.email || req.user?.id;
+    const namespace = sanitizeNamespace(userIdentifier);
+
+    // RAG API uses source path as document identifier: "./uploads/public/{filename}"
+    const sourceToDelete = `./uploads/public/${file.filename}`;
+
+    logger.info(
+      `[deleteFileFromS3] Attempting to delete from RAG - source: ${sourceToDelete}, file_id: ${file.file_id}, user: ${userIdentifier}, namespace: ${namespace}, embedded: ${file.embedded}`,
+    );
+
+    axios
+      .delete(`${process.env.RAG_API_URL}/documents`, {
+        headers: {
+          Authorization: `Bearer ${jwtToken}`,
+          'X-Namespace': namespace,
+          'X-File-ID': file.file_id,
+          'Content-Type': 'application/json',
+          accept: 'application/json',
+        },
+        data: [file.file_id],
+      })
+      .then((response) => {
+        logger.info(
+          `[deleteFileFromS3] Successfully deleted from RAG - source: ${sourceToDelete}, file_id: ${file.file_id}`,
+        );
+      })
+      .catch((error) => {
+        // 404 is expected if file wasn't embedded
+        if (error.response?.status === 404) {
+          logger.debug(
+            `[deleteFileFromS3] File ${sourceToDelete} not found in RAG (not embedded or already deleted)`,
+          );
+        } else {
+          logger.error(
+            `[deleteFileFromS3] Error deleting from RAG API for file ${sourceToDelete}:`,
+            error.message,
+          );
+        }
+      });
+  }
+
   try {
     const s3 = initializeS3();
 

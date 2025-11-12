@@ -1,6 +1,7 @@
 require('dotenv').config();
 const { isEnabled } = require('@librechat/api');
 const { logger } = require('@librechat/data-schemas');
+const { setupQueryProfiler } = require('~/server/middleware/queryProfiler');
 
 const mongoose = require('mongoose');
 const MONGO_URI = process.env.MONGO_URI;
@@ -70,6 +71,17 @@ async function connectDb() {
     });
   }
   cached.conn = await cached.promise;
+
+  // Setup query profiling in development mode
+  if (process.env.NODE_ENV !== 'production') {
+    const enableQueryProfiler = isEnabled(process.env.ENABLE_QUERY_PROFILER);
+    if (enableQueryProfiler) {
+      setupQueryProfiler(mongoose, {
+        slowQueryThreshold: parseInt(process.env.SLOW_QUERY_THRESHOLD) || 100,
+        logAllQueries: isEnabled(process.env.LOG_ALL_QUERIES) || false,
+      });
+    }
+  }
 
   return cached.conn;
 }

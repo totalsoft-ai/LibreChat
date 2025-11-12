@@ -11,8 +11,8 @@ class TextTranslatorTool extends Tool {
     super(fields);
     this.name = 'text_translator';
     this.baseUrl = getEnvironmentVariable('TEXT_TRANSLATOR_API_URL');
-    
-    this.description = 
+
+    this.description =
       'Translates text and documents between different languages using AI. ' +
       'Supports PDF, DOCX, DOC, TXT files and direct text. ' +
       'Automatically detects source language and provides professional translations.';
@@ -21,10 +21,12 @@ class TextTranslatorTool extends Tool {
       action: z.enum(['translate_text', 'translate_file']),
       text: z.string().optional(),
       target_language: z.string().optional(),
-      file_data: z.object({
-        name: z.string(),
-        content: z.string()
-      }).optional()
+      file_data: z
+        .object({
+          name: z.string(),
+          content: z.string(),
+        })
+        .optional(),
     });
   }
 
@@ -51,7 +53,7 @@ class TextTranslatorTool extends Tool {
       text: typeof text,
       target_language: typeof target_language,
       textValue: text,
-      targetValue: target_language
+      targetValue: target_language,
     });
 
     // Handle case where text might be an object
@@ -80,19 +82,19 @@ class TextTranslatorTool extends Tool {
 
     console.log('[TextTranslatorTool] Processed values:', {
       textString: textString.substring(0, 100) + '...',
-      targetString
+      targetString,
     });
-
-
 
     // Try URLSearchParams first (simpler form data)
     const urlSearchParams = new URLSearchParams();
     urlSearchParams.append('text', textString.trim());
     urlSearchParams.append('target_language', targetString.trim());
 
-    console.log('[TextTranslatorTool] Sending URLSearchParams with text and target_language fields...');
+    console.log(
+      '[TextTranslatorTool] Sending URLSearchParams with text and target_language fields...',
+    );
     console.log('[TextTranslatorTool] URLSearchParams content:', urlSearchParams.toString());
-    
+
     return await this._request('POST', '/translate', urlSearchParams, false);
   }
 
@@ -119,15 +121,15 @@ class TextTranslatorTool extends Tool {
 
       const fileExtension = fileData.name.split('.').pop().toLowerCase();
       const supportedExtensions = ['pdf', 'docx', 'doc', 'txt'];
-      
+
       if (!supportedExtensions.includes(fileExtension)) {
         throw new Error('Unsupported file type. Supported: .pdf, .docx, .doc, .txt');
       }
-      
+
       const isPdf = fileContent.slice(0, 4).toString('hex') === '25504446';
       const isDocx = fileContent.slice(0, 4).toString('hex') === '504b0304';
       const isDoc = fileContent.slice(0, 8).toString('hex') === 'd0cf11e0a1b11ae1';
-      
+
       if (fileExtension === 'pdf' && !isPdf) {
         throw new Error('File does not appear to be a valid PDF');
       }
@@ -151,14 +153,16 @@ class TextTranslatorTool extends Tool {
 
   async _request(method, path, body = null, isJson = true) {
     if (!this.baseUrl) {
-      throw new Error('TEXT_TRANSLATOR_API_URL is not configured. Please set this environment variable.');
+      throw new Error(
+        'TEXT_TRANSLATOR_API_URL is not configured. Please set this environment variable.',
+      );
     }
 
-    const options = { 
+    const options = {
       method,
-      headers: {}
+      headers: {},
     };
-    
+
     if (body) {
       if (isJson) {
         options.headers['Content-Type'] = 'application/json';
@@ -188,28 +192,33 @@ class TextTranslatorTool extends Tool {
       } else if (!isJson && body) {
         console.log(`[TextTranslatorTool] FormData request`);
       }
-      
+
       const response = await fetch(`${this.baseUrl}${path}`, options);
-      
+
       console.log(`[TextTranslatorTool] Response status: ${response.status}`);
-      console.log(`[TextTranslatorTool] Response headers:`, Object.fromEntries(response.headers.entries()));
-      
+      console.log(
+        `[TextTranslatorTool] Response headers:`,
+        Object.fromEntries(response.headers.entries()),
+      );
+
       const contentType = response.headers.get('content-type');
       let result;
-      
+
       if (contentType && contentType.includes('application/json')) {
         result = await response.json();
       } else {
         result = await response.text();
       }
-      
+
       if (!response.ok) {
         console.log(`[TextTranslatorTool] Error response:`, result);
         let errorMessage;
-        
+
         if (result && typeof result === 'object') {
           if (Array.isArray(result.detail)) {
-            errorMessage = result.detail.map(d => d.msg || d.message || 'Unknown error').join(', ');
+            errorMessage = result.detail
+              .map((d) => d.msg || d.message || 'Unknown error')
+              .join(', ');
           } else {
             errorMessage = result.detail || result.message || result.error || 'Unknown error';
           }
@@ -218,21 +227,24 @@ class TextTranslatorTool extends Tool {
         } else {
           errorMessage = response.statusText || `HTTP ${response.status}`;
         }
-        
+
         throw new Error(errorMessage);
       }
 
       console.log(`[TextTranslatorTool] Success response:`, result);
       console.log(`[TextTranslatorTool] Response type:`, typeof result);
-      console.log(`[TextTranslatorTool] Response keys:`, typeof result === 'object' ? Object.keys(result) : 'N/A');
-      
+      console.log(
+        `[TextTranslatorTool] Response keys:`,
+        typeof result === 'object' ? Object.keys(result) : 'N/A',
+      );
+
       // Handle different response formats
       if (typeof result === 'object' && result.translated_text) {
         const formattedResult = {
           translated_text: result.translated_text,
           source_language: result.source_language || 'auto',
           target_language: result.target_language,
-          status: 'success'
+          status: 'success',
         };
         console.log(`[TextTranslatorTool] Formatted result:`, formattedResult);
         return JSON.stringify(formattedResult);
@@ -241,7 +253,7 @@ class TextTranslatorTool extends Tool {
           translated_text: result,
           source_language: 'auto',
           target_language: 'unknown',
-          status: 'success'
+          status: 'success',
         };
         console.log(`[TextTranslatorTool] Formatted result:`, formattedResult);
         return JSON.stringify(formattedResult);
@@ -252,11 +264,13 @@ class TextTranslatorTool extends Tool {
     } catch (error) {
       console.error(`[TextTranslatorTool] Request failed:`, error);
       if (error.name === 'TypeError' && error.message.includes('fetch')) {
-        throw new Error(`Cannot connect to Text Translator service at ${this.baseUrl}. Please check if the URL is correct and the service is available.`);
+        throw new Error(
+          `Cannot connect to Text Translator service at ${this.baseUrl}. Please check if the URL is correct and the service is available.`,
+        );
       }
       throw error;
     }
   }
 }
 
-module.exports = TextTranslatorTool; 
+module.exports = TextTranslatorTool;

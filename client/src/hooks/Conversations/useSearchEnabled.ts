@@ -1,11 +1,11 @@
 import { useEffect } from 'react';
-import { useSetRecoilState } from 'recoil';
+import { useSetAtom } from 'jotai';
 import { useGetSearchEnabledQuery } from '~/data-provider';
+import { searchAtom } from '~/store/search';
 import { logger } from '~/utils';
-import store from '~/store';
 
 export default function useSearchEnabled(isAuthenticated: boolean) {
-  const setSearch = useSetRecoilState(store.search);
+  const setSearch = useSetAtom(searchAtom);
   const searchEnabledQuery = useGetSearchEnabledQuery({ enabled: isAuthenticated });
 
   useEffect(() => {

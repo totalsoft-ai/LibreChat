@@ -162,8 +162,14 @@ const messageSchema: Schema<IMessage> = new Schema(
   { timestamps: true },
 );
 
+// TTL index for automatic cleanup of expired messages
 messageSchema.index({ expiredAt: 1 }, { expireAfterSeconds: 0 });
-messageSchema.index({ createdAt: 1 });
+
+// Compound indexes for common query patterns
 messageSchema.index({ messageId: 1, user: 1 }, { unique: true });
+messageSchema.index({ conversationId: 1, createdAt: 1 }); // For fetching messages in a conversation sorted by time
+messageSchema.index({ conversationId: 1, user: 1 }); // For user-specific message queries
+messageSchema.index({ user: 1, createdAt: 1 }); // For user message history
+messageSchema.index({ conversationId: 1, user: 1, createdAt: 1 }); // For deleteMessagesSince query
 
 export default messageSchema;

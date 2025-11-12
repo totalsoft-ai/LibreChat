@@ -64,6 +64,7 @@ export const documentSupportedProviders = new Set<string>([
   Providers.DEEPSEEK,
   Providers.OPENROUTER,
   Providers.XAI,
+  'Assistant', // Custom Assistant endpoint with RAG support
 ]);
 
 const openAILikeProviders = new Set<string>([

@@ -640,7 +640,16 @@ const chatV1 = async (req, res) => {
         conversationId,
       });
     }
+
+    // Clean up StreamRunManager to prevent memory leaks
+    if (response && typeof response.dispose === 'function') {
+      response.dispose();
+    }
   } catch (error) {
+    // Clean up StreamRunManager even on error
+    if (response && typeof response.dispose === 'function') {
+      response.dispose();
+    }
     await handleError(error);
   }
 };

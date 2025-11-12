@@ -78,7 +78,7 @@ class DocumentLoaderTool extends Tool {
         throw new Error(
           `File too large: ${(stats.size / 1024 / 1024).toFixed(2)}MB (max: ${
             this.maxFileSize / 1024 / 1024
-          }MB)`
+          }MB)`,
         );
       }
 
@@ -91,7 +91,7 @@ class DocumentLoaderTool extends Tool {
 
       if (!this.supportedMimeTypes.includes(detectedFileType.mime)) {
         throw new Error(
-          `Unsupported file type: ${detectedFileType.mime} (${detectedFileType.ext || 'unknown extension'})`
+          `Unsupported file type: ${detectedFileType.mime} (${detectedFileType.ext || 'unknown extension'})`,
         );
       }
 
