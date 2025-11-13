@@ -166,6 +166,7 @@ export type AgentModelParameters = {
   top_p: AgentParameterValue;
   frequency_penalty: AgentParameterValue;
   presence_penalty: AgentParameterValue;
+  skipMCPModelProcessing?: boolean;
 };
 
 export interface AgentBaseResource {

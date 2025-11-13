@@ -151,6 +151,20 @@ export const librechat = {
     component: 'input',
     columnSpan: 2,
   } as const,
+  skipMCPModelProcessing: {
+    key: 'skipMCPModelProcessing',
+    label: 'Direct MCP Response',
+    labelCode: false,
+    description:
+      'Return MCP tool responses directly without model processing. Useful for deterministic operations.',
+    descriptionCode: false,
+    type: 'boolean',
+    default: false,
+    component: 'switch',
+    optionType: 'model',
+    showDefault: false,
+    columnSpan: 2,
+  } as const,
 };
 
 const openAIParams: Record<string, SettingDefinition> = {
@@ -637,6 +651,7 @@ const googleConfig: SettingsConfiguration = [
   google.thinking,
   google.thinkingBudget,
   google.web_search,
+  librechat.skipMCPModelProcessing,
   librechat.fileTokenLimit,
 ];
 
@@ -656,6 +671,7 @@ const googleCol2: SettingsConfiguration = [
   google.thinking,
   google.thinkingBudget,
   google.web_search,
+  librechat.skipMCPModelProcessing,
   librechat.fileTokenLimit,
 ];
 
@@ -677,6 +693,7 @@ const openAI: SettingsConfiguration = [
   openAIParams.reasoning_summary,
   openAIParams.verbosity,
   openAIParams.disableStreaming,
+  librechat.skipMCPModelProcessing,
   librechat.fileTokenLimit,
 ];
 
@@ -702,6 +719,7 @@ const openAICol2: SettingsConfiguration = [
   openAIParams.useResponsesApi,
   openAIParams.web_search,
   openAIParams.disableStreaming,
+  librechat.skipMCPModelProcessing,
   librechat.fileTokenLimit,
 ];
 
@@ -718,6 +736,7 @@ const anthropicConfig: SettingsConfiguration = [
   anthropic.thinking,
   anthropic.thinkingBudget,
   anthropic.web_search,
+  librechat.skipMCPModelProcessing,
   librechat.fileTokenLimit,
 ];
 
@@ -738,6 +757,7 @@ const anthropicCol2: SettingsConfiguration = [
   anthropic.thinking,
   anthropic.thinkingBudget,
   anthropic.web_search,
+  librechat.skipMCPModelProcessing,
   librechat.fileTokenLimit,
 ];
 
@@ -754,6 +774,7 @@ const bedrockAnthropic: SettingsConfiguration = [
   bedrock.region,
   anthropic.thinking,
   anthropic.thinkingBudget,
+  librechat.skipMCPModelProcessing,
   librechat.fileTokenLimit,
 ];
 
@@ -809,6 +830,7 @@ const bedrockAnthropicCol2: SettingsConfiguration = [
   bedrock.region,
   anthropic.thinking,
   anthropic.thinkingBudget,
+  librechat.skipMCPModelProcessing,
   librechat.fileTokenLimit,
 ];
 
