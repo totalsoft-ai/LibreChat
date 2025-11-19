@@ -173,7 +173,16 @@ const createFileSearchTool = async ({ userId, files, entity_id, fileCitations = 
     {
       name: Tools.file_search,
       responseFormat: 'content_and_artifact',
-      description: `Performs semantic search across attached "${Tools.file_search}" documents using natural language queries. This tool analyzes the content of uploaded files to find relevant information, quotes, and passages that best match your query. Use this to extract specific information or find relevant sections within the available documents.${
+      description: `Performs semantic search across attached "${Tools.file_search}" documents using natural language queries. This tool analyzes the content of uploaded files to find relevant information, quotes, and passages that best match your query.
+
+**IMPORTANT - STRICT DOCUMENT-ONLY MODE:**
+- ONLY answer questions using information explicitly found in the file search results
+- If the information is not present in the search results, you MUST state: "I could not find this information in the uploaded documents"
+- DO NOT use your general knowledge or training data to supplement or add information beyond what the documents contain
+- NEVER make assumptions or inferences that aren't directly supported by the document content
+- Always cite which document(s) the information comes from
+
+Use this tool to extract specific information or find relevant sections within the available documents.${
         fileCitations
           ? `
 
