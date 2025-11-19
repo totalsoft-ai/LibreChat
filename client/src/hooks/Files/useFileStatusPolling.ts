@@ -20,11 +20,11 @@ export const useFileStatusPolling = (
 ) => {
   const { enabled = true, pollInterval = 3000, maxDuration = 300000 } = options; // 3s interval, 5min max
   const queryClient = useQueryClient();
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(Date.now());
 
   useEffect(() => {
-    if (!enabled) {
+    if (!enabled || !files || !Array.isArray(files)) {
       return;
     }
 
@@ -36,7 +36,7 @@ export const useFileStatusPolling = (
     if (!hasProcessingFiles) {
       // Clear interval if no files are processing
       if (intervalRef.current) {
-        clearInterval(intervalRef.current);
+        window.clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
       return;
@@ -46,7 +46,7 @@ export const useFileStatusPolling = (
     if (!intervalRef.current) {
       startTimeRef.current = Date.now();
 
-      intervalRef.current = setInterval(() => {
+      intervalRef.current = window.setInterval(() => {
         const elapsed = Date.now() - startTimeRef.current;
 
         // Stop polling after max duration
@@ -55,7 +55,7 @@ export const useFileStatusPolling = (
             `[useFileStatusPolling] Max polling duration (${maxDuration}ms) reached, stopping polling`,
           );
           if (intervalRef.current) {
-            clearInterval(intervalRef.current);
+            window.clearInterval(intervalRef.current);
             intervalRef.current = null;
           }
           return;
@@ -70,7 +70,7 @@ export const useFileStatusPolling = (
     // Cleanup on unmount
     return () => {
       if (intervalRef.current) {
-        clearInterval(intervalRef.current);
+        window.clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
     };
