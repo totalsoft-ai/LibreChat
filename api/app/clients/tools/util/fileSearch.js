@@ -6,6 +6,7 @@ const { generateShortLivedToken } = require('@librechat/api');
 const { Tools, EToolResources } = require('librechat-data-provider');
 const { filterFilesByAgentAccess } = require('~/server/services/Files/permissions');
 const { getFiles } = require('~/models/File');
+const { sanitizeNamespace } = require('~/server/services/Files/VectorDB/crud');
 
 /**
  *
@@ -72,9 +73,10 @@ const primeFiles = async (options) => {
  * @param {Array<{ file_id: string; filename: string }>} options.files
  * @param {string} [options.entity_id]
  * @param {boolean} [options.fileCitations=false] - Whether to include citation instructions
+ * @param {ServerRequest} [options.req] - The Express request object (for user email/namespace)
  * @returns
  */
-const createFileSearchTool = async ({ userId, files, entity_id, fileCitations = false }) => {
+const createFileSearchTool = async ({ userId, files, entity_id, fileCitations = false, req }) => {
   return tool(
     async ({ query }) => {
       if (files.length === 0) {
@@ -84,6 +86,11 @@ const createFileSearchTool = async ({ userId, files, entity_id, fileCitations = 
       if (!jwtToken) {
         return 'There was an error authenticating the file search request.';
       }
+
+      // Generate namespace from user email or ID (same as uploadVectors)
+      const userIdentifier = req?.user?.email || req?.user?.id || userId;
+      const namespace = sanitizeNamespace(userIdentifier);
+      logger.debug(`[${Tools.file_search}] Using namespace: ${namespace} for user: ${userIdentifier}`);
 
       /**
        *
@@ -110,6 +117,8 @@ const createFileSearchTool = async ({ userId, files, entity_id, fileCitations = 
             headers: {
               Authorization: `Bearer ${jwtToken}`,
               'Content-Type': 'application/json',
+              'X-Namespace': namespace,
+              'X-File-ID': file.file_id,
             },
           })
           .catch((error) => {
