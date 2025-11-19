@@ -149,7 +149,13 @@ const createFileSearchTool = async ({ userId, files, entity_id, fileCitations = 
         // TODO: make this configurable
         .slice(0, 10);
 
-      const formattedString = formattedResults
+      const strictModeHeader = `[SEARCH RESULTS - ANSWER ONLY FROM THESE RESULTS]
+If the answer to the user's question is not in these results, respond with: "I could not find this information in the uploaded documents."
+DO NOT use external knowledge. ONLY use the information below.
+
+`;
+
+      const formattedString = strictModeHeader + formattedResults
         .map(
           (result, index) =>
             `File: ${result.filename}${
