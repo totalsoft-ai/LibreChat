@@ -70,7 +70,9 @@ const deleteVectors = async (req, file) => {
         'Content-Type': 'application/json',
         accept: 'application/json',
       },
-      data: [file.file_id],
+      data: {
+        document_ids: [file.file_id],
+      },
     });
 
     logger.info(
