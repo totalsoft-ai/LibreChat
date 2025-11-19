@@ -63,7 +63,7 @@ export const useFileStatusPolling = (
 
         // Refetch files to check for updated status
         console.log('[useFileStatusPolling] Refetching files to check embedding status');
-        queryClient.invalidateQueries([QueryKeys.files]);
+        queryClient.refetchQueries([QueryKeys.files]);
       }, pollInterval);
     }
 
