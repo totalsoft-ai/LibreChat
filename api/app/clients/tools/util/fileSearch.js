@@ -25,8 +25,24 @@ const primeFiles = async (options) => {
   const agentResourceIds = new Set(file_ids);
   const resourceFiles = tool_resources?.[EToolResources.file_search]?.files ?? [];
 
-  // Get all files first
-  const allFiles = (await getFiles({ file_id: { $in: file_ids } }, null, { text: 0 })) ?? [];
+  // Get files: if no files attached, search ALL user's files in namespace
+  let allFiles;
+  if (file_ids.length === 0 && req?.user?.id) {
+    // No files attached - get ALL user's files with embedded: true (indexed in RAG)
+    logger.info(`[primeFiles] No files attached, fetching all indexed files for user: ${req.user.id}`);
+    allFiles = (await getFiles(
+      {
+        user: req.user.id,
+        embedded: true,  // Only get files that are indexed in RAG
+        filepath: 'vectordb'  // Only RAG-indexed files
+      },
+      null,
+      { text: 0 }
+    )) ?? [];
+  } else {
+    // Files attached - get only those files
+    allFiles = (await getFiles({ file_id: { $in: file_ids } }, null, { text: 0 })) ?? [];
+  }
 
   // Filter by access if user and agent are provided
   let dbFiles;
@@ -46,13 +62,19 @@ const primeFiles = async (options) => {
   let toolContext = `- Note: Semantic search is available through the ${Tools.file_search} tool but no files are currently loaded. Request the user to upload documents to search through.`;
 
   const files = [];
+  const searchingAllFiles = file_ids.length === 0 && dbFiles.length > 0;
+
   for (let i = 0; i < dbFiles.length; i++) {
     const file = dbFiles[i];
     if (!file) {
       continue;
     }
     if (i === 0) {
-      toolContext = `- Note: Use the ${Tools.file_search} tool to find relevant information within:`;
+      if (searchingAllFiles) {
+        toolContext = `- Note: No specific files attached. Use the ${Tools.file_search} tool to search across ALL your indexed documents (${dbFiles.length} files):`;
+      } else {
+        toolContext = `- Note: Use the ${Tools.file_search} tool to find relevant information within:`;
+      }
     }
     toolContext += `\n\t- ${file.filename}${
       agentResourceIds.has(file.file_id) ? '' : ' (just attached by user)'
@@ -93,39 +115,70 @@ const createFileSearchTool = async ({ userId, files, entity_id, fileCitations = 
       logger.debug(`[${Tools.file_search}] Using namespace: ${namespace} for user: ${userIdentifier}`);
 
       /**
-       *
-       * @param {import('librechat-data-provider').TFile} file
-       * @returns {{ file_id: string, query: string, k: number, entity_id?: string }}
+       * Creates query body for RAG API
+       * @param {import('librechat-data-provider').TFile} [file] - Optional file for specific file search
+       * @returns {{ file_id?: string, query: string, k: number, entity_id?: string }}
        */
       const createQueryBody = (file) => {
         const body = {
-          file_id: file.file_id,
           query,
           k: 5,
         };
-        if (!entity_id) {
-          return body;
+
+        // Only include file_id if searching specific file
+        // If file_id is omitted, RAG API searches entire namespace
+        if (file?.file_id) {
+          body.file_id = file.file_id;
         }
-        body.entity_id = entity_id;
+
+        if (entity_id) {
+          body.entity_id = entity_id;
+        }
+
         logger.debug(`[${Tools.file_search}] RAG API /query body`, body);
         return body;
       };
 
-      const queryPromises = files.map((file) =>
-        axios
-          .post(`${process.env.RAG_API_URL}/query`, createQueryBody(file), {
-            headers: {
-              Authorization: `Bearer ${jwtToken}`,
-              'Content-Type': 'application/json',
-              'X-Namespace': namespace,
-              'X-File-ID': file.file_id,
-            },
-          })
-          .catch((error) => {
-            logger.error('Error encountered in `file_search` while querying file:', error);
-            return null;
-          }),
-      );
+      // Determine if we should search globally (all user files) or specific files
+      const searchGlobally = files.length > 3; // If many files, search namespace globally
+      let queryPromises;
+
+      if (searchGlobally) {
+        // Global search: single query without file_id to search entire namespace
+        logger.info(`[${Tools.file_search}] Searching globally across ${files.length} files in namespace: ${namespace}`);
+        queryPromises = [
+          axios
+            .post(`${process.env.RAG_API_URL}/query`, createQueryBody(null), {
+              headers: {
+                Authorization: `Bearer ${jwtToken}`,
+                'Content-Type': 'application/json',
+                'X-Namespace': namespace,
+                // No X-File-ID header for global search
+              },
+            })
+            .catch((error) => {
+              logger.error('Error encountered in `file_search` global query:', error);
+              return null;
+            })
+        ];
+      } else {
+        // Specific file search: query each file individually
+        queryPromises = files.map((file) =>
+          axios
+            .post(`${process.env.RAG_API_URL}/query`, createQueryBody(file), {
+              headers: {
+                Authorization: `Bearer ${jwtToken}`,
+                'Content-Type': 'application/json',
+                'X-Namespace': namespace,
+                'X-File-ID': file.file_id,
+              },
+            })
+            .catch((error) => {
+              logger.error('Error encountered in `file_search` while querying file:', error);
+              return null;
+            }),
+        );
+      }
 
       const results = await Promise.all(queryPromises);
       const validResults = results.filter((result) => result !== null);
