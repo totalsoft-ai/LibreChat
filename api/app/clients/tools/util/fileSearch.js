@@ -101,12 +101,17 @@ const primeFiles = async (options) => {
 const createFileSearchTool = async ({ userId, files, entity_id, fileCitations = false, req }) => {
   return tool(
     async ({ query }) => {
-      if (files.length === 0) {
-        return 'No files to search. Instruct the user to add files for the search.';
-      }
+      // Note: files array may contain all user's indexed files when no specific files are attached
+      // So we no longer check for files.length === 0 here
+
       const jwtToken = generateShortLivedToken(userId);
       if (!jwtToken) {
         return 'There was an error authenticating the file search request.';
+      }
+
+      // If truly no files available (not even user's indexed files), return early
+      if (files.length === 0) {
+        return 'No indexed documents found in your account. Please upload and index documents first to enable search.';
       }
 
       // Generate namespace from user email or ID (same as uploadVectors)
