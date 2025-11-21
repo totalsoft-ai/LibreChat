@@ -25,42 +25,87 @@ const primeFiles = async (options) => {
   const agentResourceIds = new Set(file_ids);
   const resourceFiles = tool_resources?.[EToolResources.file_search]?.files ?? [];
 
-  // Get all files first
-  const allFiles = (await getFiles({ file_id: { $in: file_ids } }, null, { text: 0 })) ?? [];
+  // Get files: if no files attached, search ALL user's files in namespace
+  let allFiles;
+  if (file_ids.length === 0 && req?.user?.id) {
+    // No files attached - get ALL user's files with embedded: true (indexed in RAG)
+    logger.info(`[primeFiles] No files attached, fetching all indexed files for user: ${req.user.id}`);
+    allFiles = (await getFiles(
+      {
+        user: req.user.id,
+        embedded: true,  // Only get files that are indexed in RAG
+        filepath: 'vectordb'  // Only RAG-indexed files
+      },
+      null,
+      { text: 0 }
+    )) ?? [];
+    logger.info(`[primeFiles] Found ${allFiles.length} indexed files for user ${req.user.id}`);
+    if (allFiles.length > 0) {
+      logger.debug(`[primeFiles] Files: ${allFiles.map(f => f.filename).join(', ')}`);
+    }
+  } else {
+    // Files attached - get only those files
+    logger.info(`[primeFiles] ${file_ids.length} files attached, fetching specific files`);
+    allFiles = (await getFiles({ file_id: { $in: file_ids } }, null, { text: 0 })) ?? [];
+  }
 
   // Filter by access if user and agent are provided
   let dbFiles;
   if (req?.user?.id && agentId) {
+    logger.debug(`[primeFiles] Filtering ${allFiles.length} files by agent access for agent: ${agentId}`);
     dbFiles = await filterFilesByAgentAccess({
       files: allFiles,
       userId: req.user.id,
       role: req.user.role,
       agentId,
     });
+    logger.info(`[primeFiles] After filtering: ${dbFiles.length} files accessible by agent`);
   } else {
     dbFiles = allFiles;
   }
 
   dbFiles = dbFiles.concat(resourceFiles);
-
-  let toolContext = `- Note: Semantic search is available through the ${Tools.file_search} tool but no files are currently loaded. Request the user to upload documents to search through.`;
+  logger.info(`[primeFiles] Final file count after adding resourceFiles: ${dbFiles.length}`);
 
   const files = [];
-  for (let i = 0; i < dbFiles.length; i++) {
-    const file = dbFiles[i];
-    if (!file) {
-      continue;
-    }
-    if (i === 0) {
-      toolContext = `- Note: Use the ${Tools.file_search} tool to find relevant information within:`;
-    }
-    toolContext += `\n\t- ${file.filename}${
-      agentResourceIds.has(file.file_id) ? '' : ' (just attached by user)'
-    }`;
+  const searchingAllFiles = file_ids.length === 0 && dbFiles.length > 0;
+  let toolContext;
+
+  if (dbFiles.length === 0 && file_ids.length === 0) {
+    // No files attached AND no indexed files found
+    // BUT we still want the tool available for global namespace search
+    toolContext = `- Note: Use the ${Tools.file_search} tool to search your document knowledge base. The tool will search across all your indexed documents in the system.`;
+
+    // Add a special placeholder to indicate global search mode
     files.push({
-      file_id: file.file_id,
-      filename: file.filename,
+      file_id: null,  // null means search entire namespace
+      filename: '__GLOBAL_SEARCH__',  // Special marker
     });
+  } else if (dbFiles.length === 0) {
+    // Files were attached but not found (shouldn't happen normally)
+    toolContext = `- Note: Semantic search is available through the ${Tools.file_search} tool but no files are currently loaded. Request the user to upload documents to search through.`;
+  } else {
+    // Files found - build the list
+    for (let i = 0; i < dbFiles.length; i++) {
+      const file = dbFiles[i];
+      if (!file) {
+        continue;
+      }
+      if (i === 0) {
+        if (searchingAllFiles) {
+          toolContext = `- Note: No specific files attached. Use the ${Tools.file_search} tool to search across ALL your indexed documents (${dbFiles.length} files):`;
+        } else {
+          toolContext = `- Note: Use the ${Tools.file_search} tool to find relevant information within:`;
+        }
+      }
+      toolContext += `\n\t- ${file.filename}${
+        agentResourceIds.has(file.file_id) ? '' : ' (just attached by user)'
+      }`;
+      files.push({
+        file_id: file.file_id,
+        filename: file.filename,
+      });
+    }
   }
 
   return { files, toolContext };
@@ -77,14 +122,27 @@ const primeFiles = async (options) => {
  * @returns
  */
 const createFileSearchTool = async ({ userId, files, entity_id, fileCitations = false, req }) => {
+  logger.info(`[createFileSearchTool] Created tool with ${files.length} files available for user ${userId}`);
+
   return tool(
     async ({ query }) => {
-      if (files.length === 0) {
-        return 'No files to search. Instruct the user to add files for the search.';
-      }
+      logger.info(`[file_search] Tool invoked with query: "${query}", files available: ${files.length}`);
+
+      // Note: files array may contain all user's indexed files when no specific files are attached
+      // So we no longer check for files.length === 0 here
+
       const jwtToken = generateShortLivedToken(userId);
       if (!jwtToken) {
+        logger.error('[file_search] Failed to generate JWT token');
         return 'There was an error authenticating the file search request.';
+      }
+
+      // Check if we have the global search placeholder
+      const isGlobalSearch = files.length === 1 && files[0].filename === '__GLOBAL_SEARCH__';
+
+      if (files.length === 0 && !isGlobalSearch) {
+        logger.warn('[file_search] No files available for search');
+        return 'No indexed documents found in your account. Please upload and index documents first to enable search.';
       }
 
       // Generate namespace from user email or ID (same as uploadVectors)
@@ -93,39 +151,70 @@ const createFileSearchTool = async ({ userId, files, entity_id, fileCitations = 
       logger.debug(`[${Tools.file_search}] Using namespace: ${namespace} for user: ${userIdentifier}`);
 
       /**
-       *
-       * @param {import('librechat-data-provider').TFile} file
-       * @returns {{ file_id: string, query: string, k: number, entity_id?: string }}
+       * Creates query body for RAG API
+       * @param {import('librechat-data-provider').TFile} [file] - Optional file for specific file search
+       * @returns {{ file_id?: string, query: string, k: number, entity_id?: string }}
        */
       const createQueryBody = (file) => {
         const body = {
-          file_id: file.file_id,
           query,
           k: 5,
         };
-        if (!entity_id) {
-          return body;
+
+        // Only include file_id if searching specific file
+        // If file_id is omitted, RAG API searches entire namespace
+        if (file?.file_id) {
+          body.file_id = file.file_id;
         }
-        body.entity_id = entity_id;
+
+        if (entity_id) {
+          body.entity_id = entity_id;
+        }
+
         logger.debug(`[${Tools.file_search}] RAG API /query body`, body);
         return body;
       };
 
-      const queryPromises = files.map((file) =>
-        axios
-          .post(`${process.env.RAG_API_URL}/query`, createQueryBody(file), {
-            headers: {
-              Authorization: `Bearer ${jwtToken}`,
-              'Content-Type': 'application/json',
-              'X-Namespace': namespace,
-              'X-File-ID': file.file_id,
-            },
-          })
-          .catch((error) => {
-            logger.error('Error encountered in `file_search` while querying file:', error);
-            return null;
-          }),
-      );
+      // Determine if we should search globally (all user files) or specific files
+      const searchGlobally = isGlobalSearch || files.length > 3; // Global search mode OR many files
+      let queryPromises;
+
+      if (searchGlobally) {
+        // Global search: single query without file_id to search entire namespace
+        logger.info(`[${Tools.file_search}] Searching globally across ${files.length} files in namespace: ${namespace}`);
+        queryPromises = [
+          axios
+            .post(`${process.env.RAG_API_URL}/query`, createQueryBody(null), {
+              headers: {
+                Authorization: `Bearer ${jwtToken}`,
+                'Content-Type': 'application/json',
+                'X-Namespace': namespace,
+                // No X-File-ID header for global search
+              },
+            })
+            .catch((error) => {
+              logger.error('Error encountered in `file_search` global query:', error);
+              return null;
+            })
+        ];
+      } else {
+        // Specific file search: query each file individually
+        queryPromises = files.map((file) =>
+          axios
+            .post(`${process.env.RAG_API_URL}/query`, createQueryBody(file), {
+              headers: {
+                Authorization: `Bearer ${jwtToken}`,
+                'Content-Type': 'application/json',
+                'X-Namespace': namespace,
+                'X-File-ID': file.file_id,
+              },
+            })
+            .catch((error) => {
+              logger.error('Error encountered in `file_search` while querying file:', error);
+              return null;
+            }),
+        );
+      }
 
       const results = await Promise.all(queryPromises);
       const validResults = results.filter((result) => result !== null);
@@ -136,25 +225,49 @@ const createFileSearchTool = async ({ userId, files, entity_id, fileCitations = 
 
       const formattedResults = validResults
         .flatMap((result, fileIndex) =>
-          result.data.map(([docInfo, distance]) => ({
-            filename: docInfo.metadata.source.split('/').pop(),
-            content: docInfo.page_content,
-            distance,
-            file_id: files[fileIndex]?.file_id,
-            page: docInfo.metadata.page || null,
-          })),
+          result.data.map(([docInfo, distance], chunkIndex) => {
+            const metadata = docInfo.metadata || {};
+            // Try to extract any location info (page, chunk, section, etc.)
+            const locationInfo = metadata.page
+              ? `Page ${metadata.page}`
+              : metadata.chunk
+              ? `Chunk ${metadata.chunk}`
+              : metadata.section
+              ? `Section ${metadata.section}`
+              : `Part ${chunkIndex + 1}`;
+
+            return {
+              filename: metadata.source ? metadata.source.split('/').pop() : 'Unknown',
+              content: docInfo.page_content,
+              distance,
+              file_id: files[fileIndex]?.file_id,
+              page: metadata.page || null,
+              location: locationInfo,
+              metadata: metadata, // Keep full metadata for debugging
+            };
+          }),
         )
         // TODO: results should be sorted by relevance, not distance
         .sort((a, b) => a.distance - b.distance)
         // TODO: make this configurable
         .slice(0, 10);
 
-      const formattedString = formattedResults
+      const strictModeHeader = `[SEARCH RESULTS - ANSWER ONLY FROM THESE RESULTS]
+If the answer to the user's question is not in these results, respond with: "I could not find this information in the uploaded documents."
+DO NOT use external knowledge. ONLY use the information below.
+
+MANDATORY: ALWAYS cite the [SOURCE: filename] when providing information.
+Format your answer like: "According to [filename], ..." or "Based on [filename], ..."
+IMPORTANT: Answer in the SAME LANGUAGE as the user's question. If user asks in Romanian, answer in Romanian. If in English, answer in English.
+
+`;
+
+      const formattedString = strictModeHeader + formattedResults
         .map(
           (result, index) =>
-            `File: ${result.filename}${
+            `[SOURCE: ${result.filename}]${
               fileCitations ? `\nAnchor: \\ue202turn0file${index} (${result.filename})` : ''
-            }\nRelevance: ${(1.0 - result.distance).toFixed(4)}\nContent: ${result.content}\n`,
+            }\nContent: ${result.content}\n`,
         )
         .join('\n---\n');
 
@@ -173,7 +286,35 @@ const createFileSearchTool = async ({ userId, files, entity_id, fileCitations = 
     {
       name: Tools.file_search,
       responseFormat: 'content_and_artifact',
-      description: `Performs semantic search across attached "${Tools.file_search}" documents using natural language queries. This tool analyzes the content of uploaded files to find relevant information, quotes, and passages that best match your query. Use this to extract specific information or find relevant sections within the available documents.${
+      description: `Performs semantic search across attached "${Tools.file_search}" documents using natural language queries. This tool analyzes the content of uploaded files to find relevant information, quotes, and passages that best match your query.
+
+**CRITICAL - HOW TO USE THIS TOOL:**
+- ALWAYS pass the user's EXACT question as the query parameter
+- DO NOT rephrase, simplify, or extract keywords
+- Example: User asks "Ce este eTransport?" → query: "Ce este eTransport?" (NOT "etransport")
+- The semantic search engine will automatically find relevant content regardless of exact wording
+
+**IMPORTANT - STRICT DOCUMENT-ONLY MODE:**
+- ONLY answer questions using information explicitly found in the file search results
+- If the information is not present in the search results, you MUST state: "I could not find this information in the uploaded documents"
+- DO NOT use your general knowledge or training data to supplement or add information beyond what the documents contain
+- NEVER make assumptions or inferences that aren't directly supported by the document content
+
+**MANDATORY - ALWAYS CITE SOURCES:**
+- ALWAYS mention the source document name for every piece of information you provide
+- Format examples:
+  - English: "According to [filename], ..." or "Based on [filename], ..."
+  - Romanian: "Conform [filename], ..." or "Potrivit [filename], ..."
+- If multiple documents contain the same information, list all sources
+- NEVER provide information without citing its source document
+
+**CRITICAL - LANGUAGE MATCHING:**
+- ALWAYS respond in the SAME LANGUAGE as the user's question
+- If user asks in Romanian, answer entirely in Romanian
+- If user asks in English, answer entirely in English
+- Do NOT mix languages in your response
+
+Use this tool to extract specific information or find relevant sections within the available documents.${
         fileCitations
           ? `
 
@@ -190,7 +331,7 @@ Use anchor markers immediately after statements derived from file content. Refer
         query: z
           .string()
           .describe(
-            "A natural language query to search for relevant information in the files. Be specific and use keywords related to the information you're looking for. The query will be used for semantic similarity matching against the file contents.",
+            "The EXACT question or search query from the user. DO NOT rephrase or extract keywords - use the user's original question verbatim. For example, if user asks 'Ce e eTransport?', pass exactly 'Ce e eTransport?' not just 'etransport'. The semantic search will handle variations automatically.",
           ),
       }),
     },
