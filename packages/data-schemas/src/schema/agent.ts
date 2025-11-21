@@ -107,6 +107,12 @@ const agentSchema = new Schema<IAgent>(
       default: false,
       index: true,
     },
+    workspace: {
+      type: String,
+      ref: 'Workspace',
+      default: null,
+      index: true,
+    },
   },
   {
     timestamps: true,
@@ -114,5 +120,6 @@ const agentSchema = new Schema<IAgent>(
 );
 
 agentSchema.index({ updatedAt: -1, _id: 1 });
+agentSchema.index({ workspace: 1, author: 1 }); // For workspace agent listing
 
 export default agentSchema;

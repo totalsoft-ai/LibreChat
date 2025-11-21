@@ -57,11 +57,16 @@ export enum QueryKeys {
   resourcePermissions = 'resourcePermissions',
   effectivePermissions = 'effectivePermissions',
   graphToken = 'graphToken',
+  workspaces = 'workspaces',
+  workspace = 'workspace',
+  workspaceStats = 'workspaceStats',
 }
 
 // Dynamic query keys that require parameters
 export const DynamicQueryKeys = {
   agentFiles: (agentId: string) => ['agentFiles', agentId] as const,
+  workspace: (identifier: string) => [QueryKeys.workspace, identifier] as const,
+  workspaceStats: (workspaceId: string) => [QueryKeys.workspaceStats, workspaceId] as const,
 } as const;
 
 export enum MutationKeys {

@@ -23,6 +23,12 @@ const promptSchema: Schema<IPrompt> = new Schema(
       enum: ['text', 'chat'],
       required: true,
     },
+    workspace: {
+      type: String,
+      ref: 'Workspace',
+      default: null,
+      index: true,
+    },
   },
   {
     timestamps: true,
@@ -30,5 +36,6 @@ const promptSchema: Schema<IPrompt> = new Schema(
 );
 
 promptSchema.index({ createdAt: 1, updatedAt: 1 });
+promptSchema.index({ workspace: 1, author: 1 }); // For workspace prompt listing
 
 export default promptSchema;

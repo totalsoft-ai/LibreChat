@@ -74,6 +74,17 @@ const file: Schema<IMongoFile> = new Schema(
       type: Date,
       expires: 3600, // 1 hour in seconds
     },
+    isGlobalLibrary: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    workspace: {
+      type: String,
+      ref: 'Workspace',
+      default: null,
+      index: true,
+    },
   },
   {
     timestamps: true,
@@ -81,5 +92,7 @@ const file: Schema<IMongoFile> = new Schema(
 );
 
 file.index({ createdAt: 1, updatedAt: 1 });
+file.index({ user: 1, isGlobalLibrary: 1, embedded: 1 });
+file.index({ workspace: 1, user: 1 }); // For workspace file listing
 
 export default file;

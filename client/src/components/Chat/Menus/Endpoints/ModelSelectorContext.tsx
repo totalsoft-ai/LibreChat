@@ -9,6 +9,7 @@ import {
   useKeyDialog,
   useEndpoints,
 } from '~/hooks';
+import { useWorkspaceModels } from '~/hooks/Workspace';
 import { useAgentsMapContext, useAssistantsMapContext } from '~/Providers';
 import { useGetEndpointsQuery, useListAgentsQuery } from '~/data-provider';
 import { useModelSelectorChatContext } from './ModelSelectorChatContext';
@@ -86,18 +87,25 @@ export function ModelSelectorProvider({ children, startupConfig }: ModelSelector
     },
   );
 
+  // Apply workspace filtering to models and endpoints
+  const {
+    modelSpecs: filteredModelSpecs,
+    endpointsConfig: filteredEndpointsConfig,
+    isRestricted,
+  } = useWorkspaceModels(modelSpecs, endpointsConfig);
+
   const { mappedEndpoints, endpointRequiresUserKey } = useEndpoints({
     agents,
     assistantsMap,
     startupConfig,
-    endpointsConfig,
+    endpointsConfig: filteredEndpointsConfig,
   });
 
   const { onSelectEndpoint, onSelectSpec } = useSelectMention({
     // presets,
-    modelSpecs,
+    modelSpecs: filteredModelSpecs,
     assistantsMap,
-    endpointsConfig,
+    endpointsConfig: filteredEndpointsConfig,
     newConversation,
     returnHandlers: true,
   });
@@ -133,9 +141,9 @@ export function ModelSelectorProvider({ children, startupConfig }: ModelSelector
     if (!searchValue) {
       return null;
     }
-    const allItems = [...modelSpecs, ...mappedEndpoints];
+    const allItems = [...filteredModelSpecs, ...mappedEndpoints];
     return filterItems(allItems, searchValue, agentsMap, assistantsMap || {});
-  }, [searchValue, modelSpecs, mappedEndpoints, agentsMap, assistantsMap]);
+  }, [searchValue, filteredModelSpecs, mappedEndpoints, agentsMap, assistantsMap]);
 
   const setDebouncedSearchValue = useMemo(
     () =>
@@ -208,10 +216,10 @@ export function ModelSelectorProvider({ children, startupConfig }: ModelSelector
     endpointSearchValues,
     // LibreChat
     agentsMap,
-    modelSpecs,
+    modelSpecs: filteredModelSpecs,
     assistantsMap,
     mappedEndpoints,
-    endpointsConfig,
+    endpointsConfig: filteredEndpointsConfig,
 
     // Functions
     handleSelectSpec,

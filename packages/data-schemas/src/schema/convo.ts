@@ -45,6 +45,12 @@ const convoSchema: Schema<IConversation> = new Schema(
     expiredAt: {
       type: Date,
     },
+    workspace: {
+      type: String,
+      ref: 'Workspace',
+      default: null,
+      index: true,
+    },
   },
   { timestamps: true },
 );
@@ -59,5 +65,7 @@ convoSchema.index({ user: 1, createdAt: -1 }); // For conversation listing sorte
 convoSchema.index({ user: 1, isArchived: 1, updatedAt: -1 }); // For archived/active filtering
 convoSchema.index({ user: 1, tags: 1, updatedAt: -1 }); // For tag filtering
 convoSchema.index({ user: 1, expiredAt: 1 }); // For filtering non-expired conversations
+convoSchema.index({ workspace: 1, user: 1, updatedAt: -1 }); // For workspace conversation listing
+convoSchema.index({ workspace: 1, isArchived: 1 }); // For workspace archived filtering
 
 export default convoSchema;

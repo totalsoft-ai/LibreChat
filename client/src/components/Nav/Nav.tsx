@@ -14,6 +14,8 @@ import {
 import { useConversationsInfiniteQuery } from '~/data-provider';
 import { Conversations } from '~/components/Conversations';
 import { searchAtom } from '~/store/search';
+import { currentWorkspaceIdAtom } from '~/store/workspaces';
+import ErrorBoundary from '~/components/ui/ErrorBoundary';
 import SearchBar from './SearchBar';
 import NewChat from './NewChat';
 import { cn } from '~/utils';
@@ -21,6 +23,7 @@ import { cn } from '~/utils';
 const BookmarkNav = lazy(() => import('./Bookmarks/BookmarkNav'));
 const AccountSettings = lazy(() => import('./AccountSettings'));
 const AgentMarketplaceButton = lazy(() => import('./AgentMarketplaceButton'));
+const WorkspaceSelector = lazy(() => import('./WorkspaceSelector'));
 
 const NAV_WIDTH_DESKTOP = '260px';
 const NAV_WIDTH_MOBILE = '320px';
@@ -68,12 +71,14 @@ const Nav = memo(
     });
 
     const search = useAtomValue(searchAtom);
+    const currentWorkspaceId = useAtomValue(currentWorkspaceIdAtom);
 
     const { data, fetchNextPage, isFetchingNextPage, isLoading, isFetching, refetch } =
       useConversationsInfiniteQuery(
         {
           tags: tags.length === 0 ? undefined : tags,
           search: search.debouncedQuery || undefined,
+          workspace: currentWorkspaceId,
         },
         {
           enabled: isAuthenticated,
@@ -109,6 +114,13 @@ const Nav = memo(
     const conversations = useMemo(() => {
       return data ? data.pages.flatMap((page) => page.conversations) : [];
     }, [data]);
+
+    // Refetch conversations when workspace changes
+    useEffect(() => {
+      if (isAuthenticated) {
+        refetch();
+      }
+    }, [currentWorkspaceId, isAuthenticated, refetch]);
 
     const toggleNavVisible = useCallback(() => {
       setNavVisible((prev: boolean) => {
@@ -219,6 +231,20 @@ const Nav = memo(
                         headerButtons={headerButtons}
                         isSmallScreen={isSmallScreen}
                       />
+                      <ErrorBoundary
+                        userMessage="Workspace selector unavailable. Please refresh the page."
+                        fallback={
+                          <div className="mx-3 my-2 rounded-md border border-border-medium bg-surface-secondary p-3 text-center">
+                            <p className="text-xs text-text-secondary">
+                              Workspace selector unavailable
+                            </p>
+                          </div>
+                        }
+                      >
+                        <Suspense fallback={null}>
+                          <WorkspaceSelector />
+                        </Suspense>
+                      </ErrorBoundary>
                       <Conversations
                         conversations={conversations}
                         moveToTop={moveToTop}

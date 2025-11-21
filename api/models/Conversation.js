@@ -2,6 +2,7 @@ const { logger } = require('@librechat/data-schemas');
 const { createTempChatExpirationDate } = require('@librechat/api');
 const { getMessages, deleteMessages } = require('./Message');
 const { Conversation } = require('~/db/models');
+const mongoose = require('mongoose');
 
 /**
  * Searches for a conversation by conversationId and returns a lean document with only conversationId and user.
@@ -160,9 +161,50 @@ module.exports = {
   },
   getConvosByCursor: async (
     user,
-    { cursor, limit = 25, isArchived = false, tags, search, order = 'desc' } = {},
+    { cursor, limit = 25, isArchived = false, tags, search, order = 'desc', workspace } = {},
   ) => {
     const filters = [{ user }];
+
+    // Workspace filtering
+    if (workspace !== undefined) {
+      if (workspace === null || workspace === 'personal') {
+        // Filter for personal conversations (no workspace)
+        filters.push({ $or: [{ workspace: null }, { workspace: { $exists: false } }] });
+      } else {
+        // Filter for specific workspace
+        // Convert workspaceId string to ObjectId if needed
+        let workspaceFilter = workspace;
+        if (typeof workspace === 'string' && workspace.length > 0) {
+          try {
+            const Workspace = require('~/models/Workspace');
+            // Check if it's already an ObjectId
+            const isObjectId =
+              mongoose.Types.ObjectId.isValid(workspace) && workspace.length === 24;
+
+            if (!isObjectId) {
+              // It's a workspaceId string, convert to ObjectId
+              const ws = await Workspace.findOne({
+                workspaceId: workspace,
+                isActive: true,
+                isArchived: false,
+              });
+              if (ws) {
+                workspaceFilter = ws._id;
+              } else {
+                // Workspace not found, return empty results
+                return { conversations: [], nextCursor: null };
+              }
+            }
+          } catch (error) {
+            logger.error('[getConvosByCursor] Error converting workspace to ObjectId:', error);
+            // On error, return empty results
+            return { conversations: [], nextCursor: null };
+          }
+        }
+        filters.push({ workspace: workspaceFilter });
+      }
+    }
+
     if (isArchived) {
       filters.push({ isArchived: true });
     } else {

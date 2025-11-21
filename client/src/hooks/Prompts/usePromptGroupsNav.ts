@@ -1,24 +1,28 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useRecoilState } from 'recoil';
+import { useAtomValue } from 'jotai';
 import { usePromptGroupsInfiniteQuery } from '~/data-provider';
+import { currentWorkspaceIdAtom } from '~/store/workspaces';
 import store from '~/store';
 
 export default function usePromptGroupsNav(hasAccess = true) {
   const [pageSize] = useRecoilState(store.promptsPageSize);
   const [category] = useRecoilState(store.promptsCategory);
   const [name, setName] = useRecoilState(store.promptsName);
+  const currentWorkspaceId = useAtomValue(currentWorkspaceIdAtom);
 
   // Track current page index and cursor history
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const cursorHistoryRef = useRef<Array<string | null>>([null]); // Start with null for first page
 
-  const prevFiltersRef = useRef({ name, category });
+  const prevFiltersRef = useRef({ name, category, workspace: currentWorkspaceId });
 
   const groupsQuery = usePromptGroupsInfiniteQuery(
     {
       name,
       pageSize,
       category,
+      workspace: currentWorkspaceId,
     },
     {
       enabled: hasAccess,
@@ -90,14 +94,17 @@ export default function usePromptGroupsNav(hasAccess = true) {
     if (!hasAccess) return;
 
     const filtersChanged =
-      prevFiltersRef.current.name !== name || prevFiltersRef.current.category !== category;
+      prevFiltersRef.current.name !== name ||
+      prevFiltersRef.current.category !== category ||
+      prevFiltersRef.current.workspace !== currentWorkspaceId;
 
     if (filtersChanged) {
       setCurrentPageIndex(0);
       cursorHistoryRef.current = [null];
-      prevFiltersRef.current = { name, category };
+      prevFiltersRef.current = { name, category, workspace: currentWorkspaceId };
+      groupsQuery.refetch();
     }
-  }, [hasAccess, name, category]);
+  }, [hasAccess, name, category, currentWorkspaceId, groupsQuery]);
 
   return {
     promptGroups: hasAccess ? promptGroups : [],

@@ -7,12 +7,14 @@ const {
   verifyEmailController,
   deleteUserController,
   getUserController,
+  lookupUserController,
 } = require('~/server/controllers/UserController');
 const { requireJwtAuth, canDeleteAccount, verifyEmailLimiter } = require('~/server/middleware');
 
 const router = express.Router();
 
 router.get('/', requireJwtAuth, getUserController);
+router.get('/lookup', requireJwtAuth, lookupUserController);
 router.get('/terms', requireJwtAuth, getTermsStatusController);
 router.post('/terms/accept', requireJwtAuth, acceptTermsController);
 router.post('/plugins', requireJwtAuth, updateUserPluginsController);

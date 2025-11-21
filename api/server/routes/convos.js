@@ -31,6 +31,7 @@ router.get('/', async (req, res) => {
   const isArchived = isEnabled(req.query.isArchived);
   const search = req.query.search ? decodeURIComponent(req.query.search) : undefined;
   const order = req.query.order || 'desc';
+  const workspace = req.query.workspace || undefined;
 
   let tags;
   if (req.query.tags) {
@@ -45,6 +46,7 @@ router.get('/', async (req, res) => {
       tags,
       search,
       order,
+      workspace,
     });
     res.status(200).json(result);
   } catch (error) {

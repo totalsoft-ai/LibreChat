@@ -101,10 +101,26 @@ router.get(
 router.get('/all', async (req, res) => {
   try {
     const userId = req.user.id;
-    const { name, category, ...otherFilters } = req.query;
+    const { name, category, workspace, ...otherFilters } = req.query;
+
+    // Handle workspace filter
+    const workspaceFilter = {};
+    if (workspace !== undefined) {
+      if (workspace === null || workspace === 'personal' || workspace === '') {
+        // Filter for personal prompts (no workspace)
+        workspaceFilter.workspace = {
+          $or: [{ workspace: null }, { workspace: { $exists: false } }],
+        };
+      } else {
+        // Filter for specific workspace
+        workspaceFilter.workspace = workspace;
+      }
+    }
+
     const { filter, searchShared, searchSharedOnly } = buildPromptGroupFilter({
       name,
       category,
+      ...workspaceFilter,
       ...otherFilters,
     });
 
@@ -156,11 +172,26 @@ router.get('/all', async (req, res) => {
 router.get('/groups', async (req, res) => {
   try {
     const userId = req.user.id;
-    const { pageSize, limit, cursor, name, category, ...otherFilters } = req.query;
+    const { pageSize, limit, cursor, name, category, workspace, ...otherFilters } = req.query;
+
+    // Handle workspace filter
+    const workspaceFilter = {};
+    if (workspace !== undefined) {
+      if (workspace === null || workspace === 'personal' || workspace === '') {
+        // Filter for personal prompts (no workspace)
+        workspaceFilter.workspace = {
+          $or: [{ workspace: null }, { workspace: { $exists: false } }],
+        };
+      } else {
+        // Filter for specific workspace
+        workspaceFilter.workspace = workspace;
+      }
+    }
 
     const { filter, searchShared, searchSharedOnly } = buildPromptGroupFilter({
       name,
       category,
+      ...workspaceFilter,
       ...otherFilters,
     });
 
@@ -244,6 +275,34 @@ const createNewPromptGroup = async (req, res) => {
 
     if (!prompt || !group || !group.name) {
       return res.status(400).send({ error: 'Prompt and group name are required' });
+    }
+
+    // Validate workspace if provided
+    if (group.workspace) {
+      const Workspace = require('~/models/Workspace');
+      const ws = await Workspace.findOne({
+        workspaceId: group.workspace,
+        isActive: true,
+        isArchived: false,
+      });
+
+      if (!ws) {
+        return res.status(404).send({ error: 'Workspace not found' });
+      }
+
+      if (!ws.isMember(req.user.id)) {
+        return res.status(403).send({ error: 'You do not have access to this workspace' });
+      }
+
+      // Check if user has permission to create prompts in workspace
+      if (!ws.hasPermission(req.user.id, 'member')) {
+        return res.status(403).send({
+          error: 'You need at least member permission to create prompts in this workspace',
+        });
+      }
+
+      // Convert workspaceId string to ObjectId for database
+      group.workspace = ws._id;
     }
 
     const saveData = {

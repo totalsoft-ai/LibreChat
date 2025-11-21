@@ -65,6 +65,8 @@ const buildDefaultConvo = ({
     ...convo,
     endpointType,
     endpoint,
+    // Preserve workspace field (CRITICAL for workspace filtering)
+    workspace: conversation.workspace,
   };
 
   // Ensures assistant_id is always defined

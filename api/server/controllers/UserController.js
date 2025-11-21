@@ -386,6 +386,49 @@ const maybeUninstallOAuthMCP = async (userId, pluginKey, appConfig) => {
   await flowManager.deleteFlow(flowId, 'mcp_oauth');
 };
 
+/**
+ * Lookup user by email for workspace member addition
+ * GET /api/user/lookup?email=user@example.com
+ */
+const lookupUserController = async (req, res) => {
+  try {
+    const { email } = req.query;
+
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    // Find users by partial email match (case-insensitive, match anywhere in email)
+    const users = await User.find({
+      email: { $regex: new RegExp(email.trim(), 'i') },
+    })
+      .select('_id name email avatar username')
+      .limit(10)
+      .lean();
+
+    if (!users || users.length === 0) {
+      return res.status(404).json({ message: 'No users found' });
+    }
+
+    // Return list of minimal user info for privacy
+    res.json({
+      users: users.map((user) => ({
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar,
+        username: user.username,
+      })),
+    });
+  } catch (error) {
+    logger.error('[lookupUserController] Error:', error);
+    res.status(500).json({
+      message: 'Error looking up user',
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   getUserController,
   getTermsStatusController,
@@ -394,4 +437,5 @@ module.exports = {
   verifyEmailController,
   updateUserPluginsController,
   resendVerificationController,
+  lookupUserController,
 };

@@ -21,17 +21,25 @@ if (BASE_URL && BASE_URL.endsWith('/')) {
 export const apiBaseUrl = () => BASE_URL;
 
 // Testing this buildQuery function
-const buildQuery = (params: Record<string, unknown>): string => {
+export const buildQuery = (params: Record<string, unknown>): string => {
   const query = Object.entries(params)
-    .filter(([, value]) => {
+    .filter(([key, value]) => {
       if (Array.isArray(value)) {
         return value.length > 0;
+      }
+      // Allow null for workspace parameter to indicate "personal" mode
+      if (key === 'workspace' && value === null) {
+        return true;
       }
       return value !== undefined && value !== null && value !== '';
     })
     .map(([key, value]) => {
       if (Array.isArray(value)) {
         return value.map((v) => `${key}=${encodeURIComponent(v)}`).join('&');
+      }
+      // Handle workspace=null as 'personal'
+      if (key === 'workspace' && value === null) {
+        return `${key}=personal`;
       }
       return `${key}=${encodeURIComponent(String(value))}`;
     })
@@ -389,3 +397,14 @@ export const getEffectivePermissions = (resourceType: ResourceType, resourceId: 
 // SharePoint Graph API Token
 export const graphToken = (scopes: string) =>
   `${BASE_URL}/api/auth/graph-token?scopes=${encodeURIComponent(scopes)}`;
+
+// Workspaces
+const workspacesRoot = `${BASE_URL}/api/workspaces`;
+
+export const workspaces = () => workspacesRoot;
+export const workspace = (id: string) => `${workspacesRoot}/${id}`;
+export const workspaceStats = (id: string) => `${workspacesRoot}/${id}/stats`;
+export const workspaceLeave = (id: string) => `${workspacesRoot}/${id}/leave`;
+export const workspaceMembers = (id: string) => `${workspacesRoot}/${id}/members`;
+export const workspaceMember = (workspaceId: string, userId: string) =>
+  `${workspacesRoot}/${workspaceId}/members/${userId}`;
