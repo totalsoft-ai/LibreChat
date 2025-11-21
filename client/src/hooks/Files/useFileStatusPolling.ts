@@ -25,17 +25,27 @@ export const useFileStatusPolling = (
 
   useEffect(() => {
     if (!enabled || !files || !Array.isArray(files)) {
+      console.log('[useFileStatusPolling] Disabled or no files', { enabled, filesCount: files?.length });
       return;
     }
 
     // Check if there are any files being processed (embedded === false)
-    const hasProcessingFiles = files.some(
+    const processingFiles = files.filter(
       (file) => file.embedded === false && file.filepath === 'vectordb',
     );
+    const hasProcessingFiles = processingFiles.length > 0;
+
+    console.log('[useFileStatusPolling] Checking files:', {
+      totalFiles: files.length,
+      processingFiles: processingFiles.length,
+      processingFileIds: processingFiles.map(f => f.file_id),
+      hasProcessingFiles,
+    });
 
     if (!hasProcessingFiles) {
       // Clear interval if no files are processing
       if (intervalRef.current) {
+        console.log('[useFileStatusPolling] No more processing files, stopping polling');
         window.clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
@@ -45,8 +55,9 @@ export const useFileStatusPolling = (
     // Start polling if not already started
     if (!intervalRef.current) {
       startTimeRef.current = Date.now();
+      console.log('[useFileStatusPolling] Starting polling for', processingFiles.length, 'files');
 
-      intervalRef.current = window.setInterval(() => {
+      intervalRef.current = window.setInterval(async () => {
         const elapsed = Date.now() - startTimeRef.current;
 
         // Stop polling after max duration
@@ -63,7 +74,7 @@ export const useFileStatusPolling = (
 
         // Refetch files to check for updated status
         console.log('[useFileStatusPolling] Refetching files to check embedding status');
-        queryClient.refetchQueries([QueryKeys.files]);
+        await queryClient.invalidateQueries([QueryKeys.files]);
       }, pollInterval);
     }
 

@@ -310,8 +310,8 @@ IMPORTANT: Answer in the SAME LANGUAGE as the user's question. If user asks in R
 
 **CRITICAL - LANGUAGE MATCHING:**
 - ALWAYS respond in the SAME LANGUAGE as the user's question
-- If user asks in Romanian (e.g., "Ce este eTransport?"), answer entirely in Romanian
-- If user asks in English (e.g., "What is eTransport?"), answer entirely in English
+- If user asks in Romanian, answer entirely in Romanian
+- If user asks in English, answer entirely in English
 - Do NOT mix languages in your response
 
 Use this tool to extract specific information or find relevant sections within the available documents.${

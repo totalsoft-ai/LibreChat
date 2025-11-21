@@ -7,12 +7,11 @@ When responding:
 - Prioritize direct and specific thoughts to meet user expectations.
 - Format results in a way compatible with open-API expectations.
 - Offer concise, meaningful answers to user queries.
-- When using file_search tool, ONLY use information from the search results - never supplement with external knowledge.
-- For questions requiring document knowledge, you MUST use the file_search tool if available.
+- Use tools when necessary but rely on your own knowledge for creative requests.
 - Strive for variety, avoiding repetitive responses.
 
 # Available Actions & Tools:
-N/A: No suitable action for this query; inform the user you cannot answer without appropriate tools.`,
+N/A: No suitable action; use your own knowledge.`,
     instructions: `Always adhere to the following format in your response to indicate actions taken:
 
 Thought: Summarize your thought process.
@@ -30,7 +29,7 @@ Final Answer: Present the answer to the user's query.`,
 - Strictly adhere to the Action format for all responses, as they will be machine-parsed.
 - If a tool is unnecessary, quickly move to the Thought/Final Answer format.
 - Follow the logical sequence provided by the user without adding extra steps.
-- Be honest; if you can't provide an appropriate answer using the given tools, clearly state that you don't have access to that information.
+- Be honest; if you can't provide an appropriate answer using the given tools, use your own knowledge.
 - Aim for efficiency and minimal actions to meet the user's needs effectively.`,
   },
   'gpt3-v2': {
@@ -41,11 +40,11 @@ When responding:
 - Prioritize direct and specific thoughts to meet user expectations.
 - Format results in a way compatible with open-API expectations.
 - Offer concise, meaningful answers to user queries.
-- When using file_search tool, ONLY use information from the search results - never supplement with external knowledge.
+- Use tools when necessary but rely on your own knowledge for creative requests.
 - Strive for variety, avoiding repetitive responses.
 
 # Available Actions & Tools:
-N/A: No suitable action for this query; inform the user you cannot answer without appropriate tools.`,
+N/A: No suitable action; use your own knowledge.`,
     instructions: `I want you to respond with this format and this format only, without comments or explanations, to indicate actions taken:
 \`\`\`
 Thought: Summarize your thought process.
@@ -65,18 +64,16 @@ Final Answer: A conversational reply to the user's query as if you were answerin
 - Strictly adhere to the Action format for all responses, as they will be machine-parsed.
 - If a tool is unnecessary, quickly move to the Thought/Final Answer format.
 - Follow the logical sequence provided by the user without adding extra steps.
-- Be honest; if you can't provide an appropriate answer using the given tools, clearly state that you don't have access to that information.
-- When file_search is used, base your answer ONLY on the returned search results.
+- Be honest; if you can't provide an appropriate answer using the given tools, use your own knowledge.
 - Aim for efficiency and minimal actions to meet the user's needs effectively.`,
   },
   gpt3: {
     prefix: `Objective: Understand the human's query with available actions & tools. Let's work this out in a step by step way to be sure we fulfill the query.
 
 Use available actions and tools judiciously.
-When using file_search tool, ONLY use information from the search results - never supplement with external knowledge.
 
 # Available Actions & Tools:
-N/A: No suitable action for this query; inform the user you cannot answer without appropriate tools.`,
+N/A: No suitable action; use your own knowledge.`,
     instructions: `I want you to respond with this format and this format only, without comments or explanations, to indicate actions taken:
 \`\`\`
 Thought: Your thought process.
@@ -96,8 +93,7 @@ Final Answer: Reply to user's query conversationally.
 - Adhere to the Action format strictly for parsing.
 - Transition quickly to Thought/Final Answer format when a tool isn't needed.
 - Follow user's logic without superfluous steps.
-- If unable to use tools for a fitting answer, clearly state you cannot provide that information.
-- When file_search is used, base your answer ONLY on the returned search results.
+- If unable to use tools for a fitting answer, use your knowledge.
 - Strive for efficient, minimal actions.`,
   },
   'gpt4-v1': {
@@ -107,11 +103,11 @@ When responding:
 - Choose actions relevant to the query, using multiple actions in a step by step way.
 - Prioritize direct and specific thoughts to meet user expectations.
 - Be precise and offer meaningful answers to user queries.
-- When using file_search tool, ONLY use information from the search results - never supplement with external knowledge.
+- Use tools when necessary but rely on your own knowledge for creative requests.
 - Strive for variety, avoiding repetitive responses.
 
 # Available Actions & Tools:
-N/A: No suitable action for this query; inform the user you cannot answer without appropriate tools.`,
+N/A: No suitable action; use your own knowledge.`,
     instructions: `I want you to respond with this format and this format only, without comments or explanations, to indicate actions taken:
 \`\`\`
 Thought: Summarize your thought process.
@@ -131,18 +127,16 @@ Final Answer: A conversational reply to the user's query as if you were answerin
 - Strictly adhere to the Action format for all responses.
 - If a tool is unnecessary, quickly move to the Thought/Final Answer format, only if no further actions are possible or necessary.
 - Follow the logical sequence provided by the user without adding extra steps.
-- Be honest: if you can't provide an appropriate answer using the given tools, clearly state that you don't have access to that information.
-- When file_search is used, base your answer ONLY on the returned search results.
+- Be honest: if you can't provide an appropriate answer using the given tools, use your own knowledge.
 - Aim for efficiency and minimal actions to meet the user's needs effectively.`,
   },
   gpt4: {
     prefix: `Objective: Understand the human's query with available actions & tools. Let's work this out in a step by step way to be sure we fulfill the query.
 
 Use available actions and tools judiciously.
-When using file_search tool, ONLY use information from the search results - never supplement with external knowledge.
 
 # Available Actions & Tools:
-N/A: No suitable action for this query; inform the user you cannot answer without appropriate tools.`,
+N/A: No suitable action; use your own knowledge.`,
     instructions: `Respond in this specific format without extraneous comments:
 \`\`\`
 Thought: Your thought process.
@@ -162,8 +156,7 @@ Final Answer: A conversational reply to the user's query, including your full an
 - Adhere to the Action format strictly for parsing.
 - Transition quickly to Thought/Final Answer format when a tool isn't needed.
 - Follow user's logic without superfluous steps.
-- If unable to use tools for a fitting answer, clearly state you cannot provide that information.
-- When file_search is used, base your answer ONLY on the returned search results.
+- If unable to use tools for a fitting answer, use your knowledge.
 - Strive for efficient, minimal actions.`,
   },
 };
