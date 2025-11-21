@@ -295,6 +295,7 @@ export type AgentListParams = {
   search?: string;
   cursor?: string;
   promoted?: 0 | 1;
+  workspace?: string;
 };
 
 export type AgentListResponse = {

@@ -11,6 +11,8 @@ const { recordMessage, getMessages } = require('~/models/Message');
 const { countTokens, escapeRegExp } = require('~/server/utils');
 const { spendTokens } = require('~/models/spendTokens');
 const { saveConvo } = require('~/models/Conversation');
+const mongoose = require('mongoose');
+const { logger } = require('@librechat/data-schemas');
 
 /**
  * Initializes a new thread or adds messages to an existing thread.
@@ -107,6 +109,45 @@ async function saveUserMessage(req, params) {
   if (params.files?.length) {
     userMessage.files = params.files.map(({ file_id }) => ({ file_id }));
     convo.file_ids = params.file_ids;
+  }
+
+  // Preserve workspace from request body conversation or params
+  // Convert workspaceId string to ObjectId if needed
+  let workspaceValue = null;
+  if (
+    req?.body?.conversation?.workspace !== null &&
+    req?.body?.conversation?.workspace !== undefined
+  ) {
+    workspaceValue = req.body.conversation.workspace;
+  } else if (params.workspace !== null && params.workspace !== undefined) {
+    workspaceValue = params.workspace;
+  }
+
+  if (workspaceValue) {
+    const isObjectId =
+      mongoose.Types.ObjectId.isValid(workspaceValue) &&
+      typeof workspaceValue === 'string' &&
+      workspaceValue.length === 24;
+
+    if (!isObjectId && typeof workspaceValue === 'string' && workspaceValue.length > 0) {
+      try {
+        const Workspace = require('~/models/Workspace');
+        const ws = await Workspace.findOne({
+          workspaceId: workspaceValue,
+          isActive: true,
+          isArchived: false,
+        });
+        if (ws && ws.isMember(req.user.id)) {
+          convo.workspace = ws._id;
+        }
+      } catch (error) {
+        logger.error('[saveUserMessage] Error converting workspace to ObjectId:', error);
+      }
+    } else {
+      convo.workspace = workspaceValue;
+    }
+  } else {
+    convo.workspace = null;
   }
 
   const message = await recordMessage(userMessage);

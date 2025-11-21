@@ -10,7 +10,8 @@ import { MCPServerConnectionStatusResponse } from '../types/queries';
 import * as dataService from '../data-service';
 import * as m from '../types/mutations';
 import * as q from '../types/queries';
-import { QueryKeys } from '../keys';
+import { QueryKeys, DynamicQueryKeys } from '../keys';
+import * as workspaceService from '../workspace-service';
 import * as s from '../schemas';
 import * as t from '../types';
 import * as permissions from '../accessPermissions';
@@ -524,6 +525,226 @@ export const useMCPServerConnectionStatusQuery = (
       staleTime: 10000, // 10 seconds
       enabled: !!serverName,
       ...config,
+    },
+  );
+};
+
+// ==================== Workspace Hooks ====================
+
+export const useGetWorkspacesQuery = (
+  config?: UseQueryOptions<workspaceService.Workspace[]>,
+): QueryObserverResult<workspaceService.Workspace[]> => {
+  return useQuery<workspaceService.Workspace[]>(
+    [QueryKeys.workspaces],
+    () => workspaceService.getWorkspaces(),
+    {
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      refetchOnMount: true,
+      staleTime: 0, // Always consider data stale to allow refetching
+      ...config,
+    },
+  );
+};
+
+export const useGetWorkspaceQuery = (
+  identifier: string,
+  config?: UseQueryOptions<workspaceService.Workspace>,
+): QueryObserverResult<workspaceService.Workspace> => {
+  return useQuery<workspaceService.Workspace>(
+    DynamicQueryKeys.workspace(identifier),
+    () => workspaceService.getWorkspace(identifier),
+    {
+      enabled: !!identifier,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      refetchOnMount: true,
+      ...config,
+    },
+  );
+};
+
+export const useGetWorkspaceStatsQuery = (
+  workspaceId: string,
+  config?: UseQueryOptions<workspaceService.WorkspaceStats>,
+): QueryObserverResult<workspaceService.WorkspaceStats> => {
+  return useQuery<workspaceService.WorkspaceStats>(
+    DynamicQueryKeys.workspaceStats(workspaceId),
+    () => workspaceService.getWorkspaceStats(workspaceId),
+    {
+      enabled: !!workspaceId,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      refetchOnMount: true,
+      ...config,
+    },
+  );
+};
+
+export const useCreateWorkspaceMutation = (): UseMutationResult<
+  workspaceService.Workspace,
+  unknown,
+  workspaceService.CreateWorkspacePayload,
+  unknown
+> => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    (payload: workspaceService.CreateWorkspacePayload) => workspaceService.createWorkspace(payload),
+    {
+      onSuccess: (newWorkspace) => {
+        // Update the cache with the new workspace
+        queryClient.setQueryData<workspaceService.Workspace[]>(
+          [QueryKeys.workspaces],
+          (oldWorkspaces = []) => {
+            // Check if workspace already exists
+            const exists = oldWorkspaces.some((w) => w.workspaceId === newWorkspace.workspaceId);
+            if (exists) {
+              return oldWorkspaces;
+            }
+            return [newWorkspace, ...oldWorkspaces];
+          },
+        );
+        // Invalidate and refetch to ensure we get fresh data
+        queryClient.invalidateQueries([QueryKeys.workspaces], { refetchType: 'active' });
+      },
+    },
+  );
+};
+
+export const useUpdateWorkspaceMutation = (
+  workspaceId: string,
+): UseMutationResult<
+  workspaceService.Workspace,
+  unknown,
+  workspaceService.UpdateWorkspacePayload,
+  unknown
+> => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    (payload: workspaceService.UpdateWorkspacePayload) =>
+      workspaceService.updateWorkspace(workspaceId, payload),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries([QueryKeys.workspaces]);
+        queryClient.invalidateQueries(DynamicQueryKeys.workspace(workspaceId));
+      },
+    },
+  );
+};
+
+export const useDeleteWorkspaceMutation = (): UseMutationResult<void, unknown, string, unknown> => {
+  const queryClient = useQueryClient();
+  return useMutation((workspaceId: string) => workspaceService.deleteWorkspace(workspaceId), {
+    onSuccess: () => {
+      queryClient.invalidateQueries([QueryKeys.workspaces]);
+    },
+  });
+};
+
+export const useLeaveWorkspaceMutation = (): UseMutationResult<void, unknown, string, unknown> => {
+  const queryClient = useQueryClient();
+  return useMutation((workspaceId: string) => workspaceService.leaveWorkspace(workspaceId), {
+    onSuccess: () => {
+      queryClient.invalidateQueries([QueryKeys.workspaces]);
+    },
+  });
+};
+
+export const useAddWorkspaceMemberMutation = (
+  workspaceId: string,
+): UseMutationResult<
+  workspaceService.Workspace,
+  unknown,
+  workspaceService.AddMemberPayload,
+  unknown
+> => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    (payload: workspaceService.AddMemberPayload) =>
+      workspaceService.addWorkspaceMember(workspaceId, payload),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries([QueryKeys.workspaces]);
+        queryClient.invalidateQueries(DynamicQueryKeys.workspace(workspaceId));
+      },
+    },
+  );
+};
+
+export const useUpdateWorkspaceMemberRoleMutation = (
+  workspaceId: string,
+): UseMutationResult<
+  workspaceService.Workspace,
+  unknown,
+  { memberUserId: string; role: workspaceService.WorkspaceRole },
+  unknown
+> => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    ({ memberUserId, role }: { memberUserId: string; role: workspaceService.WorkspaceRole }) =>
+      workspaceService.updateWorkspaceMemberRole(workspaceId, memberUserId, { role }),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries([QueryKeys.workspaces]);
+        queryClient.invalidateQueries(DynamicQueryKeys.workspace(workspaceId));
+      },
+    },
+  );
+};
+
+export const useRemoveWorkspaceMemberMutation = (
+  workspaceId: string,
+): UseMutationResult<workspaceService.Workspace, unknown, string, unknown> => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    (memberUserId: string) => workspaceService.removeWorkspaceMember(workspaceId, memberUserId),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries([QueryKeys.workspaces]);
+        queryClient.invalidateQueries(DynamicQueryKeys.workspace(workspaceId));
+      },
+    },
+  );
+};
+
+export const useUpdateWorkspaceModelsMutation = (
+  workspaceId: string,
+): UseMutationResult<
+  { availableModels: string[] | null; availableEndpoints: string[] | null },
+  unknown,
+  { availableModels: string[] | null; availableEndpoints?: string[] | null },
+  unknown
+> => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    ({ availableModels, availableEndpoints }) =>
+      workspaceService.updateWorkspaceModels(workspaceId, availableModels, availableEndpoints),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries([QueryKeys.workspaces]);
+        queryClient.invalidateQueries(DynamicQueryKeys.workspace(workspaceId));
+      },
+    },
+  );
+};
+
+export const useUpdateWorkspaceInformationMutation = (
+  workspaceId: string,
+): UseMutationResult<
+  { description?: string; welcomeMessage?: string; guidelines?: string },
+  unknown,
+  workspaceService.UpdateWorkspaceInformationPayload,
+  unknown
+> => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    (payload) => workspaceService.updateWorkspaceInformation(workspaceId, payload),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries([QueryKeys.workspaces]);
+        queryClient.invalidateQueries(DynamicQueryKeys.workspace(workspaceId));
+        queryClient.invalidateQueries(['workspaceStartPage', workspaceId]);
+      },
     },
   );
 };

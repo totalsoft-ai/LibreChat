@@ -42,7 +42,23 @@ router.use('/webhooks', webhooksRouter);
 router.get('/', async (req, res) => {
   try {
     const appConfig = req.config;
-    const files = await getFiles({ user: req.user.id });
+    const { workspace } = req.query;
+
+    // Build file filter
+    const filter = { user: req.user.id };
+
+    // Handle workspace filter
+    if (workspace !== undefined) {
+      if (workspace === null || workspace === 'personal' || workspace === '') {
+        // Filter for personal files (no workspace)
+        filter.$or = [{ workspace: null }, { workspace: { $exists: false } }];
+      } else {
+        // Filter for specific workspace
+        filter.workspace = workspace;
+      }
+    }
+
+    const files = await getFiles(filter);
     if (appConfig.fileStrategy === FileSources.s3) {
       try {
         const cache = getLogStores(CacheKeys.S3_EXPIRY_INTERVAL);
@@ -380,22 +396,63 @@ router.post('/', async (req, res) => {
     metadata.temp_file_id = metadata.file_id;
     metadata.file_id = req.file_id;
 
+    // Validate workspace if provided
+    if (metadata.workspace) {
+      const Workspace = require('~/models/Workspace');
+      const ws = await Workspace.findOne({
+        workspaceId: metadata.workspace,
+        isActive: true,
+        isArchived: false,
+      });
+
+      if (!ws) {
+        return res.status(404).json({ message: 'Workspace not found' });
+      }
+
+      if (!ws.isMember(req.user.id)) {
+        return res.status(403).json({ message: 'You do not have access to this workspace' });
+      }
+
+      // Check if user has permission to upload files in workspace
+      if (!ws.hasPermission(req.user.id, 'member')) {
+        return res.status(403).json({
+          message: 'You need at least member permission to upload files in this workspace',
+        });
+      }
+
+      // Convert workspaceId string to ObjectId for database
+      metadata.workspace = ws._id;
+    }
+
     const isAssistantEndpoint =
       metadata?.endpoint === 'Assistant' || metadata?.endpoint === EModelEndpoint.assistants;
 
-    // Fallbacks: if upload comes from custom Assistant endpoint but tool_resource wasn't sent,
+    const isPersonalSpaceEndpoint = metadata?.endpoint === 'Personal Space';
+
+    // Fallbacks: if upload comes from custom Assistant or Personal Space endpoint but tool_resource wasn't sent,
     // infer file_search and ensure the file is a message attachment
     if (!metadata?.tool_resource) {
       const originalEndpoint = metadata?.original_endpoint;
       if (
         metadata?.endpoint === 'Assistant' ||
+        metadata?.endpoint === 'Personal Space' ||
         originalEndpoint === 'Assistant' ||
+        originalEndpoint === 'Personal Space' ||
         originalEndpoint === EModelEndpoint.assistants
       ) {
         metadata.tool_resource = 'file_search';
         metadata.message_file = true;
-        logger.debug('[/files] Inferred tool_resource=file_search for custom Assistant endpoint');
+        logger.debug(
+          '[/files] Inferred tool_resource=file_search for custom Assistant/Personal Space endpoint',
+        );
       }
+    }
+
+    // Mark Personal Space files as global library
+    if (isPersonalSpaceEndpoint) {
+      metadata.isGlobalLibrary = true;
+      metadata.message_file = true;
+      logger.debug('[/files] Marked file as global library for Personal Space endpoint');
     }
 
     // Always allow Assistant uploads to be sent without text by attaching as message file
@@ -405,7 +462,7 @@ router.post('/', async (req, res) => {
 
     // Log upload metadata for debugging
     logger.debug(
-      `[/files] upload meta: endpoint=${metadata?.endpoint} tool_resource=${metadata?.tool_resource} file_id=${metadata?.file_id} isAssistantEndpoint=${isAssistantEndpoint}`,
+      `[/files] upload meta: endpoint=${metadata?.endpoint} tool_resource=${metadata?.tool_resource} file_id=${metadata?.file_id} isAssistantEndpoint=${isAssistantEndpoint} isPersonalSpace=${isPersonalSpaceEndpoint} isGlobalLibrary=${metadata?.isGlobalLibrary}`,
     );
 
     if (isAgentsEndpoint(metadata.endpoint)) {

@@ -1534,6 +1534,10 @@ export enum SettingsTabValues {
    * Tab for Personalization Settings
    */
   PERSONALIZATION = 'personalization',
+  /**
+   * Tab for Workspaces Management
+   */
+  WORKSPACES = 'workspaces',
 }
 
 export enum STTProviders {

@@ -145,7 +145,9 @@ function enqueueDeleteOperation({ req, file, deleteFile, promises, resolvedFileI
     promises.push(
       deleteFile(req, file)
         .then(() => {
-          logger.info(`[enqueueDeleteOperation] Successfully deleted file ${file.file_id}, adding to resolvedFileIds`);
+          logger.info(
+            `[enqueueDeleteOperation] Successfully deleted file ${file.file_id}, adding to resolvedFileIds`,
+          );
           resolvedFileIds.push(file.file_id);
         })
         .catch((err) => {
@@ -371,6 +373,7 @@ const processImageFile = async ({ req, res, metadata, returnFile = false }) => {
       type: `image/${appConfig.imageOutputType}`,
       width,
       height,
+      workspace: metadata.workspace,
     },
     true,
   );
@@ -511,6 +514,7 @@ const processFileUpload = async ({ req, res, metadata }) => {
       source,
       height,
       width,
+      workspace: metadata.workspace,
     },
     true,
   );
@@ -754,10 +758,12 @@ const processAgentFileUpload = async ({ req, res, metadata }) => {
     source,
     height,
     width,
+    workspace: metadata.workspace,
+    isGlobalLibrary: req.body.isGlobalLibrary || false,
   });
 
   logger.info(
-    `[processAgentFileUpload] Creating file in MongoDB - file_id: ${file_id}, filename: ${fileInfo.filename}, source: ${source}, embedded: ${embedded}`,
+    `[processAgentFileUpload] Creating file in MongoDB - file_id: ${file_id}, filename: ${fileInfo.filename}, source: ${source}, embedded: ${embedded}, isGlobalLibrary: ${fileInfo.isGlobalLibrary}`,
   );
 
   const result = await createFile(fileInfo, true);

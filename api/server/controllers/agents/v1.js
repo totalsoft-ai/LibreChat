@@ -63,9 +63,36 @@ const systemTools = {
 const createAgentHandler = async (req, res) => {
   try {
     const validatedData = agentCreateSchema.parse(req.body);
-    const { tools = [], ...agentData } = removeNullishValues(validatedData);
+    const { tools = [], workspace, ...agentData } = removeNullishValues(validatedData);
 
     const { id: userId } = req.user;
+
+    // Validate workspace if provided
+    if (workspace) {
+      const Workspace = require('~/models/Workspace');
+      const ws = await Workspace.findOne({
+        workspaceId: workspace,
+        isActive: true,
+        isArchived: false,
+      });
+
+      if (!ws) {
+        return res.status(404).json({ error: 'Workspace not found' });
+      }
+
+      if (!ws.isMember(userId)) {
+        return res.status(403).json({ error: 'You do not have access to this workspace' });
+      }
+
+      // Check if user has permission to create agents in workspace
+      if (!ws.hasPermission(userId, 'member')) {
+        return res.status(403).json({
+          error: 'You need at least member permission to create agents in this workspace',
+        });
+      }
+
+      agentData.workspace = ws._id;
+    }
 
     agentData.id = `agent_${nanoid()}`;
     agentData.author = userId;
@@ -438,7 +465,7 @@ const deleteAgentHandler = async (req, res) => {
 const getListAgentsHandler = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { category, search, limit, cursor, promoted } = req.query;
+    const { category, search, limit, cursor, promoted, workspace } = req.query;
     let requiredPermission = req.query.requiredPermission;
     if (typeof requiredPermission === 'string') {
       requiredPermission = parseInt(requiredPermission, 10);
@@ -450,6 +477,18 @@ const getListAgentsHandler = async (req, res) => {
     }
     // Base filter
     const filter = {};
+
+    // Handle workspace filter
+    if (workspace !== undefined) {
+      if (workspace === null || workspace === 'personal' || workspace === '') {
+        // Filter for personal agents (no workspace)
+        filter.$and = filter.$and || [];
+        filter.$and.push({ $or: [{ workspace: null }, { workspace: { $exists: false } }] });
+      } else {
+        // Filter for specific workspace
+        filter.workspace = workspace;
+      }
+    }
 
     // Handle category filter - only apply if category is defined
     if (category !== undefined && category.trim() !== '') {

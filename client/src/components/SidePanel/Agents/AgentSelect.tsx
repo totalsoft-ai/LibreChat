@@ -1,4 +1,5 @@
 import { EarthIcon } from 'lucide-react';
+import { useAtomValue } from 'jotai';
 import { ControlCombobox } from '@librechat/client';
 import { useCallback, useEffect, useRef } from 'react';
 import { useFormContext, Controller } from 'react-hook-form';
@@ -9,6 +10,7 @@ import type { TAgentCapabilities, AgentForm } from '~/common';
 import { cn, createProviderOption, processAgentOption, getDefaultAgentFormValues } from '~/utils';
 import { useLocalize, useAgentDefaultPermissionLevel } from '~/hooks';
 import { useListAgentsQuery } from '~/data-provider';
+import { currentWorkspaceIdAtom } from '~/store/workspaces';
 
 const keys = new Set(Object.keys(defaultAgentFormValues));
 
@@ -27,9 +29,13 @@ export default function AgentSelect({
   const lastSelectedAgent = useRef<string | null>(null);
   const { control, reset } = useFormContext();
   const permissionLevel = useAgentDefaultPermissionLevel();
+  const currentWorkspaceId = useAtomValue(currentWorkspaceIdAtom);
 
-  const { data: agents = null } = useListAgentsQuery(
-    { requiredPermission: permissionLevel },
+  const { data: agents = null, refetch } = useListAgentsQuery(
+    {
+      requiredPermission: permissionLevel,
+      workspace: currentWorkspaceId || undefined,
+    },
     {
       select: (res) =>
         res.data.map((agent) =>
@@ -42,6 +48,11 @@ export default function AgentSelect({
         ),
     },
   );
+
+  // Refetch agents when workspace changes
+  useEffect(() => {
+    refetch();
+  }, [currentWorkspaceId, refetch]);
 
   const resetAgentForm = useCallback(
     (fullAgent: Agent) => {
