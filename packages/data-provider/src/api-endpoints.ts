@@ -234,6 +234,11 @@ export const mcp = {
   tools: `${BASE_URL}/api/mcp/tools`,
 };
 
+export const docs = (docId?: string) => {
+  const base = `${BASE_URL}/api/docs`;
+  return docId ? `${base}/${docId}` : base;
+};
+
 export const revertAgentVersion = (agent_id: string) => `${agents({ path: `${agent_id}/revert` })}`;
 
 export const files = () => `${BASE_URL}/api/files`;

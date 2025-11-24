@@ -990,3 +990,36 @@ export function getGraphApiToken(params: q.GraphTokenParams): Promise<q.GraphTok
 export function getDomainServerBaseUrl(): string {
   return `${endpoints.apiBaseUrl()}/api`;
 }
+
+// Documentation
+export interface DocSection {
+  id: string;
+  title: string;
+  subsections?: Array<{ id: string; title: string }>;
+}
+
+export interface DocContent {
+  id: string;
+  title: string;
+  filename: string;
+  content: string;
+  sections: DocSection[];
+}
+
+export interface DocListResponse {
+  sections: Array<{
+    id: string;
+    title: string;
+    order: number;
+    filename: string;
+  }>;
+  default: string;
+}
+
+export function getDocsList(): Promise<DocListResponse> {
+  return request.get(endpoints.docs());
+}
+
+export function getDocContent(docId: string): Promise<DocContent> {
+  return request.get(endpoints.docs(docId));
+}
