@@ -11,7 +11,8 @@ data-node
 meili_data*
 librechat*
 Dockerfile*
-docs
+docs/*
+!docs/user-guide
 
 # Ignore all hidden files
 .*
