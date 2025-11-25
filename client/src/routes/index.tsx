@@ -20,6 +20,7 @@ import ShareRoute from './ShareRoute';
 import ChatRoute from './ChatRoute';
 import Search from './Search';
 import Root from './Root';
+import Help from './Help';
 
 const AuthLayout = () => (
   <AuthContextProvider>
@@ -106,6 +107,10 @@ export const router = createBrowserRouter([
           {
             path: 'search',
             element: <Search />,
+          },
+          {
+            path: 'help/:section?',
+            element: <Help />,
           },
         ],
       },

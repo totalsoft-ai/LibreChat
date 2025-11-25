@@ -57,6 +57,8 @@ export enum QueryKeys {
   resourcePermissions = 'resourcePermissions',
   effectivePermissions = 'effectivePermissions',
   graphToken = 'graphToken',
+  docs = 'docs',
+  docsList = 'docsList',
 }
 
 // Dynamic query keys that require parameters

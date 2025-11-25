@@ -1,7 +1,8 @@
 import { useState, memo } from 'react';
 import { useRecoilState } from 'recoil';
+import { useNavigate } from 'react-router-dom';
 import * as Select from '@ariakit/react/select';
-import { FileText, LogOut } from 'lucide-react';
+import { FileText, LogOut, BookOpen } from 'lucide-react';
 import { LinkIcon, GearIcon, DropdownMenuSeparator, Avatar } from '@librechat/client';
 import { useGetStartupConfig, useGetUserBalance } from '~/data-provider';
 import FilesView from '~/components/Chat/Input/Files/FilesView';
@@ -12,6 +13,7 @@ import store from '~/store';
 
 function AccountSettings() {
   const localize = useLocalize();
+  const navigate = useNavigate();
   const { user, isAuthenticated, logout } = useAuthContext();
   const { data: startupConfig } = useGetStartupConfig();
   const balanceQuery = useGetUserBalance({
@@ -71,10 +73,18 @@ function AccountSettings() {
         {startupConfig?.helpAndFaqURL !== '/' && (
           <Select.SelectItem
             value=""
-            onClick={() => window.open(startupConfig?.helpAndFaqURL, '_blank')}
+            onClick={() => {
+              // If helpAndFaqURL is external (starts with http), open in new tab
+              // Otherwise, navigate to internal help page
+              if (startupConfig?.helpAndFaqURL && startupConfig.helpAndFaqURL.startsWith('http')) {
+                window.open(startupConfig.helpAndFaqURL, '_blank');
+              } else {
+                navigate('/help');
+              }
+            }}
             className="select-item text-sm"
           >
-            <LinkIcon aria-hidden="true" />
+            <BookOpen className="icon-md" aria-hidden="true" />
             {localize('com_nav_help_faq')}
           </Select.SelectItem>
         )}
