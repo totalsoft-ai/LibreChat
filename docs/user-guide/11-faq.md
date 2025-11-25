@@ -6,19 +6,6 @@ Find answers to common questions and solutions to frequently encountered issues.
 
 ### Getting Started
 
-**Q: Which AI model should I use?**
-
-A: It depends on your needs:
-- **General use:** GPT-4 or Claude 3 Sonnet
-- **Complex tasks:** GPT-4 Turbo or Claude 3 Opus
-- **Quick tasks:** GPT-3.5 Turbo or Claude 3 Haiku
-- **Image analysis:** GPT-4 Vision or Gemini Pro Vision
-- **Long documents:** Claude models (up to 200K tokens)
-
-Start with GPT-4 or Claude Sonnet and adjust based on results.
-
----
-
 **Q: Can I use multiple AI models in the same conversation?**
 
 A: No, each conversation uses one model at a time. However, you can:
@@ -36,19 +23,6 @@ A: Yes, with these caveats:
 - Shared conversations are publicly accessible via link
 - AI providers (OpenAI, Anthropic, etc.) may log requests per their policies
 - Don't share highly sensitive information
-
----
-
-**Q: Can I access TESSA on mobile?**
-
-A: Yes! TESSA works in mobile browsers, though the experience is optimized for desktop. Features available on mobile:
-- All core chat functionality
-- File uploads
-- Settings
-- Speech features (STT/TTS)
-- Most agent features
-
-Some features like Multi-Conversation view work better on larger screens.
 
 ---
 
@@ -79,7 +53,6 @@ See [Settings & Personalization](./10-settings.md) for details.
 A: Not typically, but consider:
 - Very long conversations may slow down
 - Models have context windows (token limits)
-- Claude handles longer contexts (200K tokens)
 - Start new conversation if performance degrades
 
 ---
@@ -343,19 +316,6 @@ Requires administrator setup. See [Advanced Features](./09-advanced.md).
 
 ---
 
-**Q: How do I use Code Interpreter?**
-
-A:
-1. Create/use agent with Code Interpreter enabled
-2. Request code execution or analysis
-3. AI writes and runs Python code
-4. Results appear in chat
-5. Can generate files, charts, etc.
-
-See [Advanced Features](./09-advanced.md) for examples.
-
----
-
 ### Privacy and Security
 
 **Q: How secure is TESSA?**
@@ -394,7 +354,7 @@ A: Typically stored:
 - Usage statistics
 - API keys/tokens you create
 
-Check your deployment's privacy policy for specifics.
+
 
 ---
 
@@ -408,16 +368,6 @@ A: Consider carefully:
 - **AI providers:** Their data handling policies
 
 For highly sensitive data, use self-hosted deployment with appropriate safeguards or avoid AI tools.
-
----
-
-**Q: How long are conversations stored?**
-
-A: Depends on configuration:
-- Usually stored indefinitely until you delete
-- Some deployments have retention policies
-- Check with your administrator
-- You can delete anytime in settings
 
 ---
 
@@ -455,10 +405,9 @@ A: Follow these tips:
 
 A: Best practices:
 1. **Name clearly:** Descriptive titles
-2. **Tag consistently:** Use standard tags
-3. **Bookmark important:** Quick access
-4. **Archive completed:** Keep list manageable
-5. **Search often:** Find before creating duplicates
+2. **Bookmark important:** Quick access
+3. **Archive completed:** Keep list manageable
+4. **Search often:** Find before creating duplicates
 
 ---
 
@@ -523,7 +472,6 @@ A: TESSA works best in:
 - **Safari**
 - **Edge**
 
-Mobile browsers also supported. Latest versions recommended.
 
 ---
 
@@ -547,31 +495,6 @@ A: TESSA has an API for:
 - Custom applications
 
 Check with your administrator about API access and documentation.
-
----
-
-**Q: Can I self-host TESSA?**
-
-A: Yes! TESSA is open source:
-- Full control over data
-- Custom configuration
-- On-premises deployment
-- Enhanced privacy
-
-See TESSA GitHub repository for installation instructions.
-
----
-
-**Q: How often is TESSA updated?**
-
-A:
-- Regular updates and improvements
-- Security patches as needed
-- Feature releases
-- Check GitHub or changelog
-
-Your deployment update schedule depends on administrator.
-
 ---
 
 ## Common Error Messages
@@ -744,13 +667,6 @@ Have an idea for improvement?
 4. Ask questions, get citations
 5. Export findings
 
-**Code development:**
-1. Create agent with Code Interpreter
-2. Upload data/requirements
-3. Request code generation
-4. Review and test
-5. Iterate to refine
-
 **Content creation:**
 1. Create content prompts with variables
 2. Use commands for quick access
@@ -759,8 +675,6 @@ Have an idea for improvement?
 5. Export final version
 
 ---
-
-**Still have questions?** Contact your TESSA administrator or consult the community forums!
 
 ## Related Documentation
 

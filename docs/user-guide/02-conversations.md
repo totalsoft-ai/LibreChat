@@ -252,60 +252,10 @@ Narrow down your conversation list:
 2. Select specific AI models
 3. View conversations using those models only
 
-**By tag:**
-1. Click the **filter** icon
-2. Select one or more tags
-3. View conversations with those tags
 
 **Clear filters:**
 - Click **Clear All** or the X next to each filter
 - Return to viewing all conversations
-
-## Tags and Organization
-
-### Adding Tags to Conversations
-
-Organize conversations with custom tags:
-
-**Method 1: In conversation menu**
-1. Hover over a conversation in the sidebar
-2. Click the **three dots** menu (⋯)
-3. Select **Add Tag**
-4. Type tag name(s), separated by commas
-5. Press **Enter** to save
-
-**Method 2: Within the conversation**
-1. Open the conversation
-2. Click the **tag icon** at the top
-3. Add or remove tags
-4. Tags save automatically
-
-**Tag naming tips:**
-- Use categories: "work," "personal," "research"
-- Add project names: "Q4-marketing," "client-abc"
-- Include priority: "urgent," "review-later"
-- Use dates: "2024," "january"
-- Keep tags short and consistent
-
-### Managing Tags
-
-**View all tags:**
-1. The sidebar shows a tag cloud or list
-2. Click any tag to filter conversations by that tag
-
-**Rename a tag:**
-1. Click on the tag in the tag list
-2. Select **Rename Tag**
-3. Enter the new name
-4. All conversations with this tag are updated
-
-**Delete a tag:**
-1. Click on the tag in the tag list
-2. Select **Delete Tag**
-3. Confirm deletion
-4. The tag is removed from all conversations
-
-> **Tip:** Create a tagging system before you have many conversations. Consistent tags make organization much easier.
 
 ### Using Bookmarks
 
@@ -412,10 +362,9 @@ Change settings without starting over:
 ### Organization Strategy
 
 1. **Name conversations immediately**: Don't rely on auto-generated titles
-2. **Tag as you go**: Add tags when creating conversations
-3. **Bookmark active projects**: Quick access to what you're working on
-4. **Archive completed work**: Keep your main list manageable
-5. **Search before creating**: Check if you already have a similar conversation
+2. **Bookmark active projects**: Quick access to what you're working on
+3. **Archive completed work**: Keep your main list manageable
+4. **Search before creating**: Check if you already have a similar conversation
 
 ### Efficient Workflow
 
@@ -428,9 +377,8 @@ Change settings without starting over:
 ### Maintenance
 
 1. **Regular cleanup**: Archive or delete old conversations monthly
-2. **Tag consistency**: Use the same tags across similar topics
-3. **Bookmark management**: Keep bookmarks list current
-4. **Search usage**: Find existing conversations before duplicating work
+2. **Bookmark management**: Keep bookmarks list current
+3. **Search usage**: Find existing conversations before duplicating work
 
 ## Troubleshooting
 
@@ -452,14 +400,6 @@ Change settings without starting over:
 - Try searching partial words
 - Look in archived conversations
 
-### Tags Not Saving
-**Problem:** Tags disappear after adding them
-
-**Solutions:**
-- Ensure you press Enter after typing tags
-- Check for special characters in tag names
-- Refresh the page and try again
-- Check browser console for errors
 
 ### Lost Conversation
 **Problem:** Can't find a conversation you know you had
@@ -509,10 +449,9 @@ Change settings without starting over:
 
 **Steps:**
 1. Give it a descriptive title
-2. Add relevant tags
-3. Bookmark it
-4. Consider exporting it (see [Export & Sharing](./06-export-share.md))
-5. Do NOT archive unless you rarely need to access it
+2. Bookmark it
+3. Consider exporting it (see [Export & Sharing](./06-export-share.md))
+4. Do NOT archive unless you rarely need to access it
 
 ## Next Steps
 

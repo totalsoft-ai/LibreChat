@@ -14,49 +14,19 @@ TESSA is a unified AI conversation platform that brings together multiple AI mod
 - **Organized**: Search, tag, and organize your conversations efficiently
 - **Shareable**: Export and share your conversations in multiple formats
 
-## Authentication Methods
-
-TESSA supports multiple ways to log in, depending on how your administrator has configured the system.
-
-### Email and Password
-
-The standard login method using an email address and password.
-
-**To log in:**
-
-1. Open TESSA in your web browser
-2. Enter your email address
-3. Enter your password
-4. Click **Sign In**
-
-> **Tip:** If you have Two-Factor Authentication (2FA) enabled, you'll need to enter your authentication code after your password.
-
-### Social Login (OAuth)
-
-Log in using your existing accounts from other services.
-
+## Authentication Method
 
 **To log in with domain account:**
 
 1. Open TESSA in your web browser
-2. Click the icon for your preferred provider (e.g., **Continue with OpenID**)
-3. Authorize TESSA to access your account
-4. You'll be redirected back to TESSA and automatically logged in
+2. Click the icon for your provider (e.g., **Continue with OpenID**)
+3. Enter your organizational username
+4. Enter your organizational password
+5. Click **Sign In**
+6. You'll be redirected back to TESSA and automatically logged in
 
 > **Note:** Available domain login options depend on your administrator's configuration.
 
-### LDAP/Active Directory
-
-If your organization uses LDAP or Active Directory:
-
-**To log in:**
-
-1. Open TESSA in your web browser
-2. Enter your organizational username
-3. Enter your organizational password
-4. Click **Sign In**
-
-> **Note:** Use your company credentials, not a separate TESSA account.
 
 ## Interface Overview
 
@@ -96,7 +66,7 @@ Contextual information and tools (can be toggled):
 
 Quick access to important features:
 
-- **Agents Marketplace**: Browse and install AI agents
+
 - **Prompts**: Access your prompt library
 - **User menu**: Account settings and logout
 - **Theme toggle**: Switch between light and dark modes
@@ -279,9 +249,6 @@ A: No, each conversation uses one model at a time. However, you can create multi
 
 **Q: Are my conversations saved automatically?**
 A: Yes, all conversations are saved automatically as you chat.
-
-**Q: Can I access TESSA on mobile?**
-A: Yes, TESSA works in mobile browsers, though the experience is optimized for desktop.
 
 **Q: What happens if I lose my internet connection?**
 A: You won't be able to send or receive messages, but your conversation history is preserved. Reconnect and continue where you left off.

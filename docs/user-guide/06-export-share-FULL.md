@@ -31,7 +31,7 @@ TESSA supports six export formats:
 
 | Format | Extension | Best For |
 |--------|-----------|----------|
-| **Screenshot** | `.png` | Visual sharing, presentations, social media |
+| **Screenshot** | `.png` | Visual sharing, presentations |
 | **Text** | `.txt` | Simple backup, plain text processing |
 | **Markdown** | `.md` | Documentation, GitHub, version control |
 | **JSON** | `.json` | Data processing, backup, migration |
@@ -128,7 +128,7 @@ Depending on format, you'll see these options:
 **Example use case:**
 ```
 You had a great conversation about marketing strategy.
-Export as screenshot to share with your team on Slack.
+Export as screenshot to share with your team on Microsoft Teams.
 ```
 
 ### Text (.txt)
@@ -162,7 +162,7 @@ Export as screenshot to share with your team on Slack.
 # Conversation Title
 
 Model: GPT-4
-Created: 2024-01-15
+Created: 2025-01-15
 
 ---
 

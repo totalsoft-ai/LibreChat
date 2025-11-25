@@ -488,17 +488,6 @@ Some providers offer unique settings.
 - Can enable/disable in settings
 - Provides insight into reasoning
 
-### Google-Specific
-
-**Safety Settings:**
-- Control content filtering levels
-- Adjust thresholds for different categories
-- Balance between safety and flexibility
-
-**Candidate Count:**
-- Number of response candidates to generate
-- Higher values = more options (uses more credits)
-
 ## Best Practices
 
 ### Model Selection

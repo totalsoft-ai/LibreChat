@@ -7,7 +7,6 @@ Explore powerful advanced features that extend TESSA's capabilities beyond stand
 - Model Context Protocol (MCP) integration
 - Memories System
 - Multi-Conversation (split screen)
-- Code Interpreter for Python execution
 - Web Search integration
 - Code Artifacts (generative UI)
 - Advanced workflows and automation
@@ -276,92 +275,6 @@ If you don't want AI to remember information:
 - Review in another
 - Iterate quickly
 
-## Code Interpreter
-
-### What Is Code Interpreter?
-
-**Code Interpreter** executes Python code in a secure, sandboxed environment.
-
-**Capabilities:**
-- Run Python code
-- Data analysis and visualization
-- Mathematical computations
-- File processing
-- Chart generation
-
-**Security:**
-- Isolated sandbox
-- No internet access from code
-- Limited execution time
-- Safe execution environment
-
-### Using Code Interpreter
-
-**Enable via agent:**
-1. Create or select agent
-2. Enable **Code Interpreter** tool
-3. Save agent
-4. Use agent in conversation
-
-**Request code execution:**
-```
-You: "Analyze this dataset and create a bar chart"
-AI: [Writes Python code]
-AI: [Executes code]
-AI: [Returns results and/or generated files]
-```
-
-**What you can do:**
-
-**Data Analysis:**
-- Load CSV/Excel files
-- Statistical analysis
-- Data cleaning
-- Pattern identification
-
-**Visualizations:**
-- Charts and graphs
-- Plots and diagrams
-- Data visualizations
-- Exported as images
-
-**Mathematical Computations:**
-- Complex calculations
-- Algorithmic problems
-- Simulations
-- Mathematical proofs
-
-**File Processing:**
-- Text processing
-- File transformations
-- Data format conversions
-- Batch operations
-
-### Example Code Interpreter Usage
-
-**Example 1: Data Analysis**
-```
-You: [Upload sales.csv] "Calculate average sales by month and create a line chart"
-
-AI: I'll analyze the data and create a visualization.
-[Writes and executes Python code]
-[Generates chart]
-
-AI: Here's the line chart showing average monthly sales. The data shows...
-[Chart image appears]
-```
-
-**Example 2: Mathematical Problem**
-```
-You: "Calculate the first 100 Fibonacci numbers and plot them"
-
-AI: I'll compute the sequence and visualize it.
-[Writes and executes Python code]
-
-AI: Here are the first 100 Fibonacci numbers and their plot...
-[Results and plot appear]
-```
-
 ## Web Search Integration
 
 ### What Is Web Search?
@@ -560,13 +473,6 @@ Combine features for automated workflows:
 4. **Keyboard shortcuts:** Learn shortcuts for faster navigation
 5. **Screen real estate:** Use larger screens for better experience
 
-### Code Interpreter Safety
-
-1. **Verify code:** Review generated code before execution
-2. **Safe data:** Don't upload highly sensitive data
-3. **Understand output:** Ensure you understand results
-4. **Save important results:** Download generated files
-5. **Reasonable requests:** Keep executions reasonable in scope
 
 ## Troubleshooting
 
@@ -594,13 +500,7 @@ Combine features for automated workflows:
 - Check internet connection
 - Use less complex models
 
-### Code Interpreter Timeout
-**Solutions:**
-- Simplify code request
-- Break into smaller steps
-- Reduce data size
-- Optimize algorithm
-- Check execution limits
+
 
 ## Next Steps
 

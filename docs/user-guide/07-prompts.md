@@ -280,11 +280,6 @@ Commands provide instant access to prompts:
   - Debug Help
   - Documentation
 
-📁 Writing
-  - Blog Post
-  - Social Media
-  - Product Description
-
 📁 Analysis
   - Data Analysis
   - Document Review
@@ -492,29 +487,6 @@ Create structured notes with:
 4. Next Steps
 ```
 
-### Blog Post Outline
-
-**Name:** Blog Post Outline
-**Command:** `/blog`
-**Category:** Writing
-
-```
-Create a blog post outline for:
-
-Topic: {{topic}}
-Target audience: {{audience}}
-Goal: {{goal}}
-Keyword: {{keyword}}
-Tone: {{tone}}
-
-Include:
-- Catchy title
-- Introduction hook
-- 3-5 main sections
-- Conclusion
-- Call-to-action
-```
-
 ## Best Practices
 
 ### Prompt Writing
@@ -618,19 +590,6 @@ Include:
 3. Include code language variable
 4. Version control as you refine
 5. Share with development team
-
-### Scenario 3: Content Creation System
-
-**Goal:** Consistent content production
-
-**Steps:**
-1. Create categories: "Blog", "Social", "Email"
-2. Create prompts for each type
-3. Include brand voice in prompts
-4. Add audience and goal variables
-5. Create command shortcuts
-6. Train team on usage
-7. Maintain and update regularly
 
 ## Next Steps
 
