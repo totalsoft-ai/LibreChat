@@ -1,10 +1,12 @@
 import React, { useMemo, useEffect } from 'react';
+import { useAtomValue } from 'jotai';
 import { Spinner } from '@librechat/client';
 import { PermissionBits } from 'librechat-data-provider';
 import type t from 'librechat-data-provider';
 import { useMarketplaceAgentsInfiniteQuery } from '~/data-provider/Agents';
 import { useAgentCategories, useLocalize } from '~/hooks';
 import { useInfiniteScroll } from '~/hooks/useInfiniteScroll';
+import { currentWorkspaceIdAtom } from '~/store/workspaces';
 import { useHasData } from './SmartLoader';
 import ErrorDisplay from './ErrorDisplay';
 import AgentCard from './AgentCard';
@@ -26,6 +28,7 @@ const AgentGrid: React.FC<AgentGridProps> = ({
   scrollElementRef,
 }) => {
   const localize = useLocalize();
+  const currentWorkspaceId = useAtomValue(currentWorkspaceIdAtom);
 
   // Get category data from API
   const { categories } = useAgentCategories();
@@ -38,9 +41,11 @@ const AgentGrid: React.FC<AgentGridProps> = ({
       search?: string;
       limit: number;
       promoted?: 0 | 1;
+      workspace?: string;
     } = {
       requiredPermission: PermissionBits.VIEW, // View permission for marketplace viewing
       limit: 6,
+      workspace: currentWorkspaceId || undefined,
     };
 
     // Handle search
@@ -61,7 +66,7 @@ const AgentGrid: React.FC<AgentGridProps> = ({
     }
 
     return params;
-  }, [category, searchQuery]);
+  }, [category, searchQuery, currentWorkspaceId]);
 
   // Use infinite query for marketplace agents
   const {
@@ -104,6 +109,11 @@ const AgentGrid: React.FC<AgentGridProps> = ({
       setScrollElement(scrollElement);
     }
   }, [scrollElementRef, setScrollElement]);
+
+  // Refetch agents when workspace changes
+  useEffect(() => {
+    refetch();
+  }, [currentWorkspaceId, refetch]);
 
   /**
    * Get category display name from API data or use fallback

@@ -1,5 +1,6 @@
 import { Plus } from 'lucide-react';
 import React, { useMemo, useCallback, useRef } from 'react';
+import { useAtomValue } from 'jotai';
 import { Button, useToastContext } from '@librechat/client';
 import { useWatch, useForm, FormProvider } from 'react-hook-form';
 import { useGetModelsQuery } from 'librechat-data-provider/react-query';
@@ -18,6 +19,7 @@ import {
   useGetAgentByIdQuery,
   useGetExpandedAgentByIdQuery,
 } from '~/data-provider';
+import { currentWorkspaceIdAtom } from '~/store/workspaces';
 import { createProviderOption, getDefaultAgentFormValues } from '~/utils';
 import { useResourcePermissions } from '~/hooks/useResourcePermissions';
 import { useSelectAgent, useLocalize, useAuthContext } from '~/hooks';
@@ -68,6 +70,7 @@ export default function AgentPanel() {
   });
 
   const { control, handleSubmit, reset } = methods;
+    const currentWorkspaceId = useAtomValue(currentWorkspaceIdAtom);
   const agent_id = useWatch({ control, name: 'id' });
   const previousVersionRef = useRef<number | undefined>();
 
@@ -231,6 +234,8 @@ export default function AgentPanel() {
         recursion_limit,
         category,
         support_contact,
+        // Workspace the agent belongs to (workspaceId string). When null, agent is created globally
+        workspace: currentWorkspaceId ?? null,
       });
     },
     [agent_id, create, update, showToast, localize],

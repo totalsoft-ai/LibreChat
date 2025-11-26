@@ -1,4 +1,5 @@
 import React, { useMemo, useEffect, useCallback, useRef } from 'react';
+import { useAtomValue } from 'jotai';
 import { AutoSizer, List as VirtualList, WindowScroller } from 'react-virtualized';
 import { throttle } from 'lodash';
 import { Spinner } from '@librechat/client';
@@ -6,6 +7,7 @@ import { PermissionBits } from 'librechat-data-provider';
 import type t from 'librechat-data-provider';
 import { useMarketplaceAgentsInfiniteQuery } from '~/data-provider/Agents';
 import { useAgentCategories, useLocalize } from '~/hooks';
+import { currentWorkspaceIdAtom } from '~/store/workspaces';
 import { useHasData } from './SmartLoader';
 import ErrorDisplay from './ErrorDisplay';
 import AgentCard from './AgentCard';
@@ -37,6 +39,7 @@ const VirtualizedAgentGrid: React.FC<VirtualizedAgentGridProps> = ({
 }) => {
   const localize = useLocalize();
   const listRef = useRef<VirtualList>(null);
+  const currentWorkspaceId = useAtomValue(currentWorkspaceIdAtom);
   const { categories } = useAgentCategories();
 
   // Build query parameters
@@ -47,10 +50,12 @@ const VirtualizedAgentGrid: React.FC<VirtualizedAgentGridProps> = ({
       search?: string;
       limit: number;
       promoted?: 0 | 1;
+      workspace?: string;
     } = {
       requiredPermission: PermissionBits.VIEW,
       // Align with AgentGrid to eliminate API mismatch as a factor
       limit: 6,
+      workspace: currentWorkspaceId || undefined,
     };
 
     if (searchQuery) {
@@ -67,7 +72,7 @@ const VirtualizedAgentGrid: React.FC<VirtualizedAgentGridProps> = ({
     }
 
     return params;
-  }, [category, searchQuery]);
+  }, [category, searchQuery, currentWorkspaceId]);
 
   // Use infinite query
   const {
@@ -88,6 +93,11 @@ const VirtualizedAgentGrid: React.FC<VirtualizedAgentGridProps> = ({
   }, [data?.pages]);
 
   const hasData = useHasData(data?.pages?.[0]);
+
+  // Refetch agents when workspace changes
+  useEffect(() => {
+    refetch();
+  }, [currentWorkspaceId, refetch]);
 
   // Direct scroll handling for virtualized component to avoid hook conflicts
   useEffect(() => {

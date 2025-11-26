@@ -10,7 +10,7 @@ import type { TAgentCapabilities, AgentForm } from '~/common';
 import { cn, createProviderOption, processAgentOption, getDefaultAgentFormValues } from '~/utils';
 import { useLocalize, useAgentDefaultPermissionLevel } from '~/hooks';
 import { useListAgentsQuery } from '~/data-provider';
-import { currentWorkspaceIdAtom } from '~/store/workspaces';
+import { currentWorkspaceAtom, currentWorkspaceIdAtom } from '~/store/workspaces';
 
 const keys = new Set(Object.keys(defaultAgentFormValues));
 
@@ -30,11 +30,14 @@ export default function AgentSelect({
   const { control, reset } = useFormContext();
   const permissionLevel = useAgentDefaultPermissionLevel();
   const currentWorkspaceId = useAtomValue(currentWorkspaceIdAtom);
+  const currentWorkspace = useAtomValue(currentWorkspaceAtom);
+  const workspaceObjectId = (currentWorkspace as { _id?: string } | null)?.['_id'];
+  const workspaceFilter = workspaceObjectId ?? 'personal';
 
   const { data: agents = null, refetch } = useListAgentsQuery(
     {
       requiredPermission: permissionLevel,
-      workspace: currentWorkspaceId || undefined,
+      workspace: workspaceFilter,
     },
     {
       select: (res) =>
@@ -46,13 +49,15 @@ export default function AgentSelect({
             },
           }),
         ),
+      // Keep previous data to avoid showing a single 'Loading...' placeholder while refetching
+      keepPreviousData: true,
     },
   );
 
   // Refetch agents when workspace changes
   useEffect(() => {
     refetch();
-  }, [currentWorkspaceId, refetch]);
+  }, [currentWorkspaceId, workspaceFilter, refetch]);
 
   const resetAgentForm = useCallback(
     (fullAgent: Agent) => {

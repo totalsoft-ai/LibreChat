@@ -16,12 +16,24 @@ export function useWorkspaceModels(
   endpointsConfig: TEndpointsConfig | undefined,
 ) {
   const currentWorkspace = useAtomValue(currentWorkspaceAtom);
+  const workspaceScopedSpecs = useMemo(() => {
+    const specs = modelSpecs ?? [];
+    const workspaceId = currentWorkspace?.workspaceId ?? null;
+
+    if (!workspaceId) {
+      return specs.filter((spec) => !spec.preset?.workspace);
+    }
+
+    return specs.filter((spec) => {
+      const target = spec.preset?.workspace ?? null;
+      return target === null || target === workspaceId;
+    });
+  }, [currentWorkspace?.workspaceId, modelSpecs]);
 
   const { filteredModelSpecs, filteredEndpoints } = useMemo(() => {
-    // If no workspace (personal mode), return all models
     if (!currentWorkspace) {
       return {
-        filteredModelSpecs: modelSpecs || [],
+        filteredModelSpecs: workspaceScopedSpecs,
         filteredEndpoints: endpointsConfig,
       };
     }
@@ -37,7 +49,7 @@ export function useWorkspaceModels(
     }
 
     // Filter model specs
-    let filteredSpecs = modelSpecs || [];
+    let filteredSpecs = workspaceScopedSpecs;
     if (availableModels && availableModels.length > 0) {
       filteredSpecs = filteredSpecs.filter((spec) => {
         // Check if model name is in available models
@@ -67,7 +79,7 @@ export function useWorkspaceModels(
       filteredModelSpecs: filteredSpecs,
       filteredEndpoints: filteredEps,
     };
-  }, [currentWorkspace, modelSpecs, endpointsConfig]);
+  }, [currentWorkspace, workspaceScopedSpecs, endpointsConfig]);
 
   return {
     modelSpecs: filteredModelSpecs,
