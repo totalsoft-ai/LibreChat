@@ -2,25 +2,93 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import ReactMarkdown from 'react-markdown';
-import { Users } from 'lucide-react';
 import { getWorkspaceStartPage } from 'librechat-data-provider';
 import type { StartPageConfig, WorkspaceStats, StartPageMember } from 'librechat-data-provider';
 import { useLocalize } from '~/hooks';
-import { cn } from '~/utils';
+import {
+  QuickStatsWidget,
+  RecentActivityWidget,
+  PinnedResourcesWidget,
+  QuickLinksWidget,
+  TopContributorsWidget,
+  RecentSharedWidget,
+} from './Widgets';
 
-const ROLE_LABELS: Record<string, string> = {
-  viewer: 'Viewer',
-  member: 'Member',
-  admin: 'Admin',
-  owner: 'Owner',
-};
+interface ActivityUser {
+  _id: string;
+  name: string;
+  email?: string;
+  avatar?: string;
+  username?: string;
+}
 
-const ROLE_COLORS: Record<string, string> = {
-  viewer: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200',
-  member: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200',
-  admin: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-200',
-  owner: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200',
-};
+interface Activity {
+  _id: string;
+  type: string;
+  user: ActivityUser;
+  resourceType?: string;
+  resourceName?: string;
+  createdAt: string;
+}
+
+interface ResourceAuthor {
+  _id: string;
+  name: string;
+  email?: string;
+  avatar?: string;
+  username?: string;
+}
+
+interface PinnedAgent {
+  id: string;
+  name: string;
+  description?: string;
+  author: ResourceAuthor;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface PinnedPrompt {
+  id: string;
+  name: string;
+  prompt?: string;
+  author: ResourceAuthor;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface Contributor {
+  userId: string;
+  name: string;
+  email?: string;
+  avatar?: string;
+  username?: string;
+  activityCount: number;
+  lastActivity: string;
+}
+
+interface SharedByUser {
+  _id: string;
+  name: string;
+  email?: string;
+  avatar?: string;
+  username?: string;
+}
+
+interface SharedResource {
+  type: string;
+  id: string;
+  name: string;
+  sharedBy: SharedByUser;
+  sharedAt: string;
+  activityType: string;
+}
+
+interface EnhancedWorkspaceStats extends WorkspaceStats {
+  agentCount: number;
+  promptCount: number;
+  fileCount: number;
+}
 
 interface StartPageData {
   workspaceId: string;
@@ -29,10 +97,18 @@ interface StartPageData {
   avatar?: string;
   color?: string;
   startPage: StartPageConfig;
-  stats: WorkspaceStats;
+  stats: EnhancedWorkspaceStats;
   members: StartPageMember[];
   welcomeMessage?: string;
   guidelines?: string;
+  // Enhanced start page data
+  recentActivity?: Activity[];
+  pinnedResources?: {
+    agents: PinnedAgent[];
+    prompts: PinnedPrompt[];
+  };
+  topContributors?: Contributor[];
+  recentShared?: SharedResource[];
 }
 
 export default function StartPage() {
@@ -71,6 +147,24 @@ export default function StartPage() {
     navigate(`/c/new`, { replace: true });
   };
 
+  const handleAgentClick = (agentId: string) => {
+    navigate(`/agents?agent_id=${agentId}`);
+  };
+
+  const handlePromptClick = (promptId: string) => {
+    navigate(`/d/prompts/${promptId}`);
+  };
+
+  const handleResourceClick = (resourceType: string, resourceId: string) => {
+    if (resourceType === 'agent') {
+      navigate(`/agents?agent_id=${resourceId}`);
+    } else if (resourceType === 'prompt') {
+      navigate(`/d/prompts/${resourceId}`);
+    } else if (resourceType === 'file') {
+      navigate(`/d/files/${resourceId}`);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -94,9 +188,12 @@ export default function StartPage() {
     color,
     startPage,
     stats,
-    members,
     welcomeMessage,
     guidelines,
+    recentActivity = [],
+    pinnedResources = { agents: [], prompts: [] },
+    topContributors = [],
+    recentShared = [],
   } = data;
 
   if (!startPage.enabled) {
@@ -109,10 +206,10 @@ export default function StartPage() {
     <div className="flex h-screen flex-col overflow-hidden bg-surface-primary">
       {/* Header */}
       <div
-        className="border-b border-border-light px-6 py-8"
+        className="border-b border-border-light px-6 py-6"
         style={{ backgroundColor: color ? `${color}10` : undefined }}
       >
-        <div className="mx-auto max-w-4xl">
+        <div className="mx-auto max-w-7xl">
           <div className="flex items-center gap-4">
             {avatar ? (
               <img src={avatar} alt={workspaceName} className="h-16 w-16 rounded-lg" />
@@ -133,8 +230,8 @@ export default function StartPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-6 py-8">
-        <div className="mx-auto max-w-4xl space-y-8">
+      <div className="flex-1 overflow-y-auto px-6 py-6">
+        <div className="mx-auto max-w-7xl space-y-8">
           {/* Description */}
           {description && (
             <div className="rounded-lg border border-border-light bg-surface-secondary p-6">
@@ -186,146 +283,56 @@ export default function StartPage() {
             </div>
           )}
 
-          {/* Stats */}
+          {/* Quick Stats Widget */}
           {startPage.showStats && stats && (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div className="rounded-lg border border-border-light bg-surface-secondary p-4">
-                <div className="text-sm text-text-secondary">Conversations</div>
-                <div className="text-2xl font-bold text-text-primary">
-                  {stats.conversationCount || 0}
-                </div>
-              </div>
-              <div className="rounded-lg border border-border-light bg-surface-secondary p-4">
-                <div className="text-sm text-text-secondary">Messages</div>
-                <div className="text-2xl font-bold text-text-primary">
-                  {stats.messageCount || 0}
-                </div>
-              </div>
-              <div className="rounded-lg border border-border-light bg-surface-secondary p-4">
-                <div className="text-sm text-text-secondary">Tokens Used</div>
-                <div className="text-2xl font-bold text-text-primary">
-                  {stats.tokenUsage ? (stats.tokenUsage / 1000).toFixed(1) + 'K' : '0'}
-                </div>
-              </div>
-            </div>
+            <QuickStatsWidget
+              stats={{
+                ...stats,
+                memberCount: data.members?.length || 0,
+              }}
+            />
           )}
 
-          {/* Team Members */}
-          {members && members.length > 0 && (
-            <div>
-              <h2 className="mb-4 flex items-center gap-2 text-xl font-semibold text-text-primary">
-                <Users className="h-5 w-5" />
-                Team Members ({members.length})
-              </h2>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {members.map((member) => (
-                  <div
-                    key={member.userId}
-                    className="flex items-center gap-3 rounded-lg border border-border-light bg-surface-secondary p-4"
-                  >
-                    {member.avatar ? (
-                      <img
-                        src={member.avatar}
-                        alt={member.name || member.username || 'User'}
-                        className="h-10 w-10 rounded-full"
-                      />
-                    ) : (
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500 font-semibold text-white">
-                        {(member.name || member.username || 'U').charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate font-medium text-text-primary">
-                        {member.name || member.username || 'User'}
-                      </div>
-                      {member.email && (
-                        <div className="truncate text-xs text-text-secondary">{member.email}</div>
-                      )}
-                      <div className="mt-1">
-                        <span
-                          className={cn(
-                            'inline-block rounded-full px-2 py-0.5 text-xs font-medium',
-                            ROLE_COLORS[member.role] || ROLE_COLORS.member,
-                          )}
-                        >
-                          {ROLE_LABELS[member.role] || member.role}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Two Column Layout for Widgets */}
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+            {/* Left Column */}
+            <div className="space-y-8">
+              {/* Recent Activity Widget */}
+              {recentActivity && recentActivity.length > 0 && (
+                <RecentActivityWidget activities={recentActivity} />
+              )}
 
-          {/* Custom Links */}
+              {/* Top Contributors Widget */}
+              {topContributors && topContributors.length > 0 && (
+                <TopContributorsWidget contributors={topContributors} />
+              )}
+            </div>
+
+            {/* Right Column */}
+            <div className="space-y-8">
+              {/* Pinned Resources Widget */}
+              {pinnedResources &&
+                (pinnedResources.agents.length > 0 || pinnedResources.prompts.length > 0) && (
+                  <PinnedResourcesWidget
+                    pinnedResources={pinnedResources}
+                    onAgentClick={handleAgentClick}
+                    onPromptClick={handlePromptClick}
+                  />
+                )}
+
+              {/* Recent Shared Widget */}
+              {recentShared && recentShared.length > 0 && (
+                <RecentSharedWidget
+                  sharedResources={recentShared}
+                  onResourceClick={handleResourceClick}
+                />
+              )}
+            </div>
+          </div>
+
+          {/* Quick Links Widget */}
           {startPage.customLinks && startPage.customLinks.length > 0 && (
-            <div>
-              <h2 className="mb-4 text-xl font-semibold text-text-primary">Quick Links</h2>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {startPage.customLinks.map((link, index) => (
-                  <a
-                    key={index}
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-3 rounded-lg border border-border-light bg-surface-secondary p-4 transition-colors hover:bg-surface-tertiary"
-                  >
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-surface-tertiary">
-                      {link.icon === 'document' && (
-                        <svg
-                          className="h-5 w-5 text-text-secondary"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                          />
-                        </svg>
-                      )}
-                      {link.icon === 'link' && (
-                        <svg
-                          className="h-5 w-5 text-text-secondary"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-                          />
-                        </svg>
-                      )}
-                      {!link.icon && (
-                        <svg
-                          className="h-5 w-5 text-text-secondary"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-                          />
-                        </svg>
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-medium text-text-primary">{link.title}</div>
-                      <div className="text-xs text-text-secondary">{link.url}</div>
-                    </div>
-                  </a>
-                ))}
-              </div>
-            </div>
+            <QuickLinksWidget customLinks={startPage.customLinks} />
           )}
 
           {/* Guidelines & Best Practices */}
@@ -353,7 +360,7 @@ export default function StartPage() {
           )}
 
           {/* Action Buttons */}
-          <div className="flex flex-col gap-4 border-t border-border-light pt-8">
+          <div className="flex flex-col gap-4 border-t border-border-light pb-8 pt-8">
             <button
               onClick={handleStartChatting}
               className="rounded-lg bg-green-600 px-6 py-3 text-white transition-colors hover:bg-green-700"

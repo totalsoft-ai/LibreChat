@@ -112,6 +112,22 @@ export const router = createBrowserRouter([
             path: 'workspace/:workspaceId/start',
             element: <StartPage />,
           },
+          {
+            path: 'agents',
+            element: (
+              <MarketplaceProvider>
+                <AgentMarketplace />
+              </MarketplaceProvider>
+            ),
+          },
+          {
+            path: 'agents/:category',
+            element: (
+              <MarketplaceProvider>
+                <AgentMarketplace />
+              </MarketplaceProvider>
+            ),
+          },
         ],
       },
     ],
