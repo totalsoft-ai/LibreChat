@@ -231,8 +231,18 @@ export const agents = ({ path = '', options }: { path?: string; options?: object
   }
 
   if (options && Object.keys(options).length > 0) {
-    const queryParams = new URLSearchParams(options as Record<string, string>).toString();
-    url += `?${queryParams}`;
+    // Filter out undefined values to avoid "workspace=undefined" in URL
+    const filteredOptions = Object.entries(options).reduce((acc, [key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        acc[key] = String(value);
+      }
+      return acc;
+    }, {} as Record<string, string>);
+
+    if (Object.keys(filteredOptions).length > 0) {
+      const queryParams = new URLSearchParams(filteredOptions).toString();
+      url += `?${queryParams}`;
+    }
   }
 
   return url;
