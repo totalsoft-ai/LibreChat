@@ -29,6 +29,31 @@ const promptSchema: Schema<IPrompt> = new Schema(
       default: null,
       index: true,
     },
+    visibility: {
+      type: String,
+      enum: ['private', 'workspace', 'shared_with', 'global'],
+      default: 'private',
+      index: true,
+    },
+    sharedWith: {
+      type: [Schema.Types.ObjectId],
+      ref: 'User',
+      default: [],
+    },
+    isPinned: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    pinnedAt: {
+      type: Date,
+      default: null,
+    },
+    pinnedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -37,5 +62,8 @@ const promptSchema: Schema<IPrompt> = new Schema(
 
 promptSchema.index({ createdAt: 1, updatedAt: 1 });
 promptSchema.index({ workspace: 1, author: 1 }); // For workspace prompt listing
+promptSchema.index({ workspace: 1, visibility: 1 }); // For filtering by visibility
+promptSchema.index({ workspace: 1, visibility: 1, author: 1 }); // For workspace shared resources
+promptSchema.index({ workspace: 1, isPinned: 1 }); // For pinned resources
 
 export default promptSchema;

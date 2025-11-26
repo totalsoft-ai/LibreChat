@@ -113,6 +113,31 @@ const agentSchema = new Schema<IAgent>(
       default: null,
       index: true,
     },
+    visibility: {
+      type: String,
+      enum: ['private', 'workspace', 'shared_with', 'global'],
+      default: 'private',
+      index: true,
+    },
+    sharedWith: {
+      type: [Schema.Types.ObjectId],
+      ref: 'User',
+      default: [],
+    },
+    isPinned: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    pinnedAt: {
+      type: Date,
+      default: null,
+    },
+    pinnedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -120,6 +145,10 @@ const agentSchema = new Schema<IAgent>(
 );
 
 agentSchema.index({ updatedAt: -1, _id: 1 });
+agentSchema.index({ _id: 1, workspace: 1 }); // For ACL workspace filtering
 agentSchema.index({ workspace: 1, author: 1 }); // For workspace agent listing
+agentSchema.index({ workspace: 1, visibility: 1 }); // For filtering by visibility
+agentSchema.index({ workspace: 1, visibility: 1, author: 1 }); // For workspace shared resources
+agentSchema.index({ workspace: 1, isPinned: 1 }); // For pinned resources
 
 export default agentSchema;

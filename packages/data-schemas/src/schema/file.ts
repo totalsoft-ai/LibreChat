@@ -85,6 +85,31 @@ const file: Schema<IMongoFile> = new Schema(
       default: null,
       index: true,
     },
+    visibility: {
+      type: String,
+      enum: ['private', 'workspace', 'shared_with', 'global'],
+      default: 'private',
+      index: true,
+    },
+    sharedWith: {
+      type: [Schema.Types.ObjectId],
+      ref: 'User',
+      default: [],
+    },
+    isPinned: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    pinnedAt: {
+      type: Date,
+      default: null,
+    },
+    pinnedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -94,5 +119,8 @@ const file: Schema<IMongoFile> = new Schema(
 file.index({ createdAt: 1, updatedAt: 1 });
 file.index({ user: 1, isGlobalLibrary: 1, embedded: 1 });
 file.index({ workspace: 1, user: 1 }); // For workspace file listing
+file.index({ workspace: 1, visibility: 1 }); // For filtering by visibility
+file.index({ workspace: 1, visibility: 1, user: 1 }); // For workspace shared resources
+file.index({ workspace: 1, isPinned: 1 }); // For pinned resources
 
 export default file;
