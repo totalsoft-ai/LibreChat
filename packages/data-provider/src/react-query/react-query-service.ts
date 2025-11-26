@@ -12,6 +12,7 @@ import * as m from '../types/mutations';
 import * as q from '../types/queries';
 import { QueryKeys, DynamicQueryKeys } from '../keys';
 import * as workspaceService from '../workspace-service';
+import * as sharingService from '../sharing-service';
 import * as s from '../schemas';
 import * as t from '../types';
 import * as permissions from '../accessPermissions';
@@ -745,6 +746,242 @@ export const useUpdateWorkspaceInformationMutation = (
         queryClient.invalidateQueries(DynamicQueryKeys.workspace(workspaceId));
         queryClient.invalidateQueries(['workspaceStartPage', workspaceId]);
       },
+    },
+  );
+};
+
+/* Resource Sharing Mutations */
+
+/**
+ * Hook to share a resource with workspace
+ */
+export const useShareResourceMutation = (): UseMutationResult<
+  { message: string; resource: sharingService.SharedResource },
+  unknown,
+  {
+    resourceType: sharingService.ShareableResourceType;
+    resourceId: string;
+    payload: sharingService.ShareResourcePayload;
+  },
+  unknown
+> => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    ({ resourceType, resourceId, payload }) =>
+      sharingService.shareResource(resourceType, resourceId, payload),
+    {
+      onSuccess: (data, variables) => {
+        // Invalidate queries based on resource type
+        if (variables.resourceType === 'agent') {
+          queryClient.invalidateQueries([QueryKeys.agent, variables.resourceId]);
+          queryClient.invalidateQueries([QueryKeys.agents]);
+        } else if (variables.resourceType === 'prompt') {
+          queryClient.invalidateQueries(['prompt', variables.resourceId]);
+          queryClient.invalidateQueries(['prompts']);
+        } else if (variables.resourceType === 'file') {
+          queryClient.invalidateQueries(['file', variables.resourceId]);
+          queryClient.invalidateQueries([QueryKeys.files]);
+        }
+        // Invalidate workspace start page to update pinned/shared resources
+        queryClient.invalidateQueries(['workspaceStartPage']);
+      },
+    },
+  );
+};
+
+/**
+ * Hook to unshare a resource (set to private)
+ */
+export const useUnshareResourceMutation = (): UseMutationResult<
+  { message: string; resource: sharingService.SharedResource },
+  unknown,
+  {
+    resourceType: sharingService.ShareableResourceType;
+    resourceId: string;
+  },
+  unknown
+> => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    ({ resourceType, resourceId }) => sharingService.unshareResource(resourceType, resourceId),
+    {
+      onSuccess: (data, variables) => {
+        // Invalidate queries based on resource type
+        if (variables.resourceType === 'agent') {
+          queryClient.invalidateQueries([QueryKeys.agent, variables.resourceId]);
+          queryClient.invalidateQueries([QueryKeys.agents]);
+        } else if (variables.resourceType === 'prompt') {
+          queryClient.invalidateQueries(['prompt', variables.resourceId]);
+          queryClient.invalidateQueries(['prompts']);
+        } else if (variables.resourceType === 'file') {
+          queryClient.invalidateQueries(['file', variables.resourceId]);
+          queryClient.invalidateQueries([QueryKeys.files]);
+        }
+        queryClient.invalidateQueries(['workspaceStartPage']);
+      },
+    },
+  );
+};
+
+/**
+ * Hook to update resource visibility settings
+ */
+export const useUpdateVisibilityMutation = (): UseMutationResult<
+  { message: string; resource: sharingService.SharedResource },
+  unknown,
+  {
+    resourceType: sharingService.ShareableResourceType;
+    resourceId: string;
+    payload: sharingService.UpdateVisibilityPayload;
+  },
+  unknown
+> => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    ({ resourceType, resourceId, payload }) =>
+      sharingService.updateResourceVisibility(resourceType, resourceId, payload),
+    {
+      onSuccess: (data, variables) => {
+        // Invalidate queries based on resource type
+        if (variables.resourceType === 'agent') {
+          queryClient.invalidateQueries([QueryKeys.agent, variables.resourceId]);
+          queryClient.invalidateQueries([QueryKeys.agents]);
+        } else if (variables.resourceType === 'prompt') {
+          queryClient.invalidateQueries(['prompt', variables.resourceId]);
+          queryClient.invalidateQueries(['prompts']);
+        } else if (variables.resourceType === 'file') {
+          queryClient.invalidateQueries(['file', variables.resourceId]);
+          queryClient.invalidateQueries([QueryKeys.files]);
+        }
+        queryClient.invalidateQueries(['workspaceStartPage']);
+      },
+    },
+  );
+};
+
+/**
+ * Hook to get shared resources in a workspace
+ */
+export const useGetSharedResourcesQuery = (
+  workspaceId: string,
+  resourceType: sharingService.ShareableResourceType,
+  config?: UseQueryOptions<sharingService.SharedResource[]>,
+): QueryObserverResult<sharingService.SharedResource[]> => {
+  return useQuery<sharingService.SharedResource[]>(
+    ['sharedResources', workspaceId, resourceType],
+    () => sharingService.getSharedResources(workspaceId, resourceType),
+    {
+      enabled: !!workspaceId,
+      refetchOnWindowFocus: false,
+      ...config,
+    },
+  );
+};
+
+/**
+ * Hook to pin a resource to workspace start page
+ */
+export const usePinResourceMutation = (): UseMutationResult<
+  { message: string; resource: sharingService.SharedResource },
+  unknown,
+  {
+    resourceType: sharingService.ShareableResourceType;
+    resourceId: string;
+  },
+  unknown
+> => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    ({ resourceType, resourceId }) => sharingService.pinResource(resourceType, resourceId),
+    {
+      onSuccess: (data, variables) => {
+        // Invalidate queries based on resource type
+        if (variables.resourceType === 'agent') {
+          queryClient.invalidateQueries([QueryKeys.agent, variables.resourceId]);
+          queryClient.invalidateQueries([QueryKeys.agents]);
+        } else if (variables.resourceType === 'prompt') {
+          queryClient.invalidateQueries(['prompt', variables.resourceId]);
+          queryClient.invalidateQueries(['prompts']);
+        } else if (variables.resourceType === 'file') {
+          queryClient.invalidateQueries(['file', variables.resourceId]);
+          queryClient.invalidateQueries([QueryKeys.files]);
+        }
+        // Invalidate workspace start page to show newly pinned resource
+        queryClient.invalidateQueries(['workspaceStartPage']);
+      },
+    },
+  );
+};
+
+/**
+ * Hook to unpin a resource from workspace start page
+ */
+export const useUnpinResourceMutation = (): UseMutationResult<
+  { message: string; resource: sharingService.SharedResource },
+  unknown,
+  {
+    resourceType: sharingService.ShareableResourceType;
+    resourceId: string;
+  },
+  unknown
+> => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    ({ resourceType, resourceId }) => sharingService.unpinResource(resourceType, resourceId),
+    {
+      onSuccess: (data, variables) => {
+        // Invalidate queries based on resource type
+        if (variables.resourceType === 'agent') {
+          queryClient.invalidateQueries([QueryKeys.agent, variables.resourceId]);
+          queryClient.invalidateQueries([QueryKeys.agents]);
+        } else if (variables.resourceType === 'prompt') {
+          queryClient.invalidateQueries(['prompt', variables.resourceId]);
+          queryClient.invalidateQueries(['prompts']);
+        } else if (variables.resourceType === 'file') {
+          queryClient.invalidateQueries(['file', variables.resourceId]);
+          queryClient.invalidateQueries([QueryKeys.files]);
+        }
+        // Invalidate workspace start page to remove unpinned resource
+        queryClient.invalidateQueries(['workspaceStartPage']);
+      },
+    },
+  );
+};
+
+/**
+ * Hook to get all shared resources across all types
+ */
+export const useGetAllSharedResourcesQuery = (
+  workspaceId: string,
+  config?: Omit<
+    UseQueryOptions<
+      {
+        agents: sharingService.SharedResource[];
+        prompts: sharingService.SharedResource[];
+        files: sharingService.SharedResource[];
+      },
+      unknown,
+      {
+        agents: sharingService.SharedResource[];
+        prompts: sharingService.SharedResource[];
+        files: sharingService.SharedResource[];
+      },
+      readonly ['allSharedResources', string]
+    >,
+    'queryKey' | 'queryFn'
+  >,
+): QueryObserverResult<{
+  agents: sharingService.SharedResource[];
+  prompts: sharingService.SharedResource[];
+  files: sharingService.SharedResource[];
+}> => {
+  return useQuery(
+    ['allSharedResources', workspaceId] as const,
+    () => sharingService.getAllSharedResources(workspaceId),
+    {
+      enabled: !!workspaceId,
+      refetchOnWindowFocus: false,
+      ...config,
     },
   );
 };
