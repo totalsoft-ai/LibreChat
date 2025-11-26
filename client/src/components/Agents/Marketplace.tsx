@@ -9,6 +9,7 @@ import type t from 'librechat-data-provider';
 import type { ContextType } from '~/common';
 import { useDocumentTitle, useHasAccess, useLocalize, TranslationKeys } from '~/hooks';
 import { useGetEndpointsQuery, useGetAgentCategoriesQuery } from '~/data-provider';
+import { useGetAgentByIdQuery } from '~/data-provider/Agents';
 import MarketplaceAdminSettings from './MarketplaceAdminSettings';
 import { SidePanelProvider, useChatContext } from '~/Providers';
 import { SidePanelGroup } from '~/components/SidePanel';
@@ -60,7 +61,11 @@ const AgentMarketplace: React.FC<AgentMarketplaceProps> = ({ className = '' }) =
 
   // Local state
   const [isDetailOpen, setIsDetailOpen] = useState(false);
-  const [selectedAgent, setSelectedAgent] = useState<t.Agent | null>(null);
+
+  // Use query to fetch selected agent - this will auto-update when cache changes
+  const { data: selectedAgent } = useGetAgentByIdQuery(selectedAgentId || null, {
+    enabled: !!selectedAgentId && isDetailOpen,
+  });
 
   // Set page title
   useDocumentTitle(`${localize('com_agents_marketplace')} | LibreChat`);
@@ -111,7 +116,7 @@ const AgentMarketplace: React.FC<AgentMarketplaceProps> = ({ className = '' }) =
     const newParams = new URLSearchParams(searchParams);
     newParams.set('agent_id', agent.id);
     setSearchParams(newParams);
-    setSelectedAgent(agent);
+    // No need to set selectedAgent - it will be fetched via query
     setIsDetailOpen(true);
   };
 
@@ -122,7 +127,7 @@ const AgentMarketplace: React.FC<AgentMarketplaceProps> = ({ className = '' }) =
     const newParams = new URLSearchParams(searchParams);
     newParams.delete('agent_id');
     setSearchParams(newParams);
-    setSelectedAgent(null);
+    // No need to clear selectedAgent - query will handle it
     setIsDetailOpen(false);
   };
 
