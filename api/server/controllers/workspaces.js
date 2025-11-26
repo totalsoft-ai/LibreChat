@@ -1,6 +1,11 @@
 const { logger } = require('@librechat/data-schemas');
 const Workspace = require('~/models/Workspace');
-const { Conversation, Agent, Prompt, File, Message } = require('~/db/models');
+const { Conversation, Agent, Prompt, File, Message, Activity } = require('~/db/models');
+const {
+  getWorkspaceActivity,
+  getTopContributors,
+  getRecentSharedResources,
+} = require('~/server/services/ActivityService');
 
 /**
  * Normalize workspace members to ensure consistent structure
@@ -261,46 +266,41 @@ const deleteWorkspace = async (req, res) => {
       });
     }
 
-    // Soft delete (archive)
-    workspace.isArchived = true;
-    workspace.isActive = false;
-    await workspace.save();
+    // Hard delete: permanently remove workspace document from MongoDB
+    const workspaceIdString = workspace.workspaceId;
+    const workspaceObjectIdString = workspace._id?.toString();
+    await Workspace.deleteOne({ _id: workspace._id });
 
-    // Clean up workspace resources - archive/unlink from workspace
-    const { Conversation, Agent, Prompt, File } = require('~/db/models');
+    // Clean up workspace resources - delete conversations/messages and unlink others from workspace
 
     try {
-      // Get all conversations in workspace before archiving
+      // Get all conversations related to this workspace. Older records may use ObjectId as string,
+      // while some use workspaceId string. Query both for compatibility.
       const workspaceConversations = await Conversation.find(
-        { workspace: workspace._id },
+        { workspace: { $in: [workspaceIdString, workspaceObjectIdString] } },
         { conversationId: 1 },
       ).lean();
       const conversationIds = workspaceConversations.map((c) => c.conversationId);
 
-      // Archive all conversations in this workspace
-      const conversationResult = await Conversation.updateMany(
-        { workspace: workspace._id },
-        { $set: { isArchived: true, workspace: null } },
-      );
+      // Delete all conversations in this workspace
+      const conversationResult = await Conversation.deleteMany({
+        workspace: { $in: [workspaceIdString, workspaceObjectIdString] },
+      });
       logger.info(
-        `[deleteWorkspace] Archived ${conversationResult.modifiedCount} conversations from workspace ${workspaceId}`,
+        `[deleteWorkspace] Deleted ${conversationResult.deletedCount} conversations from workspace ${workspaceId}`,
       );
 
-      // Archive associated messages (if conversations were found)
+      // Delete associated messages (if conversations were found)
       if (conversationIds.length > 0) {
-        const Message = require('~/models/Message');
-        const messageResult = await Message.updateMany(
-          { conversationId: { $in: conversationIds } },
-          { $set: { isArchived: true } },
-        );
+        const messageDeleteResult = await Message.deleteMany({ conversationId: { $in: conversationIds } });
         logger.info(
-          `[deleteWorkspace] Archived ${messageResult.modifiedCount} messages from ${conversationIds.length} conversations`,
+          `[deleteWorkspace] Deleted ${messageDeleteResult.deletedCount} messages from ${conversationIds.length} conversations`,
         );
       }
 
       // Unlink agents from workspace (keep them but remove workspace association)
       const agentResult = await Agent.updateMany(
-        { workspace: workspace._id },
+        { workspace: { $in: [workspaceIdString, workspaceObjectIdString] } },
         { $set: { workspace: null } },
       );
       logger.info(
@@ -309,7 +309,7 @@ const deleteWorkspace = async (req, res) => {
 
       // Unlink prompts from workspace
       const promptResult = await Prompt.updateMany(
-        { workspace: workspace._id },
+        { workspace: { $in: [workspaceIdString, workspaceObjectIdString] } },
         { $set: { workspace: null } },
       );
       logger.info(
@@ -318,18 +318,20 @@ const deleteWorkspace = async (req, res) => {
 
       // Unlink files from workspace
       const fileResult = await File.updateMany(
-        { workspace: workspace._id },
+        { workspace: { $in: [workspaceIdString, workspaceObjectIdString] } },
         { $set: { workspace: null } },
       );
-      logger.info(
-        `[deleteWorkspace] Unlinked ${fileResult.modifiedCount} files from workspace ${workspaceId}`,
-      );
+      logger.info(`[deleteWorkspace] Unlinked ${fileResult.modifiedCount} files from workspace ${workspaceId}`);
+
+      // Remove activity logs tied to this workspace
+      const activityResult = await Activity.deleteMany({ workspace: workspace._id });
+      logger.info(`[deleteWorkspace] Deleted ${activityResult.deletedCount} activity records for workspace ${workspaceId}`);
     } catch (cleanupError) {
       logger.error('[deleteWorkspace] Error during resource cleanup:', cleanupError);
       // Continue even if cleanup fails - workspace is already archived
     }
 
-    logger.info(`[deleteWorkspace] Workspace archived: ${workspaceId} by user ${userId}`);
+    logger.info(`[deleteWorkspace] Workspace deleted: ${workspaceId} by user ${userId}`);
 
     res.json({
       message: 'Workspace deleted successfully',
@@ -528,13 +530,14 @@ const getWorkspaceStats = async (req, res) => {
     }
 
     // Get detailed stats in parallel for better performance
+    // Use workspaceId string instead of ObjectId for consistency with schema
     const [conversationCount, agentCount, promptCount, fileCount, recentConversations] =
       await Promise.all([
-        Conversation.countDocuments({ workspace: workspace._id }),
-        Agent.countDocuments({ workspace: workspace._id }),
-        Prompt.countDocuments({ workspace: workspace._id }),
-        File.countDocuments({ workspace: workspace._id }),
-        Conversation.find({ workspace: workspace._id })
+        Conversation.countDocuments({ workspace: workspaceId }),
+        Agent.countDocuments({ workspace: workspaceId }),
+        Prompt.countDocuments({ workspace: workspaceId }),
+        File.countDocuments({ workspace: workspaceId }),
+        Conversation.find({ workspace: workspaceId })
           .sort({ updatedAt: -1 })
           .limit(5)
           .select('conversationId title updatedAt')
@@ -820,11 +823,24 @@ const getWorkspaceStartPage = async (req, res) => {
       };
     });
 
-    // Calculate stats dynamically for accurate, real-time data
-    const [conversationCount, messageCount, tokenUsage] = await Promise.all([
-      Conversation.countDocuments({ workspace: fullWorkspace._id }),
+    // Calculate stats dynamically and fetch activity data in parallel for optimal performance
+    const [
+      conversationCount,
+      messageCount,
+      tokenUsage,
+      agentCount,
+      promptCount,
+      fileCount,
+      recentActivity,
+      pinnedAgents,
+      pinnedPrompts,
+      topContributors,
+      recentShared,
+    ] = await Promise.all([
+      // Use workspaceId string instead of ObjectId
+      Conversation.countDocuments({ workspace: workspaceId }),
       // For message count, we need to count messages in conversations belonging to this workspace
-      Conversation.find({ workspace: fullWorkspace._id })
+      Conversation.find({ workspace: workspaceId })
         .select('conversationId')
         .lean()
         .then(async (convos) => {
@@ -837,12 +853,37 @@ const getWorkspaceStartPage = async (req, res) => {
       // Token usage would ideally come from Transaction model aggregation
       // For now, use the stored value (can be enhanced later)
       Promise.resolve(workspace.stats?.tokenUsage || 0),
+      // Resource counts - use workspaceId string for consistency
+      Agent.countDocuments({ workspace: workspaceId }),
+      Prompt.countDocuments({ workspace: workspaceId }),
+      File.countDocuments({ workspace: workspaceId }),
+      // Activity data
+      getWorkspaceActivity(fullWorkspace._id.toString(), 10),
+      // Pinned resources - use workspaceId string
+      Agent.find({ workspace: workspaceId, isPinned: true })
+        .select('id name description author createdAt updatedAt')
+        .populate('author', 'name email username avatar')
+        .sort({ pinnedAt: -1 })
+        .limit(5)
+        .lean(),
+      Prompt.find({ workspace: workspaceId, isPinned: true })
+        .select('id name prompt author createdAt updatedAt')
+        .populate('author', 'name email username avatar')
+        .sort({ pinnedAt: -1 })
+        .limit(5)
+        .lean(),
+      // Top contributors and recent shared resources
+      getTopContributors(fullWorkspace._id.toString(), 5),
+      getRecentSharedResources(fullWorkspace._id.toString(), 5),
     ]);
 
     const stats = {
       conversationCount,
       messageCount,
       tokenUsage,
+      agentCount,
+      promptCount,
+      fileCount,
       lastActivityAt: workspace.stats?.lastActivityAt || null,
     };
 
@@ -857,6 +898,14 @@ const getWorkspaceStartPage = async (req, res) => {
       members,
       welcomeMessage: workspace.settings?.welcomeMessage || '',
       guidelines: workspace.settings?.guidelines || '',
+      // Enhanced start page data
+      recentActivity,
+      pinnedResources: {
+        agents: pinnedAgents,
+        prompts: pinnedPrompts,
+      },
+      topContributors,
+      recentShared,
     });
   } catch (error) {
     logger.error('[getWorkspaceStartPage] Error:', error);

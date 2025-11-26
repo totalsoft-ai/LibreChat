@@ -138,10 +138,26 @@ async function saveUserMessage(req, params) {
           isArchived: false,
         });
         if (ws && ws.isMember(req.user.id)) {
-          convo.workspace = ws._id;
+          // Store workspaceId string instead of ObjectId for consistency with schema
+          convo.workspace = ws.workspaceId;
         }
       } catch (error) {
-        logger.error('[saveUserMessage] Error converting workspace to ObjectId:', error);
+        logger.error('[saveUserMessage] Error validating workspace:', error);
+      }
+    } else if (isObjectId) {
+      // If ObjectId is provided, look up the workspace and use workspaceId
+      try {
+        const Workspace = require('~/models/Workspace');
+        const ws = await Workspace.findOne({
+          _id: workspaceValue,
+          isActive: true,
+          isArchived: false,
+        });
+        if (ws && ws.isMember(req.user.id)) {
+          convo.workspace = ws.workspaceId;
+        }
+      } catch (error) {
+        logger.error('[saveUserMessage] Error converting ObjectId workspace:', error);
       }
     } else {
       convo.workspace = workspaceValue;

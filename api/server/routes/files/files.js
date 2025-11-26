@@ -32,6 +32,7 @@ const { getAssistant } = require('~/models/Assistant');
 const { getAgent } = require('~/models/Agent');
 const { getLogStores } = require('~/cache');
 const { Readable } = require('stream');
+const sharingController = require('~/server/controllers/sharing');
 
 const router = express.Router();
 
@@ -420,8 +421,8 @@ router.post('/', async (req, res) => {
         });
       }
 
-      // Convert workspaceId string to ObjectId for database
-      metadata.workspace = ws._id;
+      // Store workspaceId string instead of ObjectId for consistency with schema
+      metadata.workspace = ws.workspaceId;
     }
 
     const isAssistantEndpoint =
@@ -504,6 +505,80 @@ router.post('/', async (req, res) => {
       logger.debug('[/files] File processing completed without cleanup');
     }
   }
+});
+
+/**
+ * Get shared files in workspace
+ * @route GET /files/workspace/:workspaceId/shared
+ * @param {string} req.params.workspaceId - Workspace identifier
+ * @returns {Array} 200 - List of shared files - application/json
+ */
+router.get('/workspace/:workspaceId/shared', (req, res) => {
+  req.params.resourceType = 'file';
+  return sharingController.getSharedResources(req, res);
+});
+
+/**
+ * Share file with workspace
+ * @route POST /files/:file_id/share
+ * @param {string} req.params.file_id - File identifier
+ * @param {string} req.body.visibility - Visibility setting (private|workspace|shared_with)
+ * @param {Array} [req.body.sharedWith] - User IDs for shared_with visibility
+ * @returns {Object} 200 - Success response - application/json
+ */
+router.post('/:file_id/share', fileAccess, (req, res) => {
+  req.params.resourceType = 'file';
+  req.params.resourceId = req.params.file_id;
+  return sharingController.shareResource(req, res);
+});
+
+/**
+ * Unshare file (set to private)
+ * @route POST /files/:file_id/unshare
+ * @param {string} req.params.file_id - File identifier
+ * @returns {Object} 200 - Success response - application/json
+ */
+router.post('/:file_id/unshare', fileAccess, (req, res) => {
+  req.params.resourceType = 'file';
+  req.params.resourceId = req.params.file_id;
+  return sharingController.unshareResource(req, res);
+});
+
+/**
+ * Update file visibility
+ * @route PATCH /files/:file_id/visibility
+ * @param {string} req.params.file_id - File identifier
+ * @param {string} req.body.visibility - Visibility setting
+ * @returns {Object} 200 - Success response - application/json
+ */
+router.patch('/:file_id/visibility', fileAccess, (req, res) => {
+  req.params.resourceType = 'file';
+  req.params.resourceId = req.params.file_id;
+  return sharingController.updateVisibility(req, res);
+});
+
+/**
+ * Pin file to workspace start page
+ * @route POST /files/:file_id/pin
+ * @param {string} req.params.file_id - File identifier
+ * @returns {Object} 200 - Success response - application/json
+ */
+router.post('/:file_id/pin', (req, res) => {
+  req.params.resourceType = 'file';
+  req.params.resourceId = req.params.file_id;
+  return sharingController.pinResource(req, res);
+});
+
+/**
+ * Unpin file from workspace start page
+ * @route DELETE /files/:file_id/pin
+ * @param {string} req.params.file_id - File identifier
+ * @returns {Object} 200 - Success response - application/json
+ */
+router.delete('/:file_id/pin', (req, res) => {
+  req.params.resourceType = 'file';
+  req.params.resourceId = req.params.file_id;
+  return sharingController.unpinResource(req, res);
 });
 
 module.exports = router;

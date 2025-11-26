@@ -41,6 +41,7 @@ const {
   grantPermission,
 } = require('~/server/services/PermissionService');
 const { getRoleByName } = require('~/models/Role');
+const sharingController = require('~/server/controllers/sharing');
 
 const router = express.Router();
 
@@ -301,8 +302,8 @@ const createNewPromptGroup = async (req, res) => {
         });
       }
 
-      // Convert workspaceId string to ObjectId for database
-      group.workspace = ws._id;
+      // Store workspaceId string instead of ObjectId for consistency with schema
+      group.workspace = ws.workspaceId;
     }
 
     const saveData = {
@@ -477,13 +478,26 @@ router.get('/', async (req, res) => {
       return res.status(200).send(prompts);
     }
 
-    // If no groupId, return user's own prompts
+    // If no groupId, return user's own prompts plus global prompts
     const query = { author };
     if (req.user.role === SystemRoles.ADMIN) {
       delete query.author;
     }
-    const prompts = await getPrompts(query);
-    res.status(200).send(prompts);
+
+    // Get user's own prompts
+    const userPrompts = await getPrompts(query);
+
+    // Get global prompts (visible to everyone)
+    const globalPrompts = await getPrompts({ visibility: 'global' });
+
+    // Combine and deduplicate (in case user is author of global prompts)
+    const promptMap = new Map();
+    [...userPrompts, ...globalPrompts].forEach(prompt => {
+      promptMap.set(prompt.id || prompt._id.toString(), prompt);
+    });
+    const allPrompts = Array.from(promptMap.values());
+
+    res.status(200).send(allPrompts);
   } catch (error) {
     logger.error(error);
     res.status(500).send({ error: 'Error getting prompts' });
@@ -548,5 +562,103 @@ router.delete(
   }),
   deletePromptGroupController,
 );
+
+/**
+ * Get shared prompts in workspace
+ * @route GET /prompts/workspace/:workspaceId/shared
+ * @param {string} req.params.workspaceId - Workspace identifier
+ * @returns {Array} 200 - List of shared prompts - application/json
+ */
+router.get('/workspace/:workspaceId/shared', (req, res) => {
+  req.params.resourceType = 'prompt';
+  return sharingController.getSharedResources(req, res);
+});
+
+/**
+ * Share prompt with workspace
+ * @route POST /prompts/:promptId/share
+ * @param {string} req.params.promptId - Prompt identifier
+ * @param {string} req.body.visibility - Visibility setting (private|workspace|shared_with)
+ * @param {Array} [req.body.sharedWith] - User IDs for shared_with visibility
+ * @returns {Object} 200 - Success response - application/json
+ */
+router.post(
+  '/:promptId/share',
+  checkPromptAccess,
+  canAccessPromptViaGroup({
+    requiredPermission: PermissionBits.EDIT,
+    resourceIdParam: 'promptId',
+  }),
+  (req, res) => {
+    req.params.resourceType = 'prompt';
+    req.params.resourceId = req.params.promptId;
+    return sharingController.shareResource(req, res);
+  },
+);
+
+/**
+ * Unshare prompt (set to private)
+ * @route POST /prompts/:promptId/unshare
+ * @param {string} req.params.promptId - Prompt identifier
+ * @returns {Object} 200 - Success response - application/json
+ */
+router.post(
+  '/:promptId/unshare',
+  checkPromptAccess,
+  canAccessPromptViaGroup({
+    requiredPermission: PermissionBits.EDIT,
+    resourceIdParam: 'promptId',
+  }),
+  (req, res) => {
+    req.params.resourceType = 'prompt';
+    req.params.resourceId = req.params.promptId;
+    return sharingController.unshareResource(req, res);
+  },
+);
+
+/**
+ * Update prompt visibility
+ * @route PATCH /prompts/:promptId/visibility
+ * @param {string} req.params.promptId - Prompt identifier
+ * @param {string} req.body.visibility - Visibility setting
+ * @returns {Object} 200 - Success response - application/json
+ */
+router.patch(
+  '/:promptId/visibility',
+  checkPromptAccess,
+  canAccessPromptViaGroup({
+    requiredPermission: PermissionBits.EDIT,
+    resourceIdParam: 'promptId',
+  }),
+  (req, res) => {
+    req.params.resourceType = 'prompt';
+    req.params.resourceId = req.params.promptId;
+    return sharingController.updateVisibility(req, res);
+  },
+);
+
+/**
+ * Pin prompt to workspace start page
+ * @route POST /prompts/:promptId/pin
+ * @param {string} req.params.promptId - Prompt identifier
+ * @returns {Object} 200 - Success response - application/json
+ */
+router.post('/:promptId/pin', checkPromptAccess, (req, res) => {
+  req.params.resourceType = 'prompt';
+  req.params.resourceId = req.params.promptId;
+  return sharingController.pinResource(req, res);
+});
+
+/**
+ * Unpin prompt from workspace start page
+ * @route DELETE /prompts/:promptId/pin
+ * @param {string} req.params.promptId - Prompt identifier
+ * @returns {Object} 200 - Success response - application/json
+ */
+router.delete('/:promptId/pin', checkPromptAccess, (req, res) => {
+  req.params.resourceType = 'prompt';
+  req.params.resourceId = req.params.promptId;
+  return sharingController.unpinResource(req, res);
+});
 
 module.exports = router;

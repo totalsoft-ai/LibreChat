@@ -965,16 +965,9 @@ class BaseClient {
       this.options?.req?.body?.workspace ?? this.options?.req?.body?.conversation?.workspace;
 
     if (workspaceValue !== null && workspaceValue !== undefined) {
-      // Convert workspaceId string to ObjectId if needed
+      // Store workspaceId string as per Conversation schema
       if (workspaceValue) {
-        // Check if it's a string (workspaceId) or already an ObjectId
-        // ObjectId strings are 24 hex characters, workspaceId is a UUID (36 chars with dashes)
-        const isObjectId =
-          mongoose.Types.ObjectId.isValid(workspaceValue) &&
-          typeof workspaceValue === 'string' &&
-          workspaceValue.length === 24;
-
-        if (!isObjectId && typeof workspaceValue === 'string' && workspaceValue.length > 0) {
+        if (typeof workspaceValue === 'string' && workspaceValue.length > 0) {
           try {
             const Workspace = require('~/models/Workspace');
             const ws = await Workspace.findOne({
@@ -983,13 +976,17 @@ class BaseClient {
               isArchived: false,
             });
             if (ws && ws.isMember(this.options?.req?.user?.id)) {
-              fieldsToKeep.workspace = ws._id;
+              // Store workspaceId string, not ObjectId
+              fieldsToKeep.workspace = ws.workspaceId;
             }
           } catch (error) {
-            logger.error('[BaseClient] Error converting workspace to ObjectId:', error);
+            logger.error('[BaseClient] Error validating workspace:', error);
           }
+        } else if (typeof workspaceValue === 'object' && workspaceValue.workspaceId) {
+          // Handle workspace object
+          fieldsToKeep.workspace = workspaceValue.workspaceId;
         } else {
-          // Already an ObjectId or valid value
+          // Use the value as-is (for backward compatibility)
           fieldsToKeep.workspace = workspaceValue;
         }
       } else {
