@@ -30,6 +30,7 @@ router.get('/', async (req, res) => {
       conversationId,
       messageId,
       search,
+      workspace,
     } = req.query;
     const pageSize = parseInt(pageSizeRaw, 10) || 25;
 
@@ -62,7 +63,7 @@ router.get('/', async (req, res) => {
 
       const messages = searchResults.hits || [];
 
-      const result = await getConvosQueried(req.user.id, messages, cursor);
+      const result = await getConvosQueried(req.user.id, messages, cursor, pageSize, workspace);
 
       const messageIds = [];
       const cleanedMessages = [];
