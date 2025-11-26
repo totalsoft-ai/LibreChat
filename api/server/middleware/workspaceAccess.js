@@ -167,10 +167,85 @@ const getWorkspaceFromResource = async (resourceType, resourceId) => {
   }
 };
 
+/**
+ * Middleware to check if user can access resource based on visibility settings
+ * Verifies resource visibility (private, workspace, shared_with)
+ */
+const checkResourceVisibility = (resourceModel) => {
+  return async (req, res, next) => {
+    try {
+      const resourceId = req.params.id || req.params.resourceId || req.params.file_id || req.params.agent_id || req.params.promptId;
+      const userId = req.user.id;
+
+      if (!resourceId) {
+        return res.status(400).json({ message: 'Resource ID is required' });
+      }
+
+      const Model = require(`~/db/models`)[resourceModel];
+      if (!Model) {
+        return res.status(500).json({ message: 'Invalid resource model' });
+      }
+
+      const resource = await Model.findById(resourceId);
+
+      if (!resource) {
+        return res.status(404).json({ message: `${resourceModel} not found` });
+      }
+
+      // Determine author field (different for files vs other resources)
+      const authorField = resourceModel === 'File' ? 'user' : 'author';
+      const resourceAuthor = resource[authorField]?.toString();
+
+      // Owner always has access
+      if (resourceAuthor === userId) {
+        return next();
+      }
+
+      // Check visibility settings
+      const visibility = resource.visibility || 'private';
+
+      if (visibility === 'private') {
+        return res.status(403).json({ message: 'Access denied to this resource' });
+      }
+
+      if (visibility === 'workspace') {
+        // Check if user is in the workspace
+        if (!resource.workspace) {
+          return res.status(403).json({ message: 'Resource not in a workspace' });
+        }
+
+        const workspace = await Workspace.findById(resource.workspace);
+        if (!workspace || !workspace.isMember(userId)) {
+          return res.status(403).json({ message: 'Access denied to this workspace resource' });
+        }
+
+        return next();
+      }
+
+      if (visibility === 'shared_with') {
+        // Check if user is in sharedWith list
+        const sharedWith = resource.sharedWith || [];
+        if (sharedWith.some(id => id.toString() === userId)) {
+          return next();
+        }
+
+        return res.status(403).json({ message: 'Resource not shared with you' });
+      }
+
+      // Default deny
+      return res.status(403).json({ message: 'Access denied to this resource' });
+    } catch (error) {
+      logger.error('[checkResourceVisibility] Error:', error);
+      res.status(500).json({ message: 'Error checking resource visibility' });
+    }
+  };
+};
+
 module.exports = {
   checkWorkspaceAccess,
   requireWorkspacePermission,
   checkResourceWorkspace,
   checkWorkspaceBudget,
   getWorkspaceFromResource,
+  checkResourceVisibility,
 };

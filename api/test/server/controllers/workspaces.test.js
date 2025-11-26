@@ -18,6 +18,7 @@ jest.mock('../../../models/Workspace');
 jest.mock('../../../db/models', () => ({
   Conversation: {
     updateMany: jest.fn(),
+    deleteMany: jest.fn(),
     countDocuments: jest.fn(),
     find: jest.fn(),
   },
@@ -32,6 +33,12 @@ jest.mock('../../../db/models', () => ({
   File: {
     updateMany: jest.fn(),
     countDocuments: jest.fn(),
+  },
+  Message: {
+    deleteMany: jest.fn(),
+  },
+  Activity: {
+    deleteMany: jest.fn(),
   },
 }));
 
@@ -278,35 +285,37 @@ describe('Workspace Controller Tests', () => {
       };
 
       Workspace.findOne = jest.fn().mockResolvedValue(mockWorkspace);
-      Conversation.updateMany.mockResolvedValue({ modifiedCount: 5 });
+      Conversation.find.mockResolvedValue([{ conversationId: 'c1' }, { conversationId: 'c2' }]);
+      Conversation.deleteMany.mockResolvedValue({ deletedCount: 2 });
+      Message.deleteMany.mockResolvedValue({ deletedCount: 8 });
       Agent.updateMany.mockResolvedValue({ modifiedCount: 3 });
       Prompt.updateMany.mockResolvedValue({ modifiedCount: 2 });
       File.updateMany.mockResolvedValue({ modifiedCount: 10 });
+      Activity.deleteMany.mockResolvedValue({ deletedCount: 4 });
+      Workspace.deleteOne = jest.fn().mockResolvedValue({ deletedCount: 1 });
 
       await deleteWorkspace(req, res);
 
       expect(mockWorkspace.hasPermission).toHaveBeenCalledWith('user123', 'owner');
-      expect(mockWorkspace.isArchived).toBe(true);
-      expect(mockWorkspace.isActive).toBe(false);
-      expect(mockWorkspace.save).toHaveBeenCalled();
+      expect(Workspace.deleteOne).toHaveBeenCalledWith({ _id: 'mongo-id-1' });
 
       // Check resource cleanup
-      expect(Conversation.updateMany).toHaveBeenCalledWith(
-        { workspace: 'mongo-id-1' },
-        { $set: { isArchived: true, workspace: null } },
-      );
+      expect(Conversation.deleteMany).toHaveBeenCalledWith({ workspace: { $in: ['ws1', 'mongo-id-1'] } });
       expect(Agent.updateMany).toHaveBeenCalledWith(
-        { workspace: 'mongo-id-1' },
+        { workspace: { $in: ['ws1', 'mongo-id-1'] } },
         { $set: { workspace: null } },
       );
       expect(Prompt.updateMany).toHaveBeenCalledWith(
-        { workspace: 'mongo-id-1' },
+        { workspace: { $in: ['ws1', 'mongo-id-1'] } },
         { $set: { workspace: null } },
       );
       expect(File.updateMany).toHaveBeenCalledWith(
-        { workspace: 'mongo-id-1' },
+        { workspace: { $in: ['ws1', 'mongo-id-1'] } },
         { $set: { workspace: null } },
       );
+
+      expect(Message.deleteMany).toHaveBeenCalledWith({ conversationId: { $in: ['c1', 'c2'] } });
+      expect(Activity.deleteMany).toHaveBeenCalledWith({ workspace: 'mongo-id-1' });
 
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -346,12 +355,13 @@ describe('Workspace Controller Tests', () => {
       };
 
       Workspace.findOne = jest.fn().mockResolvedValue(mockWorkspace);
-      Conversation.updateMany.mockRejectedValue(new Error('DB error'));
+      Conversation.deleteMany.mockRejectedValue(new Error('DB error'));
+      Workspace.deleteOne = jest.fn().mockResolvedValue({ deletedCount: 1 });
 
       await deleteWorkspace(req, res);
 
       // Should still mark workspace as archived even if cleanup fails
-      expect(mockWorkspace.isArchived).toBe(true);
+      expect(Workspace.deleteOne).toHaveBeenCalledWith({ _id: 'mongo-id-1' });
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
           message: 'Workspace deleted successfully',
