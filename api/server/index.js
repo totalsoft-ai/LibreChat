@@ -145,11 +145,22 @@ const startServer = async () => {
 
   app.use('/api/tags', routes.tags);
   app.use('/api/mcp', routes.mcp);
+  app.use('/api/workspaces', routes.workspaces);
   app.use('/api/docs', routes.docs);
 
   app.use(ErrorController);
 
-  app.use((req, res) => {
+  // Catch-all route for SPA - but exclude asset requests
+  app.use((req, res, next) => {
+    // Don't serve index.html for asset requests (js, css, images, etc.)
+    if (
+      req.path.startsWith('/assets/') ||
+      req.path.startsWith('/fonts/') ||
+      req.path.match(/\.(js|css|png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot|ico|webmanifest|map)$/i)
+    ) {
+      return res.status(404).send('Not found');
+    }
+
     res.set({
       'Cache-Control': process.env.INDEX_CACHE_CONTROL || 'no-cache, no-store, must-revalidate',
       Pragma: process.env.INDEX_PRAGMA || 'no-cache',

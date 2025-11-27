@@ -113,6 +113,7 @@ export type TFile = {
   filterSource?: FileSources;
   width?: number;
   height?: number;
+  workspace?: string | null;
   expiresAt?: string | Date;
   preview?: string;
   metadata?: { fileIdentifier?: string };

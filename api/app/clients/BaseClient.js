@@ -26,6 +26,7 @@ const { truncateToolCallOutputs } = require('./prompts');
 const countTokens = require('~/server/utils/countTokens');
 const { getFiles } = require('~/models/File');
 const TextStream = require('./TextStream');
+const mongoose = require('mongoose');
 
 class BaseClient {
   constructor(apiKey, options = {}) {
@@ -956,6 +957,44 @@ class BaseClient {
       this.fetchedConvo === true
         ? null
         : await getConvo(this.options?.req?.user?.id, message.conversationId);
+
+    // Preserve workspace from request body conversation or existing conversation
+    // Only update workspace if explicitly provided in request
+    // Check both req.body.workspace (direct) and req.body.conversation.workspace (nested)
+    const workspaceValue =
+      this.options?.req?.body?.workspace ?? this.options?.req?.body?.conversation?.workspace;
+
+    if (workspaceValue !== null && workspaceValue !== undefined) {
+      // Store workspaceId string as per Conversation schema
+      if (workspaceValue) {
+        if (typeof workspaceValue === 'string' && workspaceValue.length > 0) {
+          try {
+            const Workspace = require('~/models/Workspace');
+            const ws = await Workspace.findOne({
+              workspaceId: workspaceValue,
+              isActive: true,
+              isArchived: false,
+            });
+            if (ws && ws.isMember(this.options?.req?.user?.id)) {
+              // Store workspaceId string, not ObjectId
+              fieldsToKeep.workspace = ws.workspaceId;
+            }
+          } catch (error) {
+            logger.error('[BaseClient] Error validating workspace:', error);
+          }
+        } else if (typeof workspaceValue === 'object' && workspaceValue.workspaceId) {
+          // Handle workspace object
+          fieldsToKeep.workspace = workspaceValue.workspaceId;
+        } else {
+          // Use the value as-is (for backward compatibility)
+          fieldsToKeep.workspace = workspaceValue;
+        }
+      } else {
+        // Explicitly set to null if workspace is explicitly null/empty in request
+        fieldsToKeep.workspace = null;
+      }
+    }
+    // If workspace not in request, preserve existing workspace (don't set it)
 
     const unsetFields = {};
     const exceptions = new Set(['spec', 'iconURL']);

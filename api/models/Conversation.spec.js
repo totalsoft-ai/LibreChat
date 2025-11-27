@@ -118,6 +118,58 @@ describe('Conversation Operations', () => {
       });
       expect(savedConvo.someField).toBeUndefined();
     });
+
+    it('should set workspace to workspaceId when provided as workspaceId string', async () => {
+      // Create a workspace document to refer to
+      const Workspace = require('~/models/Workspace');
+      const workspace = new Workspace({
+        name: 'Test Workspace',
+        slug: 'test-ws',
+        workspaceId: 'ws-test',
+        createdBy: 'user123',
+        members: [{ user: 'user123', role: 'owner' }],
+      });
+      await workspace.save();
+
+      const result = await saveConvo(mockReq, { ...mockConversationData, workspace: 'ws-test' });
+      const saved = await Conversation.findOne({ conversationId: mockConversationData.conversationId, user: 'user123' }).lean();
+
+      expect(result.conversationId).toBe(mockConversationData.conversationId);
+      expect(saved.workspace).toBe('ws-test');
+    });
+
+    it('should set workspace to workspaceId when provided as workspace object', async () => {
+      const Workspace = require('~/models/Workspace');
+      const workspace = new Workspace({
+        name: 'Test Workspace 2',
+        slug: 'test-ws-2',
+        workspaceId: 'ws-test-2',
+        createdBy: 'user123',
+        members: [{ user: 'user123', role: 'owner' }],
+      });
+      await workspace.save();
+
+      const result = await saveConvo(mockReq, { ...mockConversationData, workspace: { workspaceId: 'ws-test-2' } });
+      const saved = await Conversation.findOne({ conversationId: mockConversationData.conversationId, user: 'user123' }).lean();
+      expect(saved.workspace).toBe('ws-test-2');
+    });
+
+    it('should set workspace to workspaceId when provided as ObjectId string', async () => {
+      const Workspace = require('~/models/Workspace');
+      const workspace = new Workspace({
+        name: 'Test Workspace 3',
+        slug: 'test-ws-3',
+        workspaceId: 'ws-test-3',
+        createdBy: 'user123',
+        members: [{ user: 'user123', role: 'owner' }],
+      });
+      await workspace.save();
+
+      // Using the MongoDB ObjectId string
+      const result = await saveConvo(mockReq, { ...mockConversationData, workspace: workspace._id.toString() });
+      const saved = await Conversation.findOne({ conversationId: mockConversationData.conversationId, user: 'user123' }).lean();
+      expect(saved.workspace).toBe('ws-test-3');
+    });
   });
 
   describe('isTemporary conversation handling', () => {

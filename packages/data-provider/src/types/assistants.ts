@@ -253,6 +253,8 @@ export type AgentCreateParams = {
   provider: AgentProvider;
   model: string | null;
   model_parameters: AgentModelParameters;
+  // Optional workspace identifier to create the agent within a workspace.
+  workspace?: string | null;
 } & Pick<
   Agent,
   | 'agent_ids'
@@ -296,6 +298,7 @@ export type AgentListParams = {
   search?: string;
   cursor?: string;
   promoted?: 0 | 1;
+  workspace?: string;
 };
 
 export type AgentListResponse = {

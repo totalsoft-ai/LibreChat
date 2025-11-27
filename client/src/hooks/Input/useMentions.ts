@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useAtomValue } from 'jotai';
 import { useGetModelsQuery } from 'librechat-data-provider/react-query';
 import {
   Permissions,
@@ -23,6 +24,7 @@ import { useAgentsMapContext } from '~/Providers/AgentsMapContext';
 import { mapEndpoints, getPresetTitle } from '~/utils';
 import { EndpointIcon } from '~/components/Endpoints';
 import useHasAccess from '~/hooks/Roles/useHasAccess';
+import { currentWorkspaceAtom } from '~/store/workspaces';
 
 const defaultInterface = getConfigDefaults().interface;
 
@@ -64,6 +66,9 @@ export default function useMentions({
   });
 
   const agentsMap = useAgentsMapContext();
+  const currentWorkspace = useAtomValue(currentWorkspaceAtom);
+  const workspaceObjectId = (currentWorkspace as { _id?: string } | null)?.['_id'];
+  const workspaceFilter = workspaceObjectId ?? 'personal';
   const { data: presets } = useGetPresetsQuery();
   const { data: modelsConfig } = useGetModelsQuery();
   const { data: startupConfig } = useGetStartupConfig();
@@ -83,7 +88,7 @@ export default function useMentions({
     [startupConfig?.interface],
   );
   const { data: agentsList = null } = useListAgentsQuery(
-    { requiredPermission: PermissionBits.VIEW },
+    { requiredPermission: PermissionBits.VIEW, workspace: workspaceFilter },
     {
       enabled: hasAgentAccess && interfaceConfig.modelSelect === true,
       select: (res) => {

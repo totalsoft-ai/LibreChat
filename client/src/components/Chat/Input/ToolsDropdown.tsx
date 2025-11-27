@@ -215,59 +215,60 @@ const ToolsDropdown = ({ disabled }: ToolsDropdownProps) => {
     });
   }
 
-  if (canRunCode && codeEnabled) {
-    dropdownItems.push({
-      onClick: handleCodeInterpreterToggle,
-      hideOnClick: false,
-      render: (props) => (
-        <div {...props}>
-          <div className="flex items-center gap-2">
-            <TerminalSquareIcon className="icon-md" />
-            <span>{localize('com_assistants_code_interpreter')}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            {showCodeSettings && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsCodeDialogOpen(true);
-                }}
-                ref={codeMenuTriggerRef}
-                className={cn(
-                  'rounded p-1 transition-all duration-200',
-                  'hover:bg-surface-secondary hover:shadow-sm',
-                  'text-text-secondary hover:text-text-primary',
-                )}
-                aria-label="Configure code interpreter"
-              >
-                <div className="h-4 w-4">
-                  <Settings className="h-4 w-4" />
-                </div>
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsCodePinned(!isCodePinned);
-              }}
-              className={cn(
-                'rounded p-1 transition-all duration-200',
-                'hover:bg-surface-secondary hover:shadow-sm',
-                !isCodePinned && 'text-text-primary hover:text-text-primary',
-              )}
-              aria-label={isCodePinned ? 'Unpin' : 'Pin'}
-            >
-              <div className="h-4 w-4">
-                <PinIcon unpin={isCodePinned} />
-              </div>
-            </button>
-          </div>
-        </div>
-      ),
-    });
-  }
+  // Code Interpreter - Commented out to hide from interface
+  // if (canRunCode && codeEnabled) {
+  //   dropdownItems.push({
+  //     onClick: handleCodeInterpreterToggle,
+  //     hideOnClick: false,
+  //     render: (props) => (
+  //       <div {...props}>
+  //         <div className="flex items-center gap-2">
+  //           <TerminalSquareIcon className="icon-md" />
+  //           <span>{localize('com_assistants_code_interpreter')}</span>
+  //         </div>
+  //         <div className="flex items-center gap-1">
+  //           {showCodeSettings && (
+  //             <button
+  //               type="button"
+  //               onClick={(e) => {
+  //                 e.stopPropagation();
+  //                 setIsCodeDialogOpen(true);
+  //               }}
+  //               ref={codeMenuTriggerRef}
+  //               className={cn(
+  //                 'rounded p-1 transition-all duration-200',
+  //                 'hover:bg-surface-secondary hover:shadow-sm',
+  //                 'text-text-secondary hover:text-text-primary',
+  //               )}
+  //               aria-label="Configure code interpreter"
+  //             >
+  //               <div className="h-4 w-4">
+  //                 <Settings className="h-4 w-4" />
+  //               </div>
+  //             </button>
+  //           )}
+  //           <button
+  //             type="button"
+  //             onClick={(e) => {
+  //               e.stopPropagation();
+  //               setIsCodePinned(!isCodePinned);
+  //             }}
+  //             className={cn(
+  //               'rounded p-1 transition-all duration-200',
+  //               'hover:bg-surface-secondary hover:shadow-sm',
+  //               !isCodePinned && 'text-text-primary hover:text-text-primary',
+  //             )}
+  //             aria-label={isCodePinned ? 'Unpin' : 'Pin'}
+  //           >
+  //             <div className="h-4 w-4">
+  //               <PinIcon unpin={isCodePinned} />
+  //             </div>
+  //           </button>
+  //         </div>
+  //       </div>
+  //     ),
+  //   });
+  // }
 
   if (artifactsEnabled) {
     dropdownItems.push({

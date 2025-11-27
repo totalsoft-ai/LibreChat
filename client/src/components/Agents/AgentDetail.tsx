@@ -1,5 +1,5 @@
-import React, { useRef } from 'react';
-import { Link } from 'lucide-react';
+import React, { useRef, useState, useEffect } from 'react';
+import { Link, Pin } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { OGDialog, OGDialogContent, Button, useToastContext } from '@librechat/client';
 import {
@@ -9,11 +9,15 @@ import {
   PermissionBits,
   LocalStorageKeys,
   AgentListResponse,
+  useUpdateVisibilityMutation,
+  usePinResourceMutation,
+  useUnpinResourceMutation,
 } from 'librechat-data-provider';
 import type t from 'librechat-data-provider';
-import { renderAgentAvatar, clearMessagesCache } from '~/utils';
-import { useLocalize, useDefaultConvo } from '~/hooks';
+import { renderAgentAvatar, clearMessagesCache, cn } from '~/utils';
+import { useLocalize, useDefaultConvo, useAuthContext } from '~/hooks';
 import { useChatContext } from '~/Providers';
+import { ShareButton, SharedBadge } from '~/components/Shared';
 
 interface SupportContact {
   name?: string;
@@ -36,9 +40,34 @@ const AgentDetail: React.FC<AgentDetailProps> = ({ agent, isOpen, onClose }) => 
   const localize = useLocalize();
   const queryClient = useQueryClient();
   const { showToast } = useToastContext();
+  const { user } = useAuthContext();
   const dialogRef = useRef<HTMLDivElement>(null);
   const getDefaultConversation = useDefaultConvo();
   const { conversation, newConversation } = useChatContext();
+
+  // Sharing mutations
+  const updateVisibilityMutation = useUpdateVisibilityMutation();
+  const pinResourceMutation = usePinResourceMutation();
+  const unpinResourceMutation = useUnpinResourceMutation();
+
+  // Local state for current visibility
+  const [currentVisibility, setCurrentVisibility] = useState<'private' | 'workspace' | 'shared_with' | 'global'>(
+    (agent.visibility as 'private' | 'workspace' | 'shared_with' | 'global') || 'private'
+  );
+  const [isPinned, setIsPinned] = useState(agent.isPinned || false);
+
+  // Sync local state with agent prop when it changes
+  useEffect(() => {
+    if (agent.visibility) {
+      setCurrentVisibility(agent.visibility as 'private' | 'workspace' | 'shared_with' | 'global');
+    }
+    if (agent.isPinned !== undefined) {
+      setIsPinned(agent.isPinned);
+    }
+  }, [agent.visibility, agent.isPinned]);
+
+  // Check if user is the owner
+  const isOwner = agent.author === user?.id || agent.author?._id === user?.id;
 
   /**
    * Navigate to chat with the selected agent
@@ -100,6 +129,88 @@ const AgentDetail: React.FC<AgentDetailProps> = ({ agent, isOpen, onClose }) => 
   };
 
   /**
+   * Handle visibility change from ShareButton
+   */
+  const handleVisibilityChange = (visibility: 'private' | 'workspace' | 'shared_with' | 'global') => {
+    updateVisibilityMutation.mutate(
+      {
+        resourceType: 'agent',
+        resourceId: agent.id,
+        payload: { visibility },
+      },
+      {
+        onSuccess: () => {
+          setCurrentVisibility(visibility);
+
+          // Update the agent object in cache optimistically
+          const updatedAgent = { ...agent, visibility };
+
+          // Update all relevant queries
+          queryClient.setQueryData(['agent', agent.id], updatedAgent);
+
+          // Invalidate list queries to refetch with updated data
+          queryClient.invalidateQueries([QueryKeys.agents]);
+          queryClient.invalidateQueries([QueryKeys.marketplaceAgents]);
+
+          showToast({
+            message: localize('com_workspace_visibility_updated'),
+          });
+        },
+        onError: () => {
+          showToast({
+            message: localize('com_workspace_visibility_update_failed'),
+          });
+        },
+      }
+    );
+  };
+
+  /**
+   * Handle pin/unpin toggle
+   */
+  const handlePinToggle = () => {
+    const newPinnedState = !isPinned;
+    const mutation = isPinned ? unpinResourceMutation : pinResourceMutation;
+    mutation.mutate(
+      {
+        resourceType: 'agent',
+        resourceId: agent.id,
+      },
+      {
+        onSuccess: () => {
+          setIsPinned(newPinnedState);
+
+          // Update the agent object in cache optimistically
+          const updatedAgent = {
+            ...agent,
+            isPinned: newPinnedState,
+            pinnedAt: newPinnedState ? new Date().toISOString() : null,
+            pinnedBy: newPinnedState ? user?.id : null,
+          };
+
+          // Update all relevant queries
+          queryClient.setQueryData(['agent', agent.id], updatedAgent);
+
+          // Invalidate list queries to refetch with updated data
+          queryClient.invalidateQueries([QueryKeys.agents]);
+          queryClient.invalidateQueries([QueryKeys.marketplaceAgents]);
+
+          showToast({
+            message: isPinned
+              ? localize('com_workspace_resource_unpinned')
+              : localize('com_workspace_resource_pinned'),
+          });
+        },
+        onError: () => {
+          showToast({
+            message: localize('com_workspace_pin_failed'),
+          });
+        },
+      }
+    );
+  };
+
+  /**
    * Format contact information with mailto links when appropriate
    */
   const formatContact = () => {
@@ -133,18 +244,6 @@ const AgentDetail: React.FC<AgentDetailProps> = ({ agent, isOpen, onClose }) => 
   return (
     <OGDialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <OGDialogContent ref={dialogRef} className="max-h-[90vh] w-11/12 max-w-lg overflow-y-auto">
-        {/* Copy link button - positioned next to close button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute right-11 top-4 h-4 w-4 rounded-sm p-0 opacity-70 ring-ring-primary ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-          aria-label={localize('com_agents_copy_link')}
-          onClick={handleCopyLink}
-          title={localize('com_agents_copy_link')}
-        >
-          <Link />
-        </Button>
-
         {/* Agent avatar - top center */}
         <div className="mt-6 flex justify-center">{renderAgentAvatar(agent, { size: 'xl' })}</div>
 
@@ -153,6 +252,12 @@ const AgentDetail: React.FC<AgentDetailProps> = ({ agent, isOpen, onClose }) => 
           <h2 className="text-2xl font-bold text-text-primary">
             {agent?.name || localize('com_agents_loading')}
           </h2>
+          {/* Shared badge - only show if not owner and not private (owner sees ShareButton instead) */}
+          {!isOwner && currentVisibility !== 'private' && (
+            <div className="mt-2 flex justify-center">
+              <SharedBadge visibility={currentVisibility} size="md" />
+            </div>
+          )}
         </div>
 
         {/* Contact info - center aligned below name */}
@@ -167,7 +272,49 @@ const AgentDetail: React.FC<AgentDetailProps> = ({ agent, isOpen, onClose }) => 
           {agent?.description}
         </div>
 
-        {/* Action button */}
+        {/* Action buttons row - below description */}
+        <div className="mt-4 flex items-center justify-center gap-2 px-6">
+          {/* Share button - only for owner */}
+          {isOwner && (
+            <ShareButton
+              resourceType="agent"
+              resourceId={agent.id}
+              currentVisibility={currentVisibility}
+              onVisibilityChange={handleVisibilityChange}
+              isOwner={isOwner}
+            />
+          )}
+
+          {/* Pin button - only for workspace-shared agents */}
+          {currentVisibility === 'workspace' && isOwner && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+              aria-label={isPinned ? localize('com_workspace_unpin') : localize('com_workspace_pin')}
+              onClick={handlePinToggle}
+              title={isPinned ? localize('com_workspace_unpin') : localize('com_workspace_pin')}
+            >
+              <Pin className={cn('h-4 w-4', isPinned && 'fill-current')} />
+              {isPinned ? localize('com_workspace_unpin') : localize('com_workspace_pin')}
+            </Button>
+          )}
+
+          {/* Copy link button */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2"
+            aria-label={localize('com_agents_copy_link')}
+            onClick={handleCopyLink}
+            title={localize('com_agents_copy_link')}
+          >
+            <Link className="h-4 w-4" />
+            {localize('com_agents_copy_link')}
+          </Button>
+        </div>
+
+        {/* Start chat button */}
         <div className="mb-4 mt-6 flex justify-center">
           <Button className="w-full max-w-xs" onClick={handleStartChat} disabled={!agent}>
             {localize('com_agents_start_chat')}

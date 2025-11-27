@@ -80,12 +80,12 @@ export const useConversationsInfiniteQuery = (
   params: ConversationListParams,
   config?: UseInfiniteQueryOptions<ConversationListResponse, unknown>,
 ) => {
-  const { isArchived, sortBy, sortDirection, tags, search } = params;
+  const { isArchived, sortBy, sortDirection, tags, search, workspace } = params;
 
   return useInfiniteQuery<ConversationListResponse>({
     queryKey: [
       isArchived ? QueryKeys.archivedConversations : QueryKeys.allConversations,
-      { isArchived, sortBy, sortDirection, tags, search },
+      { isArchived, sortBy, sortDirection, tags, search, workspace },
     ],
     queryFn: ({ pageParam }) =>
       dataService.listConversations({
@@ -94,6 +94,7 @@ export const useConversationsInfiniteQuery = (
         sortDirection,
         tags,
         search,
+        workspace,
         cursor: pageParam?.toString(),
       }),
     getNextPageParam: (lastPage) => lastPage?.nextCursor ?? undefined,
@@ -401,14 +402,15 @@ export const usePromptGroupsInfiniteQuery = (
   params?: t.TPromptGroupsWithFilterRequest,
   config?: UseInfiniteQueryOptions<t.PromptGroupListResponse, unknown>,
 ) => {
-  const { name, pageSize, category } = params || {};
+  const { name, pageSize, category, workspace } = params || {};
   return useInfiniteQuery<t.PromptGroupListResponse, unknown>(
-    [QueryKeys.promptGroups, name, category, pageSize],
+    [QueryKeys.promptGroups, name, category, pageSize, workspace],
     ({ pageParam }) => {
       const queryParams: t.TPromptGroupsWithFilterRequest = {
         name,
         category: category || '',
         limit: (pageSize || 10).toString(),
+        workspace,
       };
 
       // Only add cursor if it's a valid string

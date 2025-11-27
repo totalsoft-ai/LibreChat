@@ -1,6 +1,7 @@
 import type { AxiosResponse } from 'axios';
 import type * as t from './types';
 import * as endpoints from './api-endpoints';
+import { buildQuery } from './api-endpoints';
 import * as a from './types/assistants';
 import * as ag from './types/agents';
 import * as m from './types/mutations';
@@ -367,8 +368,9 @@ export const getToolCalls = (params: q.GetToolCallParams): Promise<q.ToolCallRes
 
 /* Files */
 
-export const getFiles = (): Promise<f.TFile[]> => {
-  return request.get(endpoints.files());
+export const getFiles = (workspace?: string | null): Promise<f.TFile[]> => {
+  const params = workspace !== undefined ? { workspace } : {};
+  return request.get(endpoints.files() + buildQuery(params));
 };
 
 export const getAgentFiles = (agentId: string): Promise<f.TFile[]> => {
@@ -520,6 +522,7 @@ export const getMarketplaceAgents = (params: {
   limit?: number;
   cursor?: string;
   promoted?: 0 | 1;
+  workspace?: string;
 }): Promise<a.AgentListResponse> => {
   return request.get(
     endpoints.agents({

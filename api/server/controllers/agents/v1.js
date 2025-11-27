@@ -1,4 +1,5 @@
 const { z } = require('zod');
+const mongoose = require('mongoose');
 const fs = require('fs').promises;
 const { nanoid } = require('nanoid');
 const { logger } = require('@librechat/data-schemas');
@@ -63,9 +64,43 @@ const systemTools = {
 const createAgentHandler = async (req, res) => {
   try {
     const validatedData = agentCreateSchema.parse(req.body);
-    const { tools = [], ...agentData } = removeNullishValues(validatedData);
+    const { tools = [], workspace, ...agentData } = removeNullishValues(validatedData);
 
     const { id: userId } = req.user;
+
+    // Validate workspace if provided - accepts either workspaceId (slug) or DB _id
+    if (workspace) {
+      const Workspace = require('~/models/Workspace');
+      let ws = null;
+
+      // Try as DB _id first
+      if (mongoose.Types.ObjectId.isValid(String(workspace))) {
+        ws = await Workspace.findOne({ _id: workspace, isActive: true, isArchived: false });
+      }
+
+      // Fallback to workspaceId (slug)
+      if (!ws) {
+        ws = await Workspace.findOne({ workspaceId: workspace, isActive: true, isArchived: false });
+      }
+
+      if (!ws) {
+        return res.status(404).json({ error: 'Workspace not found' });
+      }
+
+      if (!ws.isMember(userId)) {
+        return res.status(403).json({ error: 'You do not have access to this workspace' });
+      }
+
+      // Check if user has permission to create agents in workspace
+      if (!ws.hasPermission(userId, 'member')) {
+        return res.status(403).json({
+          error: 'You need at least member permission to create agents in this workspace',
+        });
+      }
+
+      // Store workspaceId string instead of ObjectId for consistency with schema
+      agentData.workspace = ws.workspaceId;
+    }
 
     agentData.id = `agent_${nanoid()}`;
     agentData.author = userId;
@@ -438,7 +473,30 @@ const deleteAgentHandler = async (req, res) => {
 const getListAgentsHandler = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { category, search, limit, cursor, promoted } = req.query;
+    const { category, search, limit, cursor, promoted, workspace } = req.query;
+    // Resolve workspace param to workspaceId string for consistent filtering
+    let resolvedWorkspace = undefined;
+    if (workspace !== undefined) {
+      if (workspace === null || workspace === 'personal' || workspace === '') {
+        resolvedWorkspace = workspace; // Keep as-is to handle personal mode
+      } else if (mongoose.Types.ObjectId.isValid(String(workspace))) {
+        // If ObjectId is provided, look up the workspace and use workspaceId
+        const Workspace = require('~/models/Workspace');
+        const ws = await Workspace.findOne({ _id: workspace, isActive: true, isArchived: false });
+        if (!ws) {
+          return res.status(404).json({ error: 'Workspace not found' });
+        }
+        resolvedWorkspace = ws.workspaceId; // Use workspaceId string
+      } else {
+        // Assume it's already a workspaceId string, validate it exists
+        const Workspace = require('~/models/Workspace');
+        const ws = await Workspace.findOne({ workspaceId: workspace, isActive: true, isArchived: false });
+        if (!ws) {
+          return res.status(404).json({ error: 'Workspace not found' });
+        }
+        resolvedWorkspace = ws.workspaceId; // Use workspaceId string
+      }
+    }
     let requiredPermission = req.query.requiredPermission;
     if (typeof requiredPermission === 'string') {
       requiredPermission = parseInt(requiredPermission, 10);
@@ -450,6 +508,18 @@ const getListAgentsHandler = async (req, res) => {
     }
     // Base filter
     const filter = {};
+
+    // Handle workspace filter - accept workspaceId (slug) or DB _id
+    if (workspace !== undefined) {
+      if (resolvedWorkspace === null || resolvedWorkspace === 'personal' || resolvedWorkspace === '') {
+        // Filter for personal agents (no workspace)
+        filter.$and = filter.$and || [];
+        filter.$and.push({ $or: [{ workspace: null }, { workspace: { $exists: false } }] });
+      } else {
+        // Filter for specific workspace using resolvedWorkspace
+        filter.workspace = resolvedWorkspace;
+      }
+    }
 
     // Handle category filter - only apply if category is defined
     if (category !== undefined && category.trim() !== '') {
@@ -471,19 +541,56 @@ const getListAgentsHandler = async (req, res) => {
       ];
     }
     // Get agent IDs the user has VIEW access to via ACL
-    const accessibleIds = await findAccessibleResources({
+    let accessibleIds = await findAccessibleResources({
       userId,
       role: req.user.role,
       resourceType: ResourceType.AGENT,
       requiredPermissions: requiredPermission,
     });
-    const publiclyAccessibleIds = await findPubliclyAccessibleResources({
+
+    // Filter accessible IDs by workspace to ensure workspace isolation
+    if (workspace !== undefined && accessibleIds.length > 0) {
+      const { Agent } = require('~/db/models');
+      const workspaceFilter = resolvedWorkspace === null || resolvedWorkspace === 'personal' || resolvedWorkspace === ''
+        ? { $or: [{ workspace: null }, { workspace: { $exists: false } }] }
+        : { workspace: resolvedWorkspace };
+
+      accessibleIds = await Agent.find({
+        _id: { $in: accessibleIds },
+        ...workspaceFilter
+      }).distinct('_id');
+    }
+
+    let publiclyAccessibleIds = await findPubliclyAccessibleResources({
       resourceType: ResourceType.AGENT,
       requiredPermissions: PermissionBits.VIEW,
     });
+
+    // Get Agent model for queries
+    const { Agent } = require('~/db/models');
+
+    // Filter public agent IDs by workspace to ensure workspace isolation
+    if (workspace !== undefined && publiclyAccessibleIds.length > 0) {
+      const workspaceFilter = resolvedWorkspace === null || resolvedWorkspace === 'personal' || resolvedWorkspace === ''
+        ? { $or: [{ workspace: null }, { workspace: { $exists: false } }] }
+        : { workspace: resolvedWorkspace };
+
+      publiclyAccessibleIds = await Agent.find({
+        _id: { $in: publiclyAccessibleIds },
+        ...workspaceFilter
+      }).distinct('_id');
+    }
+
+    // Find global agents (visible to everyone)
+    const globalAgents = await Agent.find({ visibility: 'global' }).select('_id').lean();
+    const globalAgentIds = globalAgents.map(agent => agent._id);
+
+    // Combine accessible IDs with global agent IDs
+    const allAccessibleIds = [...new Set([...accessibleIds, ...globalAgentIds])];
+
     // Use the new ACL-aware function
     const data = await getListAgentsByAccess({
-      accessibleIds,
+      accessibleIds: allAccessibleIds,
       otherParams: filter,
       limit,
       after: cursor,

@@ -6,8 +6,8 @@ import type { AssistantForm } from '~/common';
 import ImageVision from './ImageVision';
 import { useLocalize } from '~/hooks';
 import Retrieval from './Retrieval';
-import CodeFiles from './CodeFiles';
-import Code from './Code';
+// import CodeFiles from './CodeFiles';
+// import Code from './Code';
 
 export default function CapabilitiesForm({
   version,
@@ -28,12 +28,13 @@ export default function CapabilitiesForm({
   const { control } = methods;
   const assistant = useWatch({ control, name: 'assistant' });
   const assistant_id = useWatch({ control, name: 'id' });
-  const files = useMemo(() => {
-    if (typeof assistant === 'string') {
-      return [];
-    }
-    return assistant.code_files;
-  }, [assistant]);
+  // Code Interpreter - Commented out to hide from interface
+  // const files = useMemo(() => {
+  //   if (typeof assistant === 'string') {
+  //     return [];
+  //   }
+  //   return assistant.code_files;
+  // }, [assistant]);
 
   const retrievalModels = useMemo(
     () => new Set(assistantsConfig?.retrievalModels ?? []),
@@ -54,19 +55,21 @@ export default function CapabilitiesForm({
         </span>
       </div>
       <div className="flex flex-col items-start gap-2">
-        {codeEnabled && <Code version={version} />}
+        {/* Code Interpreter - Commented out to hide from interface */}
+        {/* {codeEnabled && <Code version={version} />} */}
         {retrievalEnabled && (
           <Retrieval endpoint={endpoint} version={version} retrievalModels={retrievalModels} />
         )}
         {imageVisionEnabled && version == 1 && <ImageVision />}
-        {codeEnabled && version && (
+        {/* Code Files - Commented out to hide from interface */}
+        {/* {codeEnabled && version && (
           <CodeFiles
             assistant_id={assistant_id}
             version={version}
             endpoint={endpoint}
             files={files}
           />
-        )}
+        )} */}
       </div>
     </div>
   );

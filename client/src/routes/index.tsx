@@ -10,6 +10,7 @@ import {
 } from '~/components/Auth';
 import { MarketplaceProvider } from '~/components/Agents/MarketplaceContext';
 import AgentMarketplace from '~/components/Agents/Marketplace';
+import StartPage from '~/components/Workspace/StartPage';
 import { OAuthSuccess, OAuthError } from '~/components/OAuth';
 import { AuthContextProvider } from '~/hooks/AuthContext';
 import RouteErrorBoundary from './RouteErrorBoundary';
@@ -107,6 +108,26 @@ export const router = createBrowserRouter([
           {
             path: 'search',
             element: <Search />,
+          },
+          {
+            path: 'workspace/:workspaceId/start',
+            element: <StartPage />,
+          },
+          {
+            path: 'agents',
+            element: (
+              <MarketplaceProvider>
+                <AgentMarketplace />
+              </MarketplaceProvider>
+            ),
+          },
+          {
+            path: 'agents/:category',
+            element: (
+              <MarketplaceProvider>
+                <AgentMarketplace />
+              </MarketplaceProvider>
+            ),
           },
           {
             path: 'help/:section?',

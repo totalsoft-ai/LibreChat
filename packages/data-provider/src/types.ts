@@ -106,6 +106,7 @@ export type TPayload = Partial<TMessage> &
     isContinued: boolean;
     isRegenerate?: boolean;
     conversationId: string | null;
+    workspace?: string | null;
     messages?: TMessages;
     isTemporary: boolean;
     ephemeralAgent?: TEphemeralAgent | null;
@@ -545,6 +546,7 @@ export type TPromptGroupsWithFilterRequest = {
   order?: 'asc' | 'desc';
   name?: string;
   author?: string;
+  workspace?: string;
 };
 
 export type PromptGroupListResponse = {

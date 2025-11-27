@@ -40,6 +40,25 @@ import * as dataService from './data-service';
 export * from './utils';
 export * from './actions';
 export { default as createPayload } from './createPayload';
+/* workspaces */
+export * from './workspace-service';
+/* sharing */
+export {
+  type ShareableResourceType,
+  type VisibilityType,
+  type ShareResourcePayload,
+  type UpdateVisibilityPayload,
+  type SharedResource,
+  shareResource,
+  unshareResource,
+  updateResourceVisibility,
+  getSharedResources,
+  pinResource,
+  unpinResource,
+  getAllSharedResources,
+} from './sharing-service';
+/* users */
+export * from './user-service';
 /* react query hooks */
 export * from './react-query/react-query-service';
 /* feedback */

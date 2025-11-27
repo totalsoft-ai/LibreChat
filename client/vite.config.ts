@@ -59,7 +59,7 @@ export default defineConfig(({ command }) => ({
           'assets/maskable-icon.png',
           'manifest.webmanifest',
         ],
-        globIgnores: ['images/**/*', '**/*.map', 'index.html'],
+        globIgnores: ['images/**/*', '**/*.map'],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         navigateFallbackDenylist: [/^\/oauth/, /^\/api/],
       },
@@ -138,9 +138,8 @@ export default defineConfig(({ command }) => ({
             if (normalizedId.includes('react-dnd') || normalizedId.includes('react-flip-toolkit')) {
               return 'react-interactions';
             }
-            if (normalizedId.includes('react-hook-form')) {
-              return 'forms';
-            }
+            // Removed react-hook-form manual chunking - let it be part of vendor
+            // This fixes the load order issue where forms chunk loaded before vendor
             if (normalizedId.includes('react-router-dom')) {
               return 'routing';
             }

@@ -1,4 +1,5 @@
 import { EarthIcon } from 'lucide-react';
+import { useAtomValue } from 'jotai';
 import { ControlCombobox } from '@librechat/client';
 import { useCallback, useEffect, useRef } from 'react';
 import { useFormContext, Controller } from 'react-hook-form';
@@ -9,6 +10,7 @@ import type { TAgentCapabilities, AgentForm } from '~/common';
 import { cn, createProviderOption, processAgentOption, getDefaultAgentFormValues } from '~/utils';
 import { useLocalize, useAgentDefaultPermissionLevel } from '~/hooks';
 import { useListAgentsQuery } from '~/data-provider';
+import { currentWorkspaceAtom, currentWorkspaceIdAtom } from '~/store/workspaces';
 
 const keys = new Set(Object.keys(defaultAgentFormValues));
 
@@ -27,9 +29,16 @@ export default function AgentSelect({
   const lastSelectedAgent = useRef<string | null>(null);
   const { control, reset } = useFormContext();
   const permissionLevel = useAgentDefaultPermissionLevel();
+  const currentWorkspaceId = useAtomValue(currentWorkspaceIdAtom);
+  const currentWorkspace = useAtomValue(currentWorkspaceAtom);
+  const workspaceObjectId = (currentWorkspace as { _id?: string } | null)?.['_id'];
+  const workspaceFilter = workspaceObjectId ?? 'personal';
 
-  const { data: agents = null } = useListAgentsQuery(
-    { requiredPermission: permissionLevel },
+  const { data: agents = null, refetch } = useListAgentsQuery(
+    {
+      requiredPermission: permissionLevel,
+      workspace: workspaceFilter,
+    },
     {
       select: (res) =>
         res.data.map((agent) =>
@@ -40,8 +49,15 @@ export default function AgentSelect({
             },
           }),
         ),
+      // Keep previous data to avoid showing a single 'Loading...' placeholder while refetching
+      keepPreviousData: true,
     },
   );
+
+  // Refetch agents when workspace changes
+  useEffect(() => {
+    refetch();
+  }, [currentWorkspaceId, workspaceFilter, refetch]);
 
   const resetAgentForm = useCallback(
     (fullAgent: Agent) => {

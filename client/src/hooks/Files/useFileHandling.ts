@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { v4 } from 'uuid';
+import { useAtomValue } from 'jotai';
 import { useSetRecoilState } from 'recoil';
 import { useToastContext } from '@librechat/client';
 import { useQueryClient } from '@tanstack/react-query';
@@ -22,7 +23,7 @@ import useLocalize, { TranslationKeys } from '~/hooks/useLocalize';
 import { useDelayedUploadToast } from './useDelayedUploadToast';
 import { processFileForUpload } from '~/utils/heicConverter';
 import { useChatContext } from '~/Providers/ChatContext';
-import { ephemeralAgentByConvoId } from '~/store';
+import { ephemeralAgentByConvoId, currentWorkspaceIdAtom } from '~/store';
 import { logger, validateFiles } from '~/utils';
 import useClientResize from './useClientResize';
 import useUpdateFiles from './useUpdateFiles';
@@ -52,6 +53,7 @@ const useFileHandling = (params?: UseFileHandling) => {
     params?.fileSetter ?? setFiles,
   );
   const { resizeImageIfNeeded } = useClientResize();
+  const currentWorkspaceId = useAtomValue(currentWorkspaceIdAtom);
 
   // Enable polling for files with embedded: false
   useFileStatusPolling(files, {
@@ -183,6 +185,11 @@ const useFileHandling = (params?: UseFileHandling) => {
     );
     formData.append('file', extendedFile.file as File, encodeURIComponent(filename));
     formData.append('file_id', extendedFile.file_id);
+
+    // Add workspace if in workspace context
+    if (currentWorkspaceId) {
+      formData.append('workspace', currentWorkspaceId);
+    }
 
     const width = extendedFile.width ?? 0;
     const height = extendedFile.height ?? 0;

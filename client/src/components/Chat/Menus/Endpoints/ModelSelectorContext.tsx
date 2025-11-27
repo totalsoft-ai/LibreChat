@@ -1,5 +1,6 @@
 import debounce from 'lodash/debounce';
 import React, { createContext, useContext, useState, useMemo } from 'react';
+import { useAtomValue } from 'jotai';
 import { EModelEndpoint, isAgentsEndpoint, isAssistantsEndpoint } from 'librechat-data-provider';
 import type * as t from 'librechat-data-provider';
 import type { Endpoint, SelectedValues } from '~/common';
@@ -9,11 +10,13 @@ import {
   useKeyDialog,
   useEndpoints,
 } from '~/hooks';
+import { useWorkspaceModels } from '~/hooks/Workspace';
 import { useAgentsMapContext, useAssistantsMapContext } from '~/Providers';
 import { useGetEndpointsQuery, useListAgentsQuery } from '~/data-provider';
 import { useModelSelectorChatContext } from './ModelSelectorChatContext';
 import useSelectMention from '~/hooks/Input/useSelectMention';
 import { filterItems } from './utils';
+import { currentWorkspaceAtom } from '~/store/workspaces';
 
 type ModelSelectorContextType = {
   // State
@@ -59,6 +62,9 @@ export function ModelSelectorProvider({ children, startupConfig }: ModelSelector
   const { data: endpointsConfig } = useGetEndpointsQuery();
   const { endpoint, model, spec, agent_id, assistant_id, newConversation } =
     useModelSelectorChatContext();
+  const currentWorkspace = useAtomValue(currentWorkspaceAtom);
+  const workspaceObjectId = (currentWorkspace as { _id?: string } | null)?.['_id'];
+  const workspaceFilter = workspaceObjectId ?? 'personal';
   const modelSpecs = useMemo(() => {
     const specs = startupConfig?.modelSpecs?.list ?? [];
     if (!agentsMap) {
@@ -80,24 +86,31 @@ export function ModelSelectorProvider({ children, startupConfig }: ModelSelector
 
   const permissionLevel = useAgentDefaultPermissionLevel();
   const { data: agents = null } = useListAgentsQuery(
-    { requiredPermission: permissionLevel },
+    { requiredPermission: permissionLevel, workspace: workspaceFilter },
     {
       select: (data) => data?.data,
     },
   );
 
+  // Apply workspace filtering to models and endpoints
+  const {
+    modelSpecs: filteredModelSpecs,
+    endpointsConfig: filteredEndpointsConfig,
+    isRestricted,
+  } = useWorkspaceModels(modelSpecs, endpointsConfig);
+
   const { mappedEndpoints, endpointRequiresUserKey } = useEndpoints({
     agents,
     assistantsMap,
     startupConfig,
-    endpointsConfig,
+    endpointsConfig: filteredEndpointsConfig,
   });
 
   const { onSelectEndpoint, onSelectSpec } = useSelectMention({
     // presets,
-    modelSpecs,
+    modelSpecs: filteredModelSpecs,
     assistantsMap,
-    endpointsConfig,
+    endpointsConfig: filteredEndpointsConfig,
     newConversation,
     returnHandlers: true,
   });
@@ -133,9 +146,9 @@ export function ModelSelectorProvider({ children, startupConfig }: ModelSelector
     if (!searchValue) {
       return null;
     }
-    const allItems = [...modelSpecs, ...mappedEndpoints];
+    const allItems = [...filteredModelSpecs, ...mappedEndpoints];
     return filterItems(allItems, searchValue, agentsMap, assistantsMap || {});
-  }, [searchValue, modelSpecs, mappedEndpoints, agentsMap, assistantsMap]);
+  }, [searchValue, filteredModelSpecs, mappedEndpoints, agentsMap, assistantsMap]);
 
   const setDebouncedSearchValue = useMemo(
     () =>
@@ -208,10 +221,10 @@ export function ModelSelectorProvider({ children, startupConfig }: ModelSelector
     endpointSearchValues,
     // LibreChat
     agentsMap,
-    modelSpecs,
+    modelSpecs: filteredModelSpecs,
     assistantsMap,
     mappedEndpoints,
-    endpointsConfig,
+    endpointsConfig: filteredEndpointsConfig,
 
     // Functions
     handleSelectSpec,

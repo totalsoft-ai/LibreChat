@@ -237,9 +237,18 @@ export default function useSSE(
     });
 
     setIsSubmitting(true);
+
+    // Failsafe timeout - prevent infinite loading if backend fails silently
+    const failsafeTimeout = setTimeout(() => {
+      logger.error('[useSSE] Request timed out after 60 seconds - clearing submitting state');
+      setIsSubmitting(false);
+      setShowStopButton(false);
+    }, 60000);
+
     sse.stream();
 
     return () => {
+      clearTimeout(failsafeTimeout);
       const isCancelled = sse.readyState <= 1;
       sse.close();
       if (isCancelled) {

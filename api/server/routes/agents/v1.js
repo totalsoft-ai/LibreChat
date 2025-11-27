@@ -3,6 +3,7 @@ const { generateCheckAccess } = require('@librechat/api');
 const { PermissionTypes, Permissions, PermissionBits } = require('librechat-data-provider');
 const { requireJwtAuth, configMiddleware, canAccessAgentResource } = require('~/server/middleware');
 const v1 = require('~/server/controllers/agents/v1');
+const sharingController = require('~/server/controllers/sharing');
 const { getRoleByName } = require('~/models/Role');
 const actions = require('./actions');
 const tools = require('./tools');
@@ -155,6 +156,104 @@ router.post('/:id/revert', checkGlobalAgentShare, v1.revertAgentVersion);
  * @returns {AgentListResponse} 200 - success response - application/json
  */
 router.get('/', checkAgentAccess, v1.getListAgents);
+
+/**
+ * Get shared agents in workspace
+ * @route GET /agents/workspace/:workspaceId/shared
+ * @param {string} req.params.workspaceId - Workspace identifier
+ * @returns {Array} 200 - List of shared agents - application/json
+ */
+router.get('/workspace/:workspaceId/shared', (req, res) => {
+  req.params.resourceType = 'agent';
+  return sharingController.getSharedResources(req, res);
+});
+
+/**
+ * Share agent with workspace
+ * @route POST /agents/:id/share
+ * @param {string} req.params.id - Agent identifier
+ * @param {string} req.body.visibility - Visibility setting (private|workspace|shared_with)
+ * @param {Array} [req.body.sharedWith] - User IDs for shared_with visibility
+ * @returns {Object} 200 - Success response - application/json
+ */
+router.post(
+  '/:id/share',
+  checkAgentAccess,
+  canAccessAgentResource({
+    requiredPermission: PermissionBits.EDIT,
+    resourceIdParam: 'id',
+  }),
+  (req, res) => {
+    req.params.resourceType = 'agent';
+    req.params.resourceId = req.params.id;
+    return sharingController.shareResource(req, res);
+  },
+);
+
+/**
+ * Unshare agent (set to private)
+ * @route POST /agents/:id/unshare
+ * @param {string} req.params.id - Agent identifier
+ * @returns {Object} 200 - Success response - application/json
+ */
+router.post(
+  '/:id/unshare',
+  checkAgentAccess,
+  canAccessAgentResource({
+    requiredPermission: PermissionBits.EDIT,
+    resourceIdParam: 'id',
+  }),
+  (req, res) => {
+    req.params.resourceType = 'agent';
+    req.params.resourceId = req.params.id;
+    return sharingController.unshareResource(req, res);
+  },
+);
+
+/**
+ * Update agent visibility
+ * @route PATCH /agents/:id/visibility
+ * @param {string} req.params.id - Agent identifier
+ * @param {string} req.body.visibility - Visibility setting
+ * @returns {Object} 200 - Success response - application/json
+ */
+router.patch(
+  '/:id/visibility',
+  checkAgentAccess,
+  canAccessAgentResource({
+    requiredPermission: PermissionBits.EDIT,
+    resourceIdParam: 'id',
+  }),
+  (req, res) => {
+    req.params.resourceType = 'agent';
+    req.params.resourceId = req.params.id;
+    return sharingController.updateVisibility(req, res);
+  },
+);
+
+/**
+ * Pin agent to workspace start page
+ * @route POST /agents/:id/pin
+ * @param {string} req.params.id - Agent identifier
+ * @returns {Object} 200 - Success response - application/json
+ */
+router.post('/:id/pin', checkAgentAccess, (req, res) => {
+  req.params.resourceType = 'agent';
+  req.params.resourceId = req.params.id;
+  return sharingController.pinResource(req, res);
+});
+
+/**
+ * Unpin agent from workspace start page
+ * @route DELETE /agents/:id/pin
+ * @param {string} req.params.id - Agent identifier
+ * @returns {Object} 200 - Success response - application/json
+ */
+router.delete('/:id/pin', checkAgentAccess, (req, res) => {
+  req.params.resourceType = 'agent';
+  req.params.resourceId = req.params.id;
+  return sharingController.unpinResource(req, res);
+});
 
 /**
  * Uploads and updates an avatar for a specific agent.
