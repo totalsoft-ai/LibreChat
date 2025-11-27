@@ -60,6 +60,8 @@ export enum QueryKeys {
   workspaces = 'workspaces',
   workspace = 'workspace',
   workspaceStats = 'workspaceStats',
+  docs = 'docs',
+  docsList = 'docsList',
 }
 
 // Dynamic query keys that require parameters

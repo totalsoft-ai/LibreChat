@@ -873,6 +873,20 @@ export const useGetSharedResourcesQuery = (
     {
       enabled: !!workspaceId,
       refetchOnWindowFocus: false,
+/**
+ * Hook to get the list of all available documentation sections
+ */
+export const useGetDocsListQuery = (
+  config?: UseQueryOptions<dataService.DocListResponse>,
+): QueryObserverResult<dataService.DocListResponse> => {
+  return useQuery<dataService.DocListResponse>(
+    [QueryKeys.docsList],
+    () => dataService.getDocsList(),
+    {
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      refetchOnMount: false,
+      staleTime: 5 * 60 * 1000, // 5 minutes - docs don't change often
       ...config,
     },
   );
@@ -981,6 +995,21 @@ export const useGetAllSharedResourcesQuery = (
     {
       enabled: !!workspaceId,
       refetchOnWindowFocus: false,
+ * Hook to get specific documentation content
+ */
+export const useGetDocContentQuery = (
+  docId: string,
+  config?: UseQueryOptions<dataService.DocContent>,
+): QueryObserverResult<dataService.DocContent> => {
+  return useQuery<dataService.DocContent>(
+    [QueryKeys.docs, docId],
+    () => dataService.getDocContent(docId),
+    {
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      refetchOnMount: false,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      enabled: !!docId,
       ...config,
     },
   );

@@ -27,6 +27,7 @@ import { ephemeralAgentByConvoId, currentWorkspaceIdAtom } from '~/store';
 import { logger, validateFiles } from '~/utils';
 import useClientResize from './useClientResize';
 import useUpdateFiles from './useUpdateFiles';
+import useFileStatusPolling from './useFileStatusPolling';
 
 type UseFileHandling = {
   fileSetter?: FileSetter;
@@ -53,6 +54,13 @@ const useFileHandling = (params?: UseFileHandling) => {
   );
   const { resizeImageIfNeeded } = useClientResize();
   const currentWorkspaceId = useAtomValue(currentWorkspaceIdAtom);
+
+  // Enable polling for files with embedded: false
+  useFileStatusPolling(files, {
+    enabled: true,
+    pollInterval: 3000, // Check every 3 seconds
+    maxDuration: 300000, // Stop after 5 minutes
+  });
 
   const agent_id = params?.additionalMetadata?.agent_id ?? '';
   const assistant_id = params?.additionalMetadata?.assistant_id ?? '';

@@ -4,6 +4,7 @@ const FormData = require('form-data');
 const { logger } = require('@librechat/data-schemas');
 const { FileSources } = require('librechat-data-provider');
 const { logAxiosError, generateShortLivedToken } = require('@librechat/api');
+const { updateEmbeddingStatus } = require('./status');
 
 /**
  * Produces a sanitized namespace string from raw input (email or id).
@@ -69,7 +70,9 @@ const deleteVectors = async (req, file) => {
         'Content-Type': 'application/json',
         accept: 'application/json',
       },
-      data: [file.file_id],
+      data: {
+        document_ids: [file.file_id],
+      },
     });
 
     logger.info(
@@ -150,7 +153,7 @@ async function uploadVectors({ req, file, file_id, entity_id, storageMetadata })
           ...formHeaders,
         },
       })
-      .then((response) => {
+      .then(async (response) => {
         const responseData = response.data;
         logger.debug(
           `[uploadVectors] Response from RAG API for ${file.originalname}:`,
@@ -165,10 +168,38 @@ async function uploadVectors({ req, file, file_id, entity_id, storageMetadata })
           logger.warn(
             `[uploadVectors] Upload processing failed for ${file.originalname} (namespace: ${namespace}): ${responseData.message || 'processing failed'}`,
           );
+          // Update file with error status
+          try {
+            await updateEmbeddingStatus({
+              file_id,
+              embedded: false,
+              error: responseData.message || 'RAG processing failed',
+            });
+          } catch (updateError) {
+            logger.error(
+              `[uploadVectors] Failed to update error status for ${file_id}:`,
+              updateError.message,
+            );
+          }
         } else {
           logger.info(
             `[uploadVectors] File ${file.originalname} successfully processed by RAG API (namespace: ${namespace}, file_id: ${file_id}, status: ${responseData.status})`,
           );
+          // Update file with success status
+          try {
+            await updateEmbeddingStatus({
+              file_id,
+              embedded: true,
+            });
+            logger.info(
+              `[uploadVectors] Successfully updated database for ${file_id} with embedded: true`,
+            );
+          } catch (updateError) {
+            logger.error(
+              `[uploadVectors] Failed to update success status for ${file_id}:`,
+              updateError.message,
+            );
+          }
         }
       })
       .catch((error) => {

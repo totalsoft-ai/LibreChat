@@ -32,18 +32,18 @@ actions:
 
 
 mcpServers:
-  spring-mcp:
-      startup: false
-      requiresOAuth: true
-      type: streamable-http
-      url: ${MCP_SERVER_BASEURL}/mcp
-      oauth:
-        authorization_url: https://mcp.totalsoft.local/oauth/authorize       
-        token_url: https://mcp.totalsoft.local/oauth/token
-        client_id: ${KEYCLOAK_CLIENT_ID}
-        client_secret: ${KEYCLOAK_CLIENT_SECRET}
-        redirect_uri: https://librechat.totalsoft.local/oauth/callback
-        scope: "read execute"
+  charisma-reports-informator:
+        startup: false
+        requiresOAuth: true
+        type: streamable-http
+        url: ${CHARISMA_REPORTS_INFORMATOR}/mcp
+        oauth:
+          authorization_url: https://erp-reports.totalsoft.local/oauth/authorize
+          token_url: https://erp-reports.totalsoft.local/oauth/token
+          client_id: ${KEYCLOAK_CLIENT_ID}
+          client_secret: ${KEYCLOAK_CLIENT_SECRET}
+          redirect_uri: https://librechat-dev.totalsoft.local/oauth/callback
+          scope: "read execute"
 
 # Definition of custom endpoints
 endpoints:
@@ -68,7 +68,7 @@ endpoints:
     # (optional) Disable the builder interface for agents
     disableBuilder: false
     # (optional) Agent Capabilities available to all users. Omit the ones you wish to exclude. Defaults to list below.
-    capabilities: ["execute_code", "file_search", "actions", "tools"]
+    capabilities: ["execute_code", "file_search", "actions", "tools", "artifacts"]
   azureOpenAI:
     # Endpoint-level configuration
     titleModel: "gpt-4o"

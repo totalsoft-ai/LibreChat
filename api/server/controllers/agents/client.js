@@ -828,6 +828,7 @@ class AgentClient extends BaseClient {
         config.configurable.agent_id = agent.id;
         config.configurable.name = agent.name;
         config.configurable.agent_index = i;
+        config.configurable.model_parameters = agent.model_parameters;
         const noSystemMessages = noSystemModelRegex.some((regex) =>
           agent.model_parameters.model.match(regex),
         );
