@@ -873,6 +873,11 @@ export const useGetSharedResourcesQuery = (
     {
       enabled: !!workspaceId,
       refetchOnWindowFocus: false,
+      ...config,
+    },
+  );
+};
+
 /**
  * Hook to get the list of all available documentation sections
  */
@@ -995,6 +1000,12 @@ export const useGetAllSharedResourcesQuery = (
     {
       enabled: !!workspaceId,
       refetchOnWindowFocus: false,
+      ...config,
+    },
+  );
+};
+
+/**
  * Hook to get specific documentation content
  */
 export const useGetDocContentQuery = (
