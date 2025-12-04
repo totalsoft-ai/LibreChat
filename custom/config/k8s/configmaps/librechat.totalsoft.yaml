@@ -107,7 +107,7 @@ endpoints:
       apiKey: "$ORCHESTRATOR_API_KEY}"
       titleMessageRole: "user"
       models:
-        default: ["qwen3:8b"]
+        default: ["orieg/gemma3-tools:4b-it-qat"]
       maxContextTokens: 16000
       contextStrategy: "refine" 
       summarize: true
