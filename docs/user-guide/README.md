@@ -66,15 +66,25 @@ New to TESSA? Start here:
   - Version control for prompts
   - Sharing prompts with @mentions
 
+### Collaboration & Teamwork
+
+- **[08. Team Workspaces](./12-workspaces.md)**
+  - Creating and managing workspaces
+  - Member roles and permissions
+  - Sharing agents, prompts, and files
+  - Workspace start page and widgets
+  - Activity tracking and collaboration
+  - Best practices for teams
+
 ### Specialized Features
 
-- **[08. Speech & Audio](./08-speech.md)**
+- **[09. Speech & Audio](./08-speech.md)**
   - Speech-to-Text (STT) configuration
   - Text-to-Speech (TTS) settings
   - Conversation Mode (hands-free)
   - Voice selection and customization
 
-- **[09. Advanced Features](./09-advanced.md)**
+- **[10. Advanced Features](./09-advanced.md)**
   - Model Context Protocol (MCP) integration
   - Memories System
   - Multi-Conversation (split screen)
@@ -84,14 +94,14 @@ New to TESSA? Start here:
 
 ### Customization & Settings
 
-- **[10. Settings & Personalization](./10-settings.md)**
+- **[11. Settings & Personalization](./10-settings.md)**
   - Theme and appearance
   - Language selection (36 languages)
   - Chat display preferences
   - Account security (2FA)
   - Data management
 
-- **[11. Troubleshooting & FAQ](./11-faq.md)**
+- **[12. Troubleshooting & FAQ](./11-faq.md)**
   - Common issues and solutions
   - Frequently asked questions
   - Tips and best practices
@@ -110,6 +120,7 @@ New to TESSA? Start here:
 - **Agents**: Create custom AI assistants with specialized tools
 - **Prompts**: Build a library of reusable prompt templates
 - **Files**: Attach documents, images, and code to conversations
+- **Workspaces**: Collaborate with teams in shared environments
 - **Export**: Save conversations in multiple formats
 - **Search**: Full-text search across all conversations
 - **Share**: Create public links to share conversations
@@ -124,6 +135,7 @@ New to TESSA? Start here:
 ### Security & Privacy
 - **Authentication**: Multiple login methods including 2FA
 - **Permissions**: Control who can access your agents and prompts
+- **Workspace Roles**: Role-based access control for team collaboration
 - **Data Control**: Export, delete, or archive your data anytime
 - **Secure Sharing**: Share conversations with revocable links
 

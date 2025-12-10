@@ -328,6 +328,7 @@ const loadTools = async ({
           entity_id: agent?.id,
           fileCitations,
           req: options.req,
+          workspaceId: options.workspaceId, // Pass workspace for namespace isolation
         });
       };
       continue;

@@ -22,7 +22,7 @@ const DOCS_MAP = {
 
 // Documentation metadata
 const DOCS_METADATA = {
-  'index': { title: 'LibreChat User Guide', order: 0 },
+  'index': { title: 'TESSA User Guide', order: 0 },
   'getting-started': { title: 'Getting Started', order: 1 },
   'conversations': { title: 'Conversations', order: 2 },
   'models': { title: 'Models & Configuration', order: 3 },

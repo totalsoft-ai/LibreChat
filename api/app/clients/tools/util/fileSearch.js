@@ -20,7 +20,7 @@ const { sanitizeNamespace } = require('~/server/services/Files/VectorDB/crud');
  * }>}
  */
 const primeFiles = async (options) => {
-  const { tool_resources, req, agentId } = options;
+  const { tool_resources, req, agentId, workspaceId } = options;
   const file_ids = tool_resources?.[EToolResources.file_search]?.file_ids ?? [];
   const agentResourceIds = new Set(file_ids);
   const resourceFiles = tool_resources?.[EToolResources.file_search]?.files ?? [];
@@ -29,19 +29,25 @@ const primeFiles = async (options) => {
   let allFiles;
   if (file_ids.length === 0 && req?.user?.id) {
     // No files attached - get ALL user's files with embedded: true (indexed in RAG)
-    logger.info(`[primeFiles] No files attached, fetching all indexed files for user: ${req.user.id}`);
-    allFiles = (await getFiles(
-      {
-        user: req.user.id,
-        embedded: true,  // Only get files that are indexed in RAG
-        filepath: 'vectordb'  // Only RAG-indexed files
-      },
-      null,
-      { text: 0 }
-    )) ?? [];
-    logger.info(`[primeFiles] Found ${allFiles.length} indexed files for user ${req.user.id}`);
+    const queryContext = workspaceId ? `workspace ${workspaceId}` : 'all namespaces';
+    logger.info(`[primeFiles] No files attached, fetching all indexed files for user: ${req.user.id} in ${queryContext}`);
+
+    const fileQuery = {
+      user: req.user.id,
+      embedded: true,  // Only get files that are indexed in RAG
+      filepath: 'vectordb'  // Only RAG-indexed files
+    };
+
+    // Add workspace filter if workspaceId is provided
+    if (workspaceId) {
+      fileQuery.workspace = workspaceId;
+      logger.info(`[primeFiles] Filtering files by workspace: ${workspaceId}`);
+    }
+
+    allFiles = (await getFiles(fileQuery, null, { text: 0 })) ?? [];
+    logger.info(`[primeFiles] Found ${allFiles.length} indexed files for user ${req.user.id} in ${queryContext}`);
     if (allFiles.length > 0) {
-      logger.debug(`[primeFiles] Files: ${allFiles.map(f => f.filename).join(', ')}`);
+      logger.debug(`[primeFiles] Files: ${allFiles.map(f => `${f.filename} (workspace: ${f.workspace || 'none'})`).join(', ')}`);
     }
   } else {
     // Files attached - get only those files
@@ -121,12 +127,13 @@ const primeFiles = async (options) => {
  * @param {ServerRequest} [options.req] - The Express request object (for user email/namespace)
  * @returns
  */
-const createFileSearchTool = async ({ userId, files, entity_id, fileCitations = false, req }) => {
-  logger.info(`[createFileSearchTool] Created tool with ${files.length} files available for user ${userId}`);
+const createFileSearchTool = async ({ userId, files, entity_id, fileCitations = false, req, workspaceId }) => {
+  const workspaceContext = workspaceId ? ` in workspace ${workspaceId}` : '';
+  logger.info(`[createFileSearchTool] Created tool with ${files.length} files available for user ${userId}${workspaceContext}`);
 
   return tool(
     async ({ query }) => {
-      logger.info(`[file_search] Tool invoked with query: "${query}", files available: ${files.length}`);
+      logger.info(`[file_search] Tool invoked with query: "${query}", files available: ${files.length}${workspaceContext}`);
 
       // Note: files array may contain all user's indexed files when no specific files are attached
       // So we no longer check for files.length === 0 here
@@ -145,10 +152,10 @@ const createFileSearchTool = async ({ userId, files, entity_id, fileCitations = 
         return 'No indexed documents found in your account. Please upload and index documents first to enable search.';
       }
 
-      // Generate namespace from user email or ID (same as uploadVectors)
-      const userIdentifier = req?.user?.email || req?.user?.id || userId;
-      const namespace = sanitizeNamespace(userIdentifier);
-      logger.debug(`[${Tools.file_search}] Using namespace: ${namespace} for user: ${userIdentifier}`);
+      // Generate namespace using getNamespace (supports workspace isolation)
+      const { getNamespace } = require('~/server/services/Files/VectorDB/crud');
+      const namespace = await getNamespace({ user: req?.user || { id: userId }, workspaceId });
+      logger.debug(`[${Tools.file_search}] Using namespace: ${namespace} for user: ${req?.user?.id || userId}${workspaceContext}`);
 
       /**
        * Creates query body for RAG API
@@ -177,6 +184,7 @@ const createFileSearchTool = async ({ userId, files, entity_id, fileCitations = 
 
       // Determine if we should search globally (all user files) or specific files
       const searchGlobally = isGlobalSearch || files.length > 3; // Global search mode OR many files
+      const queryTimeout = parseInt(process.env.RAG_QUERY_TIMEOUT || '30000', 10); // Default 30s
       let queryPromises;
 
       if (searchGlobally) {
@@ -191,6 +199,7 @@ const createFileSearchTool = async ({ userId, files, entity_id, fileCitations = 
                 'X-Namespace': namespace,
                 // No X-File-ID header for global search
               },
+              timeout: queryTimeout,
             })
             .catch((error) => {
               logger.error('Error encountered in `file_search` global query:', error);
@@ -208,6 +217,7 @@ const createFileSearchTool = async ({ userId, files, entity_id, fileCitations = 
                 'X-Namespace': namespace,
                 'X-File-ID': file.file_id,
               },
+              timeout: queryTimeout,
             })
             .catch((error) => {
               logger.error('Error encountered in `file_search` while querying file:', error);

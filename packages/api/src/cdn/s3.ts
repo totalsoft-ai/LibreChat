@@ -31,6 +31,9 @@ export const initializeS3 = (): S3Client | null => {
 
   const config = {
     region,
+    // Force path-style addressing for MinIO compatibility
+    // Required to prevent virtual-hosted-style (bucket.endpoint) DNS lookups
+    forcePathStyle: true,
     // Conditionally add the endpoint if it is provided
     ...(endpoint ? { endpoint } : {}),
   };

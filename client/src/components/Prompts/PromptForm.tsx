@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import React from 'react';
 import debounce from 'lodash/debounce';
 import { useRecoilValue } from 'recoil';
-import { Menu, Rocket } from 'lucide-react';
+import { Menu, Rocket, Pin } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 import { useForm, FormProvider } from 'react-hook-form';
 import { Button, Skeleton, useToastContext } from '@librechat/client';
@@ -11,6 +11,9 @@ import {
   ResourceType,
   PermissionBits,
   PermissionTypes,
+  useUpdateVisibilityMutation,
+  usePinResourceMutation,
+  useUnpinResourceMutation,
 } from 'librechat-data-provider';
 import type { TCreatePrompt, TPrompt, TPromptGroup } from 'librechat-data-provider';
 import {
@@ -20,7 +23,8 @@ import {
   useUpdatePromptGroup,
   useMakePromptProduction,
 } from '~/data-provider';
-import { useResourcePermissions, useHasAccess, useLocalize } from '~/hooks';
+import { useResourcePermissions, useHasAccess, useLocalize, useAuthContext } from '~/hooks';
+import { ShareButton } from '~/components/Shared';
 import CategorySelector from './Groups/CategorySelector';
 import { usePromptGroupsContext } from '~/Providers';
 import NoPromptGroup from './Groups/NoPromptGroup';
@@ -61,12 +65,27 @@ const RightPanel = React.memo(
     setSelectionIndex,
   }: RightPanelProps) => {
     const localize = useLocalize();
+    const { user } = useAuthContext();
     const { showToast } = useToastContext();
     const editorMode = useRecoilValue(store.promptsEditorMode);
     const hasShareAccess = useHasAccess({
       permissionType: PermissionTypes.PROMPTS,
       permission: Permissions.SHARED_GLOBAL,
     });
+
+    // State for visibility and pin
+    const [currentVisibility, setCurrentVisibility] = useState<'private' | 'workspace' | 'shared_with' | 'global'>(
+      (group?.visibility as 'private' | 'workspace' | 'shared_with' | 'global') || 'private'
+    );
+    const [isPinned, setIsPinned] = useState(group?.isPinned || false);
+
+    // Check if user is the owner
+    const isOwner = group?.author === user?.id || group?.author?._id === user?.id;
+
+    // Mutations for visibility and pin
+    const updateVisibilityMutation = useUpdateVisibilityMutation();
+    const pinResourceMutation = usePinResourceMutation();
+    const unpinResourceMutation = useUnpinResourceMutation();
 
     const updateGroupMutation = useUpdatePromptGroup({
       onError: () => {
@@ -83,6 +102,68 @@ const RightPanel = React.memo(
     const groupName = group?.name || '';
     const groupCategory = group?.category || '';
     const isLoadingGroup = !group;
+
+    // Update local state when group changes
+    useEffect(() => {
+      if (group) {
+        setCurrentVisibility((group.visibility as 'private' | 'workspace' | 'shared_with' | 'global') || 'private');
+        setIsPinned(group.isPinned || false);
+      }
+    }, [group]);
+
+    // Handle visibility change
+    const handleVisibilityChange = useCallback((visibility: 'private' | 'workspace' | 'shared_with' | 'global') => {
+      if (!groupId) return;
+
+      updateVisibilityMutation.mutate(
+        {
+          resourceType: 'prompt',
+          resourceId: groupId,
+          payload: { visibility },
+        },
+        {
+          onSuccess: () => {
+            setCurrentVisibility(visibility);
+            showToast({
+              message: localize('com_workspace_visibility_updated'),
+            });
+          },
+          onError: () => {
+            showToast({
+              message: localize('com_workspace_visibility_update_failed'),
+            });
+          },
+        }
+      );
+    }, [groupId, updateVisibilityMutation, showToast, localize]);
+
+    // Handle pin/unpin toggle
+    const handlePinToggle = useCallback(() => {
+      if (!groupId) return;
+
+      const mutation = isPinned ? unpinResourceMutation : pinResourceMutation;
+      mutation.mutate(
+        {
+          resourceType: 'prompt',
+          resourceId: groupId,
+        },
+        {
+          onSuccess: () => {
+            setIsPinned(!isPinned);
+            showToast({
+              message: isPinned
+                ? localize('com_workspace_resource_unpinned')
+                : localize('com_workspace_resource_pinned'),
+            });
+          },
+          onError: () => {
+            showToast({
+              message: localize('com_workspace_pin_failed'),
+            });
+          },
+        }
+      );
+    }, [groupId, isPinned, pinResourceMutation, unpinResourceMutation, showToast, localize]);
 
     return (
       <div
@@ -103,6 +184,33 @@ const RightPanel = React.memo(
             }
           />
           <div className="mt-2 flex flex-row items-center justify-center gap-x-2 lg:mt-0">
+            {/* Visibility ShareButton - only for prompts with workspace */}
+            {isOwner && group?.workspace && groupId && (
+              <ShareButton
+                resourceType="prompt"
+                resourceId={groupId}
+                currentVisibility={currentVisibility}
+                onVisibilityChange={handleVisibilityChange}
+                isOwner={isOwner}
+                disabled={isLoadingGroup}
+              />
+            )}
+
+            {/* Pin button - only for workspace-shared prompts */}
+            {isOwner && currentVisibility === 'workspace' && group?.workspace && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                aria-label={isPinned ? localize('com_workspace_unpin') : localize('com_workspace_pin')}
+                onClick={handlePinToggle}
+                title={isPinned ? localize('com_workspace_unpin') : localize('com_workspace_pin')}
+                disabled={isLoadingGroup}
+              >
+                <Pin className={isPinned ? 'fill-current' : ''} />
+              </Button>
+            )}
+
             {hasShareAccess && <SharePrompt group={group} disabled={isLoadingGroup} />}
             {editorMode === PromptsEditorMode.ADVANCED && canEdit && (
               <Button

@@ -6,6 +6,7 @@ import { LocalStorageKeys, PermissionTypes, Permissions } from 'librechat-data-p
 import CategorySelector from '~/components/Prompts/Groups/CategorySelector';
 import VariablesDropdown from '~/components/Prompts/VariablesDropdown';
 import PromptVariables from '~/components/Prompts/PromptVariables';
+import WorkspaceSelector from '~/components/Prompts/WorkspaceSelector';
 import Description from '~/components/Prompts/Description';
 import { usePromptGroupsContext } from '~/Providers';
 import { useLocalize, useHasAccess } from '~/hooks';
@@ -20,6 +21,7 @@ type CreateFormValues = {
   category: string;
   oneliner?: string;
   command?: string;
+  workspace?: string | null;
 };
 
 const defaultPrompt: CreateFormValues = {
@@ -29,6 +31,7 @@ const defaultPrompt: CreateFormValues = {
   category: '',
   oneliner: undefined,
   command: undefined,
+  workspace: null,
 };
 
 const CreatePromptForm = ({
@@ -80,16 +83,19 @@ const CreatePromptForm = ({
   const promptText = watch('prompt');
 
   const onSubmit = (data: CreateFormValues) => {
-    const { name, category, oneliner, command, ...rest } = data;
+    const { name, category, oneliner, command, workspace, ...rest } = data;
     const groupData = { name, category } as Pick<
       CreateFormValues,
-      'name' | 'category' | 'oneliner' | 'command'
+      'name' | 'category' | 'oneliner' | 'command' | 'workspace'
     >;
     if ((oneliner?.length ?? 0) > 0) {
       groupData.oneliner = oneliner;
     }
     if ((command?.length ?? 0) > 0) {
       groupData.command = command;
+    }
+    if (workspace) {
+      groupData.workspace = workspace;
     }
     createPromptMutation.mutate({
       prompt: rest,
@@ -165,6 +171,17 @@ const CreatePromptForm = ({
             </div>
           </div>
           <PromptVariables promptText={promptText} />
+          <Controller
+            name="workspace"
+            control={control}
+            render={({ field }) => (
+              <WorkspaceSelector
+                value={field.value}
+                onChange={field.onChange}
+                disabled={isSubmitting}
+              />
+            )}
+          />
           <Description
             onValueChange={(value) => methods.setValue('oneliner', value)}
             tabIndex={0}

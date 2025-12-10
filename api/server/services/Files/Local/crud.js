@@ -233,18 +233,23 @@ const deleteLocalFile = async (req, file) => {
   // This handles files that may have been embedded but webhook wasn't called
   if (process.env.RAG_API_URL) {
     const jwtToken = generateShortLivedToken(req.user.id);
-    const userIdentifier = req.user?.email || req.user?.id;
-    const namespace = sanitizeNamespace(userIdentifier);
+    const { getNamespace } = require('../VectorDB/crud');
+    const namespace = await getNamespace({ user: req.user, workspaceId: file.workspace });
 
     // RAG API uses source path as document identifier: "./uploads/public/{filename}"
     const sourceToDelete = `./uploads/public/${file.filename}`;
 
     logger.info(
-      `[deleteLocalFile] Attempting to delete from RAG - source: ${sourceToDelete}, file_id: ${file.file_id}, user: ${userIdentifier}, namespace: ${namespace}, embedded: ${file.embedded}`,
+      `[deleteLocalFile] Attempting to delete from RAG - source: ${sourceToDelete}, file_id: ${file.file_id}, workspace: ${file.workspace || 'none'}, namespace: ${namespace}, embedded: ${file.embedded}`,
     );
 
-    axios
-      .delete(`${process.env.RAG_API_URL}/documents`, {
+    try {
+      logger.debug(`[deleteLocalFile] RAG delete request - URL: ${process.env.RAG_API_URL}/documents`);
+      logger.debug(`[deleteLocalFile] Headers - X-Namespace: ${namespace}, X-File-ID: ${file.file_id}`);
+      logger.debug(`[deleteLocalFile] Payload - document_ids: [${file.file_id}]`);
+      logger.debug(`[deleteLocalFile] File object all fields: ${JSON.stringify(file)}`);
+
+      const response = await axios.delete(`${process.env.RAG_API_URL}/documents`, {
         headers: {
           Authorization: `Bearer ${jwtToken}`,
           'X-Namespace': namespace,
@@ -255,25 +260,25 @@ const deleteLocalFile = async (req, file) => {
         data: {
           document_ids: [file.file_id],
         },
-      })
-      .then((response) => {
-        logger.info(
-          `[deleteLocalFile] Successfully deleted from RAG - source: ${sourceToDelete}, file_id: ${file.file_id}`,
-        );
-      })
-      .catch((error) => {
-        // 404 is expected if file wasn't embedded
-        if (error.response?.status === 404) {
-          logger.debug(
-            `[deleteLocalFile] File ${sourceToDelete} not found in RAG (not embedded or already deleted)`,
-          );
-        } else {
-          logger.error(
-            `[deleteLocalFile] Error deleting from RAG API for file ${sourceToDelete}:`,
-            error.message,
-          );
-        }
+        timeout: 30000, // 30 second timeout
       });
+      logger.info(
+        `[deleteLocalFile] Successfully deleted from RAG vectorstore - source: ${sourceToDelete}, file_id: ${file.file_id}, response: ${JSON.stringify(response.data)}`,
+      );
+    } catch (error) {
+      // 404 is expected if file wasn't embedded
+      if (error.response?.status === 404) {
+        logger.debug(
+          `[deleteLocalFile] File ${file.file_id} not found in RAG (not embedded or already deleted). RAG response: ${JSON.stringify(error.response.data)}`,
+        );
+      } else {
+        logger.error(
+          `[deleteLocalFile] Error deleting from RAG API for file ${sourceToDelete}: ${error.message}. Response data: ${JSON.stringify(error.response?.data)}, Status: ${error.response?.status}`,
+        );
+        // Propagate error to prevent MongoDB deletion if RAG deletion fails
+        throw new Error(`RAG deletion failed for ${file.file_id}: ${error.message}`);
+      }
+    }
   }
 
   if (cleanFilepath.startsWith(`/uploads/${req.user.id}`)) {

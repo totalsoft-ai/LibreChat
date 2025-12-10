@@ -4,7 +4,7 @@ Welcome to TESSA! This guide will help you get up and running with the platform,
 
 ## What is TESSA?
 
-TESSA is a unified AI conversation platform that brings together multiple AI models from different providers into one powerful interface. Instead of switching between different websites and accounts, you can access GPT-4, Claude, Gemini, and other AI models all in one place.
+TESSA (TotalSoft Enhanced Smart System Assistant) is a unified AI conversation platform that brings together multiple AI models from different providers into one powerful interface. 
 
 ### Key Benefits
 
@@ -29,6 +29,8 @@ TESSA is a unified AI conversation platform that brings together multiple AI mod
 
 
 ## Interface Overview
+
+[![Interface Overview](/docs_images/image.png)](/docs_images/image.png)
 
 Once logged in, you'll see the main TESSA interface divided into several key areas:
 
@@ -83,12 +85,12 @@ Let's create your first conversation in TESSA!
 ### Step 2: Select an AI Model
 
 1. Click on the **model selector** at the top of the chat area
-   - You'll see options like "ChatGPT," "Claude," "Gemini," etc.
+   - You'll see options like "Gemma" 
 2. Click on your preferred AI provider
-3. Select a specific model (e.g., GPT-4, Claude 3 Opus)
+3. Select a specific model (e.g., Local Models)
 4. Optionally adjust settings like temperature or max tokens
 
-> **Tip:** Not sure which model to choose? Start with GPT-4 or Claude 3 Sonnet for balanced performance. See [AI Models & Configuration](./03-models.md) for details.
+> **Tip:** Not sure which model to choose? Start with gemma3:4b for balanced performance. See [AI Models & Configuration](./03-models.md) for details.
 
 ### Step 3: Type Your Message
 

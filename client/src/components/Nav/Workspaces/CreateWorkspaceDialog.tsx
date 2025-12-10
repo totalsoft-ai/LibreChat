@@ -18,6 +18,7 @@ export default function CreateWorkspaceDialog({
 }: CreateWorkspaceDialogProps) {
   const localize = useLocalize();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [nameError, setNameError] = useState<string>('');
   const createWorkspaceMutation = useCreateWorkspaceMutation();
 
   const {
@@ -34,6 +35,7 @@ export default function CreateWorkspaceDialog({
 
   const onSubmit = async (data: CreateWorkspacePayload) => {
     setIsSubmitting(true);
+    setNameError(''); // Clear any previous errors
     try {
       const workspace = await createWorkspaceMutation.mutateAsync(data);
       reset();
@@ -41,8 +43,17 @@ export default function CreateWorkspaceDialog({
       onOpenChange(false);
       // Then call onSuccess callback
       onSuccess?.(workspace);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create workspace:', error);
+
+      // Handle workspace name already exists error (409 Conflict)
+      if (error?.response?.status === 409 || error?.response?.data?.error === 'WORKSPACE_NAME_EXISTS') {
+        setNameError(
+          error?.response?.data?.message ||
+          localize('com_nav_workspace_name_exists') ||
+          'A workspace with this name already exists. Please choose a different name.'
+        );
+      }
       // Don't close dialog on error
     } finally {
       setIsSubmitting(false);
@@ -74,11 +85,13 @@ export default function CreateWorkspaceDialog({
                     value: 100,
                     message: localize('com_nav_workspace_name_max') || 'Maximum 100 characters',
                   },
+                  onChange: () => setNameError(''), // Clear error on input change
                 })}
                 placeholder={localize('com_nav_workspace_name_placeholder') || 'My Workspace'}
                 className="w-full"
               />
               {errors.name && <span className="text-xs text-red-500">{errors.name.message}</span>}
+              {nameError && <span className="text-xs text-red-500">{nameError}</span>}
             </div>
 
             <div className="flex flex-col gap-2">
