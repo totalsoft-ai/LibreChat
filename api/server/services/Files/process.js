@@ -27,7 +27,7 @@ const {
 const { addResourceFileId, deleteResourceFileId } = require('~/server/controllers/assistants/v2');
 const { addAgentResourceFile, removeAgentResourceFiles } = require('~/models/Agent');
 const { getOpenAIClient } = require('~/server/controllers/assistants/helpers');
-const { createFile, updateFileUsage, deleteFiles } = require('~/models/File');
+const { createFile, updateFileUsage, deleteFiles, getFiles } = require('~/models/File');
 const { loadAuthValues } = require('~/server/services/Tools/credentials');
 const { getFileStrategy } = require('~/server/utils/getFileStrategy');
 const { checkCapability } = require('~/server/services/Config');
@@ -210,6 +210,7 @@ const processDeleteRequest = async ({ req, files }) => {
 
   for (const file of files) {
     const source = file.source ?? FileSources.local;
+    logger.info(`[processDeleteRequest] Processing file - file_id: ${file.file_id}, source: ${source}, workspace: ${file.workspace}, has workspace: ${!!file.workspace}`);
     if (req.body.agent_id && req.body.tool_resource) {
       agentFiles.push({
         tool_resource: req.body.tool_resource,
@@ -272,17 +273,75 @@ const processDeleteRequest = async ({ req, files }) => {
     );
   }
 
-  await Promise.allSettled(promises);
+  const results = await Promise.allSettled(promises);
 
-  logger.info(
-    `[processDeleteRequest] Deleting ${resolvedFileIds.length} files from MongoDB: ${JSON.stringify(resolvedFileIds)}`,
-  );
+  // Track which files failed deletion
+  const failedDeletions = [];
+  const requestedFileIds = files.map(f => f.file_id);
+  const successfulFileIds = resolvedFileIds.filter(id => requestedFileIds.includes(id));
 
-  await deleteFiles(resolvedFileIds);
+  // Identify failed files (requested but not in resolvedFileIds)
+  const failedFileIds = requestedFileIds.filter(id => !resolvedFileIds.includes(id));
 
-  logger.info(
-    `[processDeleteRequest] Successfully deleted ${resolvedFileIds.length} files from MongoDB`,
-  );
+  results.forEach((result, index) => {
+    if (result.status === 'rejected') {
+      logger.error(`[processDeleteRequest] Promise ${index} failed:`, result.reason);
+
+      // Try to identify which file failed
+      const file = files.find(f => !resolvedFileIds.includes(f.file_id));
+      if (file) {
+        failedDeletions.push({
+          file_id: file.file_id,
+          error: result.reason?.message || 'Unknown error',
+        });
+      }
+    }
+  });
+
+  // Only delete successfully processed files from MongoDB
+  if (successfulFileIds.length > 0) {
+    logger.info(
+      `[processDeleteRequest] Deleting ${successfulFileIds.length} files from MongoDB: ${JSON.stringify(successfulFileIds)}`,
+    );
+
+    await deleteFiles(successfulFileIds);
+
+    // Verify deletion
+    const remainingFiles = await getFiles(
+      { file_id: { $in: successfulFileIds } },
+      {},
+      { file_id: 1 },
+    );
+
+    if (remainingFiles.length > 0) {
+      const remainingIds = remainingFiles.map(f => f.file_id);
+      logger.error(
+        `[processDeleteRequest] Failed to delete ${remainingFiles.length} files from MongoDB: ${JSON.stringify(remainingIds)}`,
+      );
+      throw new Error(`Database deletion failed for ${remainingFiles.length} files`);
+    }
+
+    logger.info(
+      `[processDeleteRequest] Successfully deleted ${successfulFileIds.length} files from MongoDB`,
+    );
+  } else {
+    logger.warn('[processDeleteRequest] No files were successfully processed for deletion');
+  }
+
+  if (failedDeletions.length > 0) {
+    logger.warn(
+      `[processDeleteRequest] ${failedDeletions.length} files failed to delete: ${JSON.stringify(failedDeletions)}`,
+    );
+  }
+
+  // Return deletion results
+  return {
+    deleted: successfulFileIds,
+    failed: failedDeletions,
+    totalRequested: requestedFileIds.length,
+    totalDeleted: successfulFileIds.length,
+    totalFailed: failedDeletions.length,
+  };
 };
 
 /**
@@ -687,7 +746,12 @@ const processAgentFileUpload = async ({ req, res, metadata }) => {
       file_id,
       basePath,
       entity_id,
+      workspace: metadata.workspace,
     });
+
+    // Construct storage key for RAG metadata.source
+    // This matches the path format used by all storage providers (S3/Local/Firebase)
+    const storageKey = `${basePath}/${req.user.id}/${file_id}__${file.originalname}`;
 
     // SECOND: Upload to Vector DB
     const { uploadVectors } = require('./VectorDB/crud');
@@ -697,6 +761,12 @@ const processAgentFileUpload = async ({ req, res, metadata }) => {
       file,
       file_id,
       entity_id,
+      storageMetadata: {
+        source: storageKey, // This becomes metadata.source in RAG results
+        storage_type: source, // 's3', 'local', 'firebase', 'azure'
+        file_id: file_id,
+      },
+      workspaceId: metadata.workspace,
     });
 
     // Vector status will be stored at root level, no need for metadata
@@ -711,6 +781,7 @@ const processAgentFileUpload = async ({ req, res, metadata }) => {
       file_id,
       basePath,
       entity_id,
+      workspace: metadata.workspace,
     });
   }
 
