@@ -84,6 +84,9 @@ jobs:
           "OPENID_CLIENT_SECRET" = "${{ secrets.OPENID_CLIENT_SECRET }}"
           "OPENID_SESSION_SECRET" = "${{ secrets.OPENID_SESSION_SECRET }}"
           "ORCHESTRATOR_API_KEY" = "${{ secrets.ORCHESTRATOR_API_KEY }}"
+          "MINIO_ACCESS_KEY_ID" = "${{ secrets.MINIO_ACCESS_KEY_ID }}"
+          "MINIO_SECRET_ACCESS_KEY" = "${{ secrets.MINIO_SECRET_ACCESS_KEY }}"
+
         }
 
         $envVarsHashtable = @{
@@ -120,6 +123,12 @@ jobs:
           "RAG_DISABLE_QUERIES" = "${{ vars.RAG_DISABLE_QUERIES }}"
           "LIBRECHAT_WEBHOOK_URL" = "${{ vars.LIBRECHAT_WEBHOOK_URL }}"
           "RAG_SKIP_EMBEDDED_CHECK" ="${{ vars.RAG_SKIP_EMBEDDED_CHECK }}"
+          "MINIO_ENDPOINT_URL" ="${{ vars.MINIO_ENDPOINT_URL }}"
+          "AWS_REGION" ="${{"" vars.AWS_REGION }}"
+          "MINIO_BUCKET_NAME" ="${{ vars.MINIO_BUCKET_NAME }}"
+          "MINIO_WORKSPACE_BUCKET_NAME" ="${{ vars.MINIO_WORKSPACE_BUCKET_NAME }}"
+
+
         }
 
         ./custom/scripts/build-and-deploy.ps1 `

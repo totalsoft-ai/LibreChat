@@ -24,7 +24,7 @@ const { GetObjectCommand } = require('@aws-sdk/client-s3');
 describe('S3 crud.js - test only new parameter changes', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    process.env.AWS_BUCKET_NAME = 'test-bucket';
+    process.env.MINIO_BUCKET_NAME = 'test-bucket';
   });
 
   // Test only the new customFilename parameter

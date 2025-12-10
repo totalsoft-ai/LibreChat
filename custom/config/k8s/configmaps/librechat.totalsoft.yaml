@@ -9,6 +9,7 @@ cache: false
 
 # File strategy s3/firebase
 # fileStrategy: "s3"
+fileStrategy: "s3"
 
 # Custom interface configuration
 interface:

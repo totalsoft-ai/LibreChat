@@ -6,24 +6,24 @@ describe('Bucket Resolver - getBucketName', () => {
 
   beforeEach(() => {
     // Save original environment variables
-    originalPersonalBucket = process.env.AWS_BUCKET_NAME;
-    originalWorkspaceBucket = process.env.AWS_WORKSPACE_BUCKET_NAME;
+    originalPersonalBucket = process.env.MINIO_BUCKET_NAME;
+    originalWorkspaceBucket = process.env.MINIO_WORKSPACE_BUCKET_NAME;
 
     // Set default test values
-    process.env.AWS_BUCKET_NAME = 'test-personal-bucket';
-    process.env.AWS_WORKSPACE_BUCKET_NAME = '';
+    process.env.MINIO_BUCKET_NAME = 'test-personal-bucket';
+    process.env.MINIO_WORKSPACE_BUCKET_NAME = '';
   });
 
   afterEach(() => {
     // Restore original environment variables
-    process.env.AWS_BUCKET_NAME = originalPersonalBucket;
-    process.env.AWS_WORKSPACE_BUCKET_NAME = originalWorkspaceBucket;
+    process.env.MINIO_BUCKET_NAME = originalPersonalBucket;
+    process.env.MINIO_WORKSPACE_BUCKET_NAME = originalWorkspaceBucket;
   });
 
   describe('Single-bucket mode (backward compatible)', () => {
     beforeEach(() => {
-      process.env.AWS_BUCKET_NAME = 'single-bucket';
-      process.env.AWS_WORKSPACE_BUCKET_NAME = '';
+      process.env.MINIO_BUCKET_NAME = 'single-bucket';
+      process.env.MINIO_WORKSPACE_BUCKET_NAME = '';
     });
 
     it('should use personal bucket when workspace bucket is not configured', () => {
@@ -49,8 +49,8 @@ describe('Bucket Resolver - getBucketName', () => {
 
   describe('Dual-bucket mode', () => {
     beforeEach(() => {
-      process.env.AWS_BUCKET_NAME = 'personal-bucket';
-      process.env.AWS_WORKSPACE_BUCKET_NAME = 'workspace-bucket';
+      process.env.MINIO_BUCKET_NAME = 'personal-bucket';
+      process.env.MINIO_WORKSPACE_BUCKET_NAME = 'workspace-bucket';
     });
 
     describe('Workspace files', () => {
@@ -167,33 +167,33 @@ describe('Bucket Resolver - getBucketName', () => {
   });
 
   describe('Environment variable validation', () => {
-    it('should return personal bucket when AWS_BUCKET_NAME is set', () => {
-      process.env.AWS_BUCKET_NAME = 'my-bucket';
-      process.env.AWS_WORKSPACE_BUCKET_NAME = '';
+    it('should return personal bucket when MINIO_BUCKET_NAME is set', () => {
+      process.env.MINIO_BUCKET_NAME = 'my-bucket';
+      process.env.MINIO_WORKSPACE_BUCKET_NAME = '';
 
       const result = getBucketName();
       expect(result).toBe('my-bucket');
     });
 
-    it('should handle undefined AWS_BUCKET_NAME gracefully', () => {
-      process.env.AWS_BUCKET_NAME = undefined;
-      process.env.AWS_WORKSPACE_BUCKET_NAME = undefined;
+    it('should handle undefined MINIO_BUCKET_NAME gracefully', () => {
+      process.env.MINIO_BUCKET_NAME = undefined;
+      process.env.MINIO_WORKSPACE_BUCKET_NAME = undefined;
 
       const result = getBucketName({ workspace: 'ws123' });
       expect(result).toBeUndefined();
     });
 
     it('should prioritize workspace bucket when both are set and workspace provided', () => {
-      process.env.AWS_BUCKET_NAME = 'personal';
-      process.env.AWS_WORKSPACE_BUCKET_NAME = 'workspace';
+      process.env.MINIO_BUCKET_NAME = 'personal';
+      process.env.MINIO_WORKSPACE_BUCKET_NAME = 'workspace';
 
       const result = getBucketName({ workspace: 'ws123' });
       expect(result).toBe('workspace');
     });
 
     it('should fall back to personal bucket when workspace bucket is empty string', () => {
-      process.env.AWS_BUCKET_NAME = 'personal';
-      process.env.AWS_WORKSPACE_BUCKET_NAME = '';
+      process.env.MINIO_BUCKET_NAME = 'personal';
+      process.env.MINIO_WORKSPACE_BUCKET_NAME = '';
 
       const result = getBucketName({ workspace: 'ws123' });
       expect(result).toBe('personal');
@@ -202,8 +202,8 @@ describe('Bucket Resolver - getBucketName', () => {
 
   describe('Real-world scenarios', () => {
     beforeEach(() => {
-      process.env.AWS_BUCKET_NAME = 'librechat-personal';
-      process.env.AWS_WORKSPACE_BUCKET_NAME = 'librechat-workspaces';
+      process.env.MINIO_BUCKET_NAME = 'librechat-personal';
+      process.env.MINIO_WORKSPACE_BUCKET_NAME = 'librechat-workspaces';
     });
 
     it('should handle file upload in workspace context', () => {
@@ -268,8 +268,8 @@ describe('Bucket Resolver - getBucketName', () => {
 
   describe('Integration scenarios', () => {
     it('should work with S3 upload flow', () => {
-      process.env.AWS_BUCKET_NAME = 'personal';
-      process.env.AWS_WORKSPACE_BUCKET_NAME = 'workspace';
+      process.env.MINIO_BUCKET_NAME = 'personal';
+      process.env.MINIO_WORKSPACE_BUCKET_NAME = 'workspace';
 
       // Simulate upload in workspace
       const uploadParams = {
@@ -281,8 +281,8 @@ describe('Bucket Resolver - getBucketName', () => {
     });
 
     it('should work with file deletion flow', () => {
-      process.env.AWS_BUCKET_NAME = 'personal';
-      process.env.AWS_WORKSPACE_BUCKET_NAME = 'workspace';
+      process.env.MINIO_BUCKET_NAME = 'personal';
+      process.env.MINIO_WORKSPACE_BUCKET_NAME = 'workspace';
 
       // Simulate deletion of workspace file
       const fileFromDB = {
@@ -296,8 +296,8 @@ describe('Bucket Resolver - getBucketName', () => {
     });
 
     it('should work with URL refresh flow for personal files', () => {
-      process.env.AWS_BUCKET_NAME = 'personal';
-      process.env.AWS_WORKSPACE_BUCKET_NAME = 'workspace';
+      process.env.MINIO_BUCKET_NAME = 'personal';
+      process.env.MINIO_WORKSPACE_BUCKET_NAME = 'workspace';
 
       // Simulate URL refresh for personal file
       const fileObj = {
