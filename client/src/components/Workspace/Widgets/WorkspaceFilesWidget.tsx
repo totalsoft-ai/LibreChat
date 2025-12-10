@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
 import { v4 } from 'uuid';
-import { Upload, FileText, Image, File as FileIcon, Download, Trash2, CheckCircle, Clock } from 'lucide-react';
+import { Upload, FileText, Image, File as FileIcon, Trash2, CheckCircle, Clock } from 'lucide-react';
 import { useLocalize } from '~/hooks';
 import { cn } from '~/utils';
 import { useGetFiles, useDeleteFilesMutation, useUploadFileMutation } from '~/data-provider';
@@ -101,16 +101,6 @@ export default function WorkspaceFilesWidget({ workspaceId, className = '' }: Wo
     // Reset input
     e.target.value = '';
   }, [workspaceId, uploadMutation]);
-
-  const handleDownload = useCallback((file: any, e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent triggering parent onClick
-    // Download file using the API endpoint
-    const userId = file.user || 'user'; // Fallback if user field not present
-    const downloadUrl = `/api/files/download/${userId}/${file.file_id}`;
-
-    // Open download in new tab/window to trigger browser download
-    window.open(downloadUrl, '_blank');
-  }, []);
 
   const handleDelete = useCallback((file: any, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent triggering parent onClick
@@ -231,13 +221,6 @@ export default function WorkspaceFilesWidget({ workspaceId, className = '' }: Wo
 
                   {/* Action Buttons (visible on hover) */}
                   <div className="flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
-                    <button
-                      onClick={(e) => handleDownload(file, e)}
-                      className="rounded p-1.5 hover:bg-surface-hover transition-colors"
-                      title={localize('com_ui_download') || 'Download'}
-                    >
-                      <Download className="h-4 w-4 text-text-secondary hover:text-text-primary" />
-                    </button>
                     <button
                       onClick={(e) => handleDelete(file, e)}
                       className="rounded p-1.5 hover:bg-surface-hover transition-colors"
