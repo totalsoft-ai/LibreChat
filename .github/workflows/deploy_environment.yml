@@ -124,11 +124,9 @@ jobs:
           "LIBRECHAT_WEBHOOK_URL" = "${{ vars.LIBRECHAT_WEBHOOK_URL }}"
           "RAG_SKIP_EMBEDDED_CHECK" ="${{ vars.RAG_SKIP_EMBEDDED_CHECK }}"
           "MINIO_ENDPOINT_URL" ="${{ vars.MINIO_ENDPOINT_URL }}"
-          "AWS_REGION" ="${{"" vars.AWS_REGION }}"
+          "AWS_REGION" ="${{ vars.AWS_REGION }}"
           "MINIO_BUCKET_NAME" ="${{ vars.MINIO_BUCKET_NAME }}"
           "MINIO_WORKSPACE_BUCKET_NAME" ="${{ vars.MINIO_WORKSPACE_BUCKET_NAME }}"
-
-
         }
 
         ./custom/scripts/build-and-deploy.ps1 `
@@ -141,6 +139,9 @@ jobs:
           -RegistryPassword "${{ secrets.REGISTRY_PASSWORD }}" `
           -Secrets $secretsHashtable `
           -EnvVars $envVarsHashtable
+
+
+
     # - name: Cleanup Docker image after successful deployment
     #   if: success()
     #   shell: pwsh
