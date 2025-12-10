@@ -25,9 +25,9 @@ export const initializeS3 = (): S3Client | null => {
   }
 
   // Read the custom endpoint if provided.
-  const endpoint = process.env.AWS_ENDPOINT_URL;
-  const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
-  const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+  const endpoint = process.env.MINIO_ENDPOINT_URL;
+  const accessKeyId = process.env.MINIO_ACCESS_KEY_ID;
+  const secretAccessKey = process.env.MINIO_SECRET_ACCESS_KEY;
 
   const config = {
     region,

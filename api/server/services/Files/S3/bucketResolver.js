@@ -4,11 +4,11 @@ const { logger } = require('@librechat/data-schemas');
  * Determines which S3/Minio bucket to use based on file context.
  *
  * Supports dual-bucket mode for separating personal and workspace files:
- * - Personal files (no workspace) → AWS_BUCKET_NAME
- * - Workspace files → AWS_WORKSPACE_BUCKET_NAME
+ * - Personal files (no workspace) → MINIO_BUCKET_NAME
+ * - Workspace files → MINIO_WORKSPACE_BUCKET_NAME
  *
- * If AWS_WORKSPACE_BUCKET_NAME is not set, falls back to single-bucket mode
- * where all files use AWS_BUCKET_NAME (backward compatible).
+ * If MINIO_WORKSPACE_BUCKET_NAME is not set, falls back to single-bucket mode
+ * where all files use MINIO_BUCKET_NAME (backward compatible).
  *
  * @param {Object} params - Bucket selection parameters
  * @param {string} [params.workspace] - Workspace ID if this is a workspace file
@@ -17,23 +17,23 @@ const { logger } = require('@librechat/data-schemas');
  *
  * @example
  * // Single-bucket mode (backward compatible)
- * getBucketName({ workspace: 'ws123' }) // Returns AWS_BUCKET_NAME
+ * getBucketName({ workspace: 'ws123' }) // Returns MINIO_BUCKET_NAME
  *
  * @example
  * // Dual-bucket mode - workspace file
- * getBucketName({ workspace: 'ws123' }) // Returns AWS_WORKSPACE_BUCKET_NAME
+ * getBucketName({ workspace: 'ws123' }) // Returns MINIO_WORKSPACE_BUCKET_NAME
  *
  * @example
  * // Dual-bucket mode - personal file
- * getBucketName({ workspace: null }) // Returns AWS_BUCKET_NAME
+ * getBucketName({ workspace: null }) // Returns MINIO_BUCKET_NAME
  *
  * @example
  * // Using file object
- * getBucketName({ file: { workspace: 'ws456' } }) // Returns AWS_WORKSPACE_BUCKET_NAME
+ * getBucketName({ file: { workspace: 'ws456' } }) // Returns MINIO_WORKSPACE_BUCKET_NAME
  */
 function getBucketName({ workspace, file } = {}) {
-  const personalBucket = process.env.AWS_BUCKET_NAME;
-  const workspaceBucket = process.env.AWS_WORKSPACE_BUCKET_NAME;
+  const personalBucket = process.env.MINIO_BUCKET_NAME;
+  const workspaceBucket = process.env.MINIO_WORKSPACE_BUCKET_NAME;
 
   // Single-bucket mode: backward compatible
   // If workspace bucket is not configured, use personal bucket for everything
