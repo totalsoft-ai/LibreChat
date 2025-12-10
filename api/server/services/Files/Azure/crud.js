@@ -107,21 +107,20 @@ async function deleteFileFromAzure(req, file) {
   if (process.env.RAG_API_URL) {
     const axios = require('axios');
     const { generateShortLivedToken } = require('@librechat/api');
-    const { sanitizeNamespace } = require('../VectorDB/crud');
+    const { getNamespace } = require('../VectorDB/crud');
 
     const jwtToken = generateShortLivedToken(req.user.id);
-    const userIdentifier = req.user?.email || req.user?.id;
-    const namespace = sanitizeNamespace(userIdentifier);
+    const namespace = await getNamespace({ user: req.user, workspaceId: file.workspace });
 
     // RAG API uses source path as document identifier: "./uploads/public/{filename}"
     const sourceToDelete = `./uploads/public/${file.filename}`;
 
     logger.info(
-      `[deleteFileFromAzure] Attempting to delete from RAG - source: ${sourceToDelete}, file_id: ${file.file_id}, user: ${userIdentifier}, namespace: ${namespace}, embedded: ${file.embedded}`,
+      `[deleteFileFromAzure] Attempting to delete from RAG - source: ${sourceToDelete}, file_id: ${file.file_id}, workspace: ${file.workspace || 'none'}, namespace: ${namespace}, embedded: ${file.embedded}`,
     );
 
-    axios
-      .delete(`${process.env.RAG_API_URL}/documents`, {
+    try {
+      const response = await axios.delete(`${process.env.RAG_API_URL}/documents`, {
         headers: {
           Authorization: `Bearer ${jwtToken}`,
           'X-Namespace': namespace,
@@ -129,26 +128,28 @@ async function deleteFileFromAzure(req, file) {
           'Content-Type': 'application/json',
           accept: 'application/json',
         },
-        data: [file.file_id],
-      })
-      .then((response) => {
-        logger.info(
-          `[deleteFileFromAzure] Successfully deleted from RAG - source: ${sourceToDelete}, file_id: ${file.file_id}`,
-        );
-      })
-      .catch((error) => {
-        // 404 is expected if file wasn't embedded
-        if (error.response?.status === 404) {
-          logger.debug(
-            `[deleteFileFromAzure] File ${sourceToDelete} not found in RAG (not embedded or already deleted)`,
-          );
-        } else {
-          logger.error(
-            `[deleteFileFromAzure] Error deleting from RAG API for file ${sourceToDelete}:`,
-            error.message,
-          );
-        }
+        data: {
+          document_ids: [file.file_id],
+        },
+        timeout: 30000, // 30 second timeout
       });
+      logger.info(
+        `[deleteFileFromAzure] Successfully deleted from RAG vectorstore - source: ${sourceToDelete}, file_id: ${file.file_id}`,
+      );
+    } catch (error) {
+      // 404 is expected if file wasn't embedded
+      if (error.response?.status === 404) {
+        logger.debug(
+          `[deleteFileFromAzure] File ${file.file_id} not found in RAG (not embedded or already deleted)`,
+        );
+      } else {
+        logger.error(
+          `[deleteFileFromAzure] Error deleting from RAG API for file ${sourceToDelete}: ${error.message}`,
+        );
+        // Propagate error to prevent MongoDB deletion if RAG deletion fails
+        throw new Error(`RAG deletion failed for ${file.file_id}: ${error.message}`);
+      }
+    }
   }
 
   try {

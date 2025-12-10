@@ -5,7 +5,9 @@ import { columns } from './PanelColumns';
 import DataTable from './PanelTable';
 
 export default function FilesPanel() {
-  const { data: files = [] } = useGetFiles<TFile[]>();
+  const { data: files = [] } = useGetFiles<TFile[]>(
+    null  // Explicitly request only personal files (exclude workspace files)
+  );
 
   // Enable polling for RAG processing files
   useFileStatusPolling(files, {

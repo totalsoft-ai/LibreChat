@@ -185,14 +185,27 @@ router.delete('/', async (req, res) => {
     }
 
     if (nonOwnedFiles.length === 0) {
-      await processDeleteRequest({ req, files: ownedFiles });
+      const result = await processDeleteRequest({ req, files: ownedFiles });
       logger.debug(
-        `[/files] Files deleted successfully: ${ownedFiles
-          .filter((f) => f.file_id)
-          .map((f) => f.file_id)
-          .join(', ')}`,
+        `[/files] Files deleted successfully: ${result.deleted.join(', ')}`,
       );
-      res.status(200).json({ message: 'Files deleted successfully' });
+
+      if (result.failed && result.failed.length > 0) {
+        return res.status(207).json({
+          message: 'Some files could not be deleted',
+          deleted: result.deleted,
+          failed: result.failed,
+          totalRequested: result.totalRequested,
+          totalDeleted: result.totalDeleted,
+          totalFailed: result.totalFailed,
+        });
+      }
+
+      res.status(200).json({
+        message: 'Files deleted successfully',
+        count: result.totalDeleted,
+        file_ids: result.deleted,
+      });
       return;
     }
 
@@ -236,7 +249,16 @@ router.delete('/', async (req, res) => {
       const toolResourceFiles = agent.tool_resources?.[req.body.tool_resource]?.file_ids ?? [];
       const agentFiles = files.filter((f) => toolResourceFiles.includes(f.file_id));
 
-      await processDeleteRequest({ req, files: agentFiles });
+      const result = await processDeleteRequest({ req, files: agentFiles });
+
+      if (result.failed && result.failed.length > 0) {
+        return res.status(207).json({
+          message: 'Some file associations could not be removed',
+          deleted: result.deleted,
+          failed: result.failed,
+        });
+      }
+
       res.status(200).json({ message: 'File associations removed successfully from agent' });
       return;
     }
@@ -250,28 +272,59 @@ router.delete('/', async (req, res) => {
       const toolResourceFiles = assistant.tool_resources?.[req.body.tool_resource]?.file_ids ?? [];
       const assistantFiles = files.filter((f) => toolResourceFiles.includes(f.file_id));
 
-      await processDeleteRequest({ req, files: assistantFiles });
+      const result = await processDeleteRequest({ req, files: assistantFiles });
+
+      if (result.failed && result.failed.length > 0) {
+        return res.status(207).json({
+          message: 'Some file associations could not be removed',
+          deleted: result.deleted,
+          failed: result.failed,
+        });
+      }
+
       res.status(200).json({ message: 'File associations removed successfully from assistant' });
       return;
     } else if (
       req.body.assistant_id &&
       req.body.files?.[0]?.filepath === EModelEndpoint.azureAssistants
     ) {
-      await processDeleteRequest({ req, files: req.body.files });
+      const result = await processDeleteRequest({ req, files: req.body.files });
+
+      if (result.failed && result.failed.length > 0) {
+        return res.status(207).json({
+          message: 'Some file associations could not be removed',
+          deleted: result.deleted,
+          failed: result.failed,
+        });
+      }
+
       return res
         .status(200)
         .json({ message: 'File associations removed successfully from Azure Assistant' });
     }
 
-    await processDeleteRequest({ req, files: authorizedFiles });
+    const result = await processDeleteRequest({ req, files: authorizedFiles });
 
     logger.debug(
-      `[/files] Files deleted successfully: ${authorizedFiles
-        .filter((f) => f.file_id)
-        .map((f) => f.file_id)
-        .join(', ')}`,
+      `[/files] Files deleted successfully: ${result.deleted.join(', ')}`,
     );
-    res.status(200).json({ message: 'Files deleted successfully' });
+
+    if (result.failed && result.failed.length > 0) {
+      return res.status(207).json({
+        message: 'Some files could not be deleted',
+        deleted: result.deleted,
+        failed: result.failed,
+        totalRequested: result.totalRequested,
+        totalDeleted: result.totalDeleted,
+        totalFailed: result.totalFailed,
+      });
+    }
+
+    res.status(200).json({
+      message: 'Files deleted successfully',
+      count: result.totalDeleted,
+      file_ids: result.deleted,
+    });
   } catch (error) {
     logger.error('[/files] Error deleting files:', error);
     res.status(400).json({ message: 'Error in request', error: error.message });
@@ -456,6 +509,12 @@ router.post('/', async (req, res) => {
       logger.debug('[/files] Marked file as global library for Personal Space endpoint');
     }
 
+    // Mark workspace uploads with file_search as message files
+    if (metadata.workspace && metadata.tool_resource === 'file_search') {
+      metadata.message_file = true;
+      logger.info(`[/files] Marked workspace file as message_file for RAG processing - workspace: ${metadata.workspace}`);
+    }
+
     // Always allow Assistant uploads to be sent without text by attaching as message file
     if (isAssistantEndpoint && !metadata.message_file) {
       metadata.message_file = true;
@@ -466,7 +525,22 @@ router.post('/', async (req, res) => {
       `[/files] upload meta: endpoint=${metadata?.endpoint} tool_resource=${metadata?.tool_resource} file_id=${metadata?.file_id} isAssistantEndpoint=${isAssistantEndpoint} isPersonalSpace=${isPersonalSpaceEndpoint} isGlobalLibrary=${metadata?.isGlobalLibrary}`,
     );
 
-    if (isAgentsEndpoint(metadata.endpoint)) {
+    // Use agent file upload processing for:
+    // 1. Agents endpoint (isAgentsEndpoint)
+    // 2. Custom Assistant endpoints with file_search
+    // 3. Personal Space with file_search
+    // 4. Workspace uploads with file_search (enables RAG)
+    const isWorkspaceFileSearch = metadata.workspace && metadata.tool_resource === 'file_search';
+    logger.info(`[/files] Workspace file_search check - workspace: ${metadata.workspace}, tool_resource: ${metadata.tool_resource}, isWorkspaceFileSearch: ${isWorkspaceFileSearch}`);
+    const shouldUseAgentFileUpload =
+      isAgentsEndpoint(metadata.endpoint) ||
+      (isAssistantEndpoint && metadata.tool_resource === 'file_search') ||
+      (isPersonalSpaceEndpoint && metadata.tool_resource === 'file_search') ||
+      isWorkspaceFileSearch;
+
+    logger.info(`[/files] Routing decision - shouldUseAgentFileUpload: ${shouldUseAgentFileUpload}, will use: ${shouldUseAgentFileUpload ? 'processAgentFileUpload (RAG)' : 'processFileUpload (standard)'}`);
+
+    if (shouldUseAgentFileUpload) {
       return await processAgentFileUpload({ req, res, metadata });
     }
 

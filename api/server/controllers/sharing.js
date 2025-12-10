@@ -1,5 +1,5 @@
 const { logger } = require('@librechat/data-schemas');
-const { Agent, Prompt, File } = require('~/db/models');
+const { Agent, Prompt, PromptGroup, File } = require('~/db/models');
 const Workspace = require('~/models/Workspace');
 
 /**
@@ -207,6 +207,25 @@ const updateVisibility = async (req, res) => {
 
     await resource.save();
 
+    // For prompts, also update the PromptGroup visibility
+    if (resourceType === 'prompt' && resource.groupId) {
+      try {
+        await PromptGroup.findByIdAndUpdate(
+          resource.groupId,
+          {
+            visibility: visibility,
+            sharedWith: resource.sharedWith,
+          },
+        );
+        logger.info(
+          `[updateVisibility] PromptGroup ${resource.groupId} visibility updated to ${visibility}`,
+        );
+      } catch (groupError) {
+        logger.error('[updateVisibility] Error updating PromptGroup visibility:', groupError);
+        // Continue anyway - Prompt visibility is updated
+      }
+    }
+
     logger.info(
       `[updateVisibility] ${resourceType} ${resourceId} visibility updated to ${visibility}`,
     );
@@ -324,6 +343,26 @@ const pinResource = async (req, res) => {
 
     await resource.save();
 
+    // For prompts, also update the PromptGroup pinning
+    if (resourceType === 'prompt' && resource.groupId) {
+      try {
+        await PromptGroup.findByIdAndUpdate(
+          resource.groupId,
+          {
+            isPinned: true,
+            pinnedAt: resource.pinnedAt,
+            pinnedBy: userId,
+          },
+        );
+        logger.info(
+          `[pinResource] PromptGroup ${resource.groupId} pinned by user ${userId}`,
+        );
+      } catch (groupError) {
+        logger.error('[pinResource] Error updating PromptGroup pinning:', groupError);
+        // Continue anyway - Prompt pinning is updated
+      }
+    }
+
     logger.info(`[pinResource] ${resourceType} ${resourceId} pinned by user ${userId}`);
 
     res.json({
@@ -384,6 +423,26 @@ const unpinResource = async (req, res) => {
     resource.pinnedBy = null;
 
     await resource.save();
+
+    // For prompts, also update the PromptGroup unpinning
+    if (resourceType === 'prompt' && resource.groupId) {
+      try {
+        await PromptGroup.findByIdAndUpdate(
+          resource.groupId,
+          {
+            isPinned: false,
+            pinnedAt: null,
+            pinnedBy: null,
+          },
+        );
+        logger.info(
+          `[unpinResource] PromptGroup ${resource.groupId} unpinned by user ${userId}`,
+        );
+      } catch (groupError) {
+        logger.error('[unpinResource] Error updating PromptGroup unpinning:', groupError);
+        // Continue anyway - Prompt unpinning is updated
+      }
+    }
 
     logger.info(`[unpinResource] ${resourceType} ${resourceId} unpinned by user ${userId}`);
 

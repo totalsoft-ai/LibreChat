@@ -1,4 +1,8 @@
 ### node etc ###
+create_buckets.py
+mcp_server_configuration*
+rag_configuration*
+nul
 
 # Logs
 data-node

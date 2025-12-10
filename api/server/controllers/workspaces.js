@@ -130,6 +130,19 @@ const createWorkspace = async (req, res) => {
       return res.status(400).json({ message: 'Workspace name must be less than 100 characters' });
     }
 
+    // Check if workspace with this name already exists
+    const existingWorkspace = await Workspace.findOne({
+      name: name.trim(),
+      isArchived: false,
+    });
+
+    if (existingWorkspace) {
+      return res.status(409).json({
+        message: 'A workspace with this name already exists. Please choose a different name.',
+        error: 'WORKSPACE_NAME_EXISTS',
+      });
+    }
+
     // Generate slug
     const slug = await Workspace.generateSlug(name);
 
@@ -167,6 +180,15 @@ const createWorkspace = async (req, res) => {
     });
   } catch (error) {
     logger.error('[createWorkspace] Error:', error);
+
+    // Handle MongoDB duplicate key error (E11000)
+    if (error.code === 11000 && error.keyPattern?.name) {
+      return res.status(409).json({
+        message: 'A workspace with this name already exists.',
+        error: 'WORKSPACE_NAME_EXISTS',
+      });
+    }
+
     res.status(500).json({
       message: 'Error creating workspace',
       error: error.message,
@@ -202,6 +224,21 @@ const updateWorkspace = async (req, res) => {
       if (!name || name.trim().length === 0) {
         return res.status(400).json({ message: 'Workspace name cannot be empty' });
       }
+
+      // Check if another workspace with this name already exists (excluding current workspace)
+      const existingWorkspace = await Workspace.findOne({
+        name: name.trim(),
+        workspaceId: { $ne: workspaceId }, // Exclude current workspace
+        isArchived: false,
+      });
+
+      if (existingWorkspace) {
+        return res.status(409).json({
+          message: 'A workspace with this name already exists.',
+          error: 'WORKSPACE_NAME_EXISTS',
+        });
+      }
+
       workspace.name = name.trim();
 
       // Regenerate slug if name changed significantly

@@ -5,6 +5,7 @@ const { logger } = require('@librechat/data-schemas');
 const { FileSources } = require('librechat-data-provider');
 const { logAxiosError, generateShortLivedToken } = require('@librechat/api');
 const { updateEmbeddingStatus } = require('./status');
+const Workspace = require('~/models/Workspace');
 
 /**
  * Produces a sanitized namespace string from raw input (email or id).
@@ -23,6 +24,35 @@ function sanitizeNamespace(raw) {
   if (s.length > 63) s = s.slice(0, 63);
   s = s.replace(/^_+|_+$/g, '');
   return s || 'ns_default';
+}
+
+/**
+ * Gets the appropriate namespace for RAG operations.
+ * If workspaceId is provided, uses workspace name; otherwise uses user email/id.
+ *
+ * @param {Object} params - Parameters object
+ * @param {Object} params.user - User object with email and id
+ * @param {string} [params.workspaceId] - Optional workspace ID
+ * @returns {Promise<string>} - Sanitized namespace string
+ */
+async function getNamespace({ user, workspaceId }) {
+  if (workspaceId) {
+    try {
+      const workspace = await Workspace.findOne({ workspaceId, isActive: true });
+      if (workspace && workspace.name) {
+        logger.debug(`[getNamespace] Using workspace name for namespace: ${workspace.name}`);
+        return sanitizeNamespace(workspace.name);
+      }
+      logger.warn(`[getNamespace] Workspace ${workspaceId} not found, falling back to user identifier`);
+    } catch (error) {
+      logger.error(`[getNamespace] Error fetching workspace ${workspaceId}:`, error);
+    }
+  }
+
+  // Fallback to user email/id
+  const userIdentifier = user?.email || user?.id;
+  logger.debug(`[getNamespace] Using user identifier for namespace: ${userIdentifier}`);
+  return sanitizeNamespace(userIdentifier);
 }
 
 /**
@@ -47,19 +77,19 @@ const deleteVectors = async (req, file) => {
 
   // Always attempt deletion if RAG_API_URL is configured
   // This handles files that may have been embedded but webhook wasn't called
-  logger.debug(
-    `[deleteVectors] Attempting vector deletion - file_id: ${file.file_id}, filename: ${file.filename}, embedded status: ${file.embedded}`,
+  logger.info(
+    `[deleteVectors] Attempting vector deletion - file_id: ${file.file_id}, filename: ${file.filename}, embedded status: ${file.embedded}, workspace: ${file.workspace}`,
   );
+  logger.info(`[deleteVectors] Full file object keys: ${Object.keys(file).join(', ')}`);
   try {
     const jwtToken = generateShortLivedToken(req.user.id);
-    const userIdentifier = req.user?.email || req.user?.id;
-    const namespace = sanitizeNamespace(userIdentifier);
+    const namespace = await getNamespace({ user: req.user, workspaceId: file.workspace });
 
     // RAG API uses source path as document identifier: "./uploads/public/{filename}"
     const sourceToDelete = `./uploads/public/${file.filename}`;
 
     logger.info(
-      `[deleteVectors] Deleting file from RAG - source: ${sourceToDelete}, file_id: ${file.file_id}, user: ${userIdentifier}, namespace: ${namespace}`,
+      `[deleteVectors] Deleting file from RAG - source: ${sourceToDelete}, file_id: ${file.file_id}, workspace: ${file.workspace || 'none'}, namespace: ${namespace}`,
     );
 
     const response = await axios.delete(`${process.env.RAG_API_URL}/documents`, {
@@ -107,23 +137,23 @@ const deleteVectors = async (req, file) => {
  * @param {string} params.file_id - The file ID.
  * @param {string} [params.entity_id] - The entity ID for shared resources.
  * @param {Object} [params.storageMetadata] - Storage metadata for dual storage pattern.
+ * @param {string} [params.workspaceId] - Optional workspace ID for namespace determination.
  *
  * @returns {Promise<{ filepath: string, bytes: number }>}
  *          A promise that resolves to an object containing:
  *            - filepath: The path where the file is saved.
  *            - bytes: The size of the file in bytes.
  */
-async function uploadVectors({ req, file, file_id, entity_id, storageMetadata }) {
+async function uploadVectors({ req, file, file_id, entity_id, storageMetadata, workspaceId }) {
   if (!process.env.RAG_API_URL) {
     throw new Error('RAG_API_URL not defined');
   }
 
   try {
-    const userIdentifier = req.user?.email || req.user?.id;
-    const namespace = sanitizeNamespace(userIdentifier);
+    const namespace = await getNamespace({ user: req.user, workspaceId });
 
     logger.info(
-      `[uploadVectors] Starting upload to RAG - file: ${file.originalname}, file_id: ${file_id}, user: ${userIdentifier}, namespace: ${namespace}`,
+      `[uploadVectors] Starting upload to RAG - file: ${file.originalname}, file_id: ${file_id}, workspace: ${workspaceId || 'none'}, namespace: ${namespace}`,
     );
 
     const formData = new FormData();
@@ -143,6 +173,8 @@ async function uploadVectors({ req, file, file_id, entity_id, storageMetadata })
     const formHeaders = formData.getHeaders();
 
     // Start upload in background - don't wait for response
+    // Timeout configured for large files (30-60 seconds)
+    const uploadTimeout = parseInt(process.env.RAG_UPLOAD_TIMEOUT || '60000', 10); // Default 60s
     axios
       .post(`${process.env.RAG_API_URL}/embed`, formData, {
         headers: {
@@ -152,6 +184,7 @@ async function uploadVectors({ req, file, file_id, entity_id, storageMetadata })
           'X-User-Email': req.user?.email || '',
           ...formHeaders,
         },
+        timeout: uploadTimeout, // Configurable timeout for large files
       })
       .then(async (response) => {
         const responseData = response.data;
@@ -233,4 +266,5 @@ module.exports = {
   deleteVectors,
   uploadVectors,
   sanitizeNamespace,
+  getNamespace,
 };

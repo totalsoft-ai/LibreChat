@@ -4,7 +4,9 @@ import { useQuery } from '@tanstack/react-query';
 import ReactMarkdown from 'react-markdown';
 import { getWorkspaceStartPage } from 'librechat-data-provider';
 import type { StartPageConfig, WorkspaceStats, StartPageMember } from 'librechat-data-provider';
+import { useGetFiles } from '~/data-provider';
 import { useLocalize } from '~/hooks';
+import { ChatContext } from '~/Providers/ChatContext';
 import {
   QuickStatsWidget,
   RecentActivityWidget,
@@ -12,6 +14,7 @@ import {
   QuickLinksWidget,
   TopContributorsWidget,
   RecentSharedWidget,
+  WorkspaceFilesWidget,
 } from './Widgets';
 
 interface ActivityUser {
@@ -117,6 +120,11 @@ export default function StartPage() {
   const localize = useLocalize();
   const [dontShowAgain, setDontShowAgain] = useState(false);
 
+  // RAG Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any>(null);
+  const [isSearching, setIsSearching] = useState(false);
+
   const { data, isLoading, error } = useQuery<StartPageData>(
     ['workspaceStartPage', workspaceId],
     () => getWorkspaceStartPage(workspaceId!),
@@ -126,6 +134,12 @@ export default function StartPage() {
       refetchOnMount: 'always', // Always refetch when component mounts
       refetchOnWindowFocus: true, // Refetch when window regains focus
     },
+  );
+
+  // Query for indexed files in workspace (for RAG search)
+  const { data: allFiles = [] } = useGetFiles(workspaceId || '');
+  const indexedFiles = allFiles.filter(
+    (file: any) => file.embedded === true && file.filepath === 'vectordb'
   );
 
   useEffect(() => {
@@ -162,6 +176,32 @@ export default function StartPage() {
       navigate(`/d/prompts/${resourceId}`);
     } else if (resourceType === 'file') {
       navigate(`/d/files/${resourceId}`);
+    }
+  };
+
+  // RAG Search handler
+  const handleSearchSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim() || !workspaceId || indexedFiles.length === 0) {
+      return;
+    }
+
+    setIsSearching(true);
+    setSearchResults(null);
+
+    try {
+      // Navigate to new conversation with workspace context and search query
+      // The agent will automatically use file_search tool with workspace files
+      navigate(`/c/new`, {
+        state: {
+          workspaceId: workspaceId,
+          initialMessage: searchQuery,
+          fileSearchEnabled: true,
+        },
+      });
+    } catch (error) {
+      console.error('Search failed:', error);
+      setIsSearching(false);
     }
   };
 
@@ -358,6 +398,62 @@ export default function StartPage() {
               </ReactMarkdown>
             </div>
           )}
+
+          {/* RAG Search Section - Ask Questions About Workspace Files */}
+          {indexedFiles.length > 0 && (
+            <div className="rounded-lg border border-border-light bg-surface-secondary p-6">
+              <h2 className="mb-3 text-lg font-semibold text-text-primary">
+                Ask About Workspace Files
+              </h2>
+              <p className="mb-4 text-sm text-text-secondary">
+                Search across {indexedFiles.length} indexed document{indexedFiles.length !== 1 ? 's' : ''} using AI.
+                Get instant answers with source citations.
+              </p>
+
+              <form onSubmit={handleSearchSubmit} className="space-y-4">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Ask a question about your workspace files..."
+                    className="flex-1 rounded-lg border border-border-medium bg-surface-primary px-4 py-3 text-sm text-text-primary placeholder-text-secondary focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/20"
+                    disabled={isSearching}
+                  />
+                  <button
+                    type="submit"
+                    disabled={!searchQuery.trim() || isSearching}
+                    className="rounded-lg bg-green-600 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isSearching ? 'Searching...' : 'Search'}
+                  </button>
+                </div>
+
+                <div className="flex items-start gap-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 p-3">
+                  <svg
+                    className="h-5 w-5 flex-shrink-0 text-blue-600 dark:text-blue-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <p className="text-xs text-blue-800 dark:text-blue-200">
+                    This will start a new conversation with AI-powered search enabled.
+                    The AI will search through your indexed workspace files and provide answers with citations.
+                  </p>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* Workspace Files Widget */}
+          {workspaceId && <WorkspaceFilesWidget workspaceId={workspaceId} />}
 
           {/* Action Buttons */}
           <div className="flex flex-col gap-4 border-t border-border-light pb-8 pt-8">

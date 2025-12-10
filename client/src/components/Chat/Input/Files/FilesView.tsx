@@ -8,14 +8,17 @@ import { useLocalize } from '~/hooks';
 export default function Files({ open, onOpenChange }) {
   const localize = useLocalize();
 
-  const { data: files = [] } = useGetFiles<TFile[]>({
-    select: (files) =>
-      files.map((file) => {
-        file.context = file.context ?? FileContext.unknown;
-        file.filterSource = file.source === FileSources.firebase ? FileSources.local : file.source;
-        return file;
-      }),
-  });
+  const { data: files = [] } = useGetFiles<TFile[]>(
+    null, // Explicitly request only personal files (exclude workspace files)
+    {
+      select: (files) =>
+        files.map((file) => {
+          file.context = file.context ?? FileContext.unknown;
+          file.filterSource = file.source === FileSources.firebase ? FileSources.local : file.source;
+          return file;
+        }),
+    }
+  );
 
   return (
     <OGDialog open={open} onOpenChange={onOpenChange}>

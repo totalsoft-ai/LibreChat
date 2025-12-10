@@ -1,144 +1,103 @@
 # AI Models & Configuration
 
-Learn how to select the right AI model for your needs and configure parameters to get the best results from your conversations.
+Learn how to select the right local AI model for your needs and configure parameters to get the best results from your conversations.
 
 ## What You'll Learn
 
-- Understanding different AI providers and models
+- Understanding local AI models running on Local Models
 - Selecting the right model for your task
 - Configuring model parameters (temperature, tokens, etc.)
 - Creating and using presets
-- Endpoint-specific settings
 - Model comparison and capabilities
+- Working with RAG (file search)
 
-## AI Providers and Models
 
-TESSA integrates multiple AI providers, each with unique models and capabilities.
+### Local Models 
 
-### OpenAI
-
-**Available Models:**
-- **GPT-4 Turbo**: Most capable, best for complex tasks
-- **GPT-4**: Highly capable, good reasoning
-- **GPT-3.5 Turbo**: Fast and cost-effective for simpler tasks
-- **GPT-4 Vision**: Can analyze images
-
-**Best for:**
-- General conversation and assistance
-- Code generation and debugging
-- Creative writing
-- Problem-solving
-- Image analysis (Vision models)
-
-**Strengths:**
-- Excellent instruction following
-- Strong reasoning capabilities
-- Good code generation
-- Wide knowledge base
-
-### Anthropic (Claude)
+All models run locally via Ollama.
 
 **Available Models:**
-- **Claude 3 Opus**: Most powerful, best for complex tasks
-- **Claude 3 Sonnet**: Balanced performance and speed
-- **Claude 3 Haiku**: Fastest, good for simple tasks
 
-**Best for:**
-- Long-form content analysis
-- Complex reasoning
-- Ethical and nuanced discussions
-- Detailed explanations
-- Large document processing
+1. **deepseek-r1:8b**
+   - Reasoning-focused model with chain-of-thought capabilities
+   - Best for: Complex problem-solving, step-by-step reasoning, mathematical tasks
+   - Context: 8B parameters
 
-**Strengths:**
-- Excellent at following complex instructions
-- Strong at analysis and reasoning
-- Handles longer contexts well
-- Thoughtful and nuanced responses
+2. **qwen3:8b** (Default)
+   - Balanced general-purpose model
+   - Best for: General conversation, coding, analysis
+   - Context: 8B parameters
 
-### Google (Gemini)
+3. **gemma3:27b**
+   - Largest model with best capabilities
+   - Best for: Complex tasks, detailed analysis, high-quality outputs
+   - Context: 27B parameters
 
-**Available Models:**
-- **Gemini Pro**: General-purpose model
-- **Gemini Ultra**: Most capable (when available)
-- **Gemini Pro Vision**: Multimodal with image understanding
+4. **gemma3:4b**
+   - Fast and efficient smaller model
+   - Best for: Quick responses, simple tasks, cost-effective processing
+   - Context: 4B parameters
 
-**Best for:**
-- Multimodal tasks (text + images)
-- Fast responses
-- Real-time information (when enabled)
-- Creative tasks
+5. **Test_Gemma_Retrained:latest**
+   - Custom fine-tuned model for specific use cases
+   - Best for: Specialized tasks, domain-specific knowledge
 
-**Strengths:**
-- Multimodal capabilities
-- Fast response generation
-- Good at creative tasks
-- Integration with Google services (if configured)
+6. **phi4-mini:latest**
+   - Microsoft's compact yet powerful model
+   - Best for: Balanced performance and speed, coding tasks
 
-### Azure OpenAI
+7. **embeddinggemma:latest**
+   - Specialized for text embeddings
+   - Used internally for RAG (file search) functionality
+   - Best for: Semantic search, document similarity
 
-**Available Models:**
-- Same as OpenAI (GPT-4, GPT-3.5)
-- Deployed through Azure infrastructure
+**All models support:**
+- ✅ **File Search (RAG)**: Upload documents and search through them
+- ✅ **Local Processing**: Full privacy, no external API calls
+- ✅ **Workspaces**: Organize conversations and files by projects
+- ✅ **Multi-file Upload**: Upload multiple documents at once
+- ✅ **Progress Tracking**: Visual feedback during file processing
 
-**Best for:**
-- Enterprise environments
-- Compliance requirements
-- Regional data requirements
-
-**Strengths:**
-- Enterprise-grade reliability
-- Compliance and security features
-- Regional deployment options
-
-### Other Providers
-
-Depending on your configuration, you may also have access to:
-- **Mistral AI**: Fast, efficient models
-- **Meta Llama**: Open-source models
-- **Cohere**: Specialized in text generation
-- **AI21**: Specialized language models
-- **Custom endpoints**: Self-hosted or specialized models
-
-> **Note:** Available models depend on your TESSA configuration and your account permissions.
-
-## Selecting an AI Model
+## Selecting a Local AI Model
 
 ### Choosing the Right Model
 
 Consider these factors when selecting a model:
 
 **1. Task Complexity**
-- **Simple tasks** (quick answers, basic formatting): GPT-3.5, Claude Haiku, smaller models
-- **Medium tasks** (drafting, analysis, coding): GPT-4, Claude Sonnet, Gemini Pro
-- **Complex tasks** (research, deep analysis, complex coding): GPT-4 Turbo, Claude Opus
+- **Simple tasks** (quick answers, basic questions): gemma3:4b, phi4-mini:latest
+- **Medium tasks** (drafting, analysis, coding): qwen3:8b (default), phi4-mini:latest
+- **Complex tasks** (deep reasoning, research, complex coding): deepseek-r1:8b, gemma3:27b
+- **Specialized reasoning**: deepseek-r1:8b (shows thinking process)
 
 **2. Response Speed**
-- **Fast**: GPT-3.5 Turbo, Claude Haiku, smaller models
-- **Balanced**: Claude Sonnet, Gemini Pro
-- **Slower but more capable**: GPT-4 Turbo, Claude Opus
+- **Fastest**: gemma3:4b
+- **Fast**: qwen3:8b, phi4-mini:latest
+- **Medium**: deepseek-r1:8b
+- **Slower but most capable**: gemma3:27b
 
-**3. Cost Considerations**
-- **Lower cost**: GPT-3.5, Claude Haiku
-- **Mid-range**: Claude Sonnet, Gemini Pro
-- **Higher cost**: GPT-4, Claude Opus
+**3. Resource Usage**
+- **Lowest**: gemma3:4b (4B parameters)
+- **Moderate**: qwen3:8b, deepseek-r1:8b (8B parameters)
+- **Highest**: gemma3:27b (27B parameters)
 
 **4. Special Capabilities**
-- **Image analysis**: GPT-4 Vision, Gemini Pro Vision
-- **Long contexts**: Claude models (up to 200K tokens)
-- **Coding**: GPT-4, Claude Sonnet
-- **Creative writing**: Claude Opus, GPT-4
+- **Reasoning with thinking**: deepseek-r1:8b
+- **Code generation**: qwen3:8b, phi4-mini:latest
+- **General purpose**: qwen3:8b (recommended default)
+- **Maximum quality**: gemma3:27b
+- **Custom domain**: Test_Gemma_Retrained:latest
 
 ### How to Select a Model
 
 **Step 1: Open Model Selector**
 1. Start a new conversation or open an existing one
 2. Click the **model selector** dropdown at the top of the chat area
-3. You'll see available providers (OpenAI, Anthropic, Google, etc.)
+3. Look for **Local models** provider
 
-**Step 2: Choose Provider**
-1. Click on your preferred provider
-2. A submenu shows available models from that provider
+**Step 2: Choose Local Models**
+1. Click on **Local Models**
+2. A submenu shows all available local models
 
 **Step 3: Select Specific Model**
 1. Click on the model you want to use
@@ -147,23 +106,25 @@ Consider these factors when selecting a model:
 
 **Step 4: Verify Selection**
 - The selected model displays at the top of the chat
-- Model icon indicates the provider
-- Model name shows which specific model is active
+- Model name shows which specific local model is active
+- All processing happens locally on your infrastructure
 
-> **Tip:** You can change models mid-conversation, but previous messages keep their original model. Each message stores which model generated it.
+> **Tip:** You can change models mid-conversation. Each message stores which model generated it.
 
 ### Model Comparison
 
-| Feature | GPT-4 Turbo | Claude 3 Opus | Gemini Pro | GPT-3.5 Turbo |
-|---------|-------------|---------------|------------|---------------|
-| **Capability** | Very High | Very High | High | Medium |
-| **Speed** | Medium | Medium | Fast | Very Fast |
-| **Cost** | High | High | Medium | Low |
-| **Context Window** | 128K tokens | 200K tokens | 32K tokens | 16K tokens |
-| **Code Generation** | Excellent | Excellent | Good | Good |
-| **Creative Writing** | Excellent | Excellent | Good | Good |
-| **Analysis** | Excellent | Excellent | Good | Fair |
-| **Image Input** | Yes (Vision) | Yes | Yes (Vision) | No |
+| Feature | gemma3:27b | deepseek-r1:8b | qwen3:8b | phi4-mini | gemma3:4b |
+|---------|------------|----------------|----------|-----------|-----------|
+| **Size** | 27B params | 8B params | 8B params | ~4B params | 4B params |
+| **Capability** | Very High | High (Reasoning) | High | Medium-High | Medium |
+| **Speed** | Slower | Medium | Fast | Fast | Very Fast |
+| **Resource Use** | High | Medium | Medium | Low-Medium | Low |
+| **Reasoning** | Excellent | Excellent (CoT) | Good | Good | Fair |
+| **Code Generation** | Excellent | Good | Excellent | Excellent | Good |
+| **Creative Tasks** | Excellent | Good | Good | Good | Fair |
+| **File Search (RAG)** | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Yes |
+
+**CoT** = Chain of Thought (shows reasoning steps)
 
 ## Model Parameters
 
@@ -198,7 +159,6 @@ Fine-tune how models generate responses by adjusting parameters.
 - Brainstorming
 - Exploring alternatives
 - Story generation
-- Artistic tasks
 
 **How to set:**
 1. Open conversation settings (gear icon)
@@ -206,7 +166,7 @@ Fine-tune how models generate responses by adjusting parameters.
 3. Drag to desired value
 4. Or enter a specific number
 
-> **Tip:** Start with default temperature (usually 1.0) and adjust based on results. Lower for consistency, higher for creativity.
+> **Tip:** Start with default temperature and adjust based on results. Lower for consistency, higher for creativity.
 
 ### Top P (Nucleus Sampling)
 
@@ -217,15 +177,14 @@ Fine-tune how models generate responses by adjusting parameters.
 - **0.5**: Moderate
 - **0.9 - 1.0**: More diverse (default)
 
-**How it works:** Considers only the most likely tokens that add up to the probability P
+**How it works:** Considers only the most likely tokens that add up to probability P
 
 **When to use:**
 - Alternative to temperature
-- Can be used with temperature for fine control
 - Lower values = more focused responses
 - Higher values = more diverse responses
 
-> **Note:** Using both temperature and top P can lead to unexpected results. It's often better to adjust one or the other.
+> **Note:** Using both temperature and top P can lead to unexpected results. Adjust one or the other.
 
 ### Max Tokens (Output Length)
 
@@ -235,19 +194,13 @@ Fine-tune how models generate responses by adjusting parameters.
 - **256 - 512**: Short responses
 - **1024**: Medium responses (default)
 - **2048 - 4096**: Long, detailed responses
-- **4096+**: Very long responses (essays, articles)
-
-**Considerations:**
-- Higher values use more credits/cost more
-- Model may not always use the full amount
-- Some tasks naturally need more tokens
 
 **When to adjust:**
 
 **Lower (256-512):**
 - Quick answers
 - Simple responses
-- Cost optimization
+- Resource optimization
 
 **Medium (1024-2048):**
 - Standard conversations
@@ -260,12 +213,6 @@ Fine-tune how models generate responses by adjusting parameters.
 - Complex code
 - Essays and articles
 
-**How to set:**
-1. Open conversation settings
-2. Find **Max Tokens** field
-3. Enter desired value
-4. Or use slider if available
-
 ### Frequency Penalty
 
 **What it controls:** Reduces repetition of tokens that already appeared
@@ -276,14 +223,8 @@ Fine-tune how models generate responses by adjusting parameters.
 - **1.0 - 2.0**: Strong reduction, encourages variety
 
 **When to use:**
-- Higher values when you want more variety in word choice
-- Lower values for consistent terminology
+- Higher values for more variety in word choice
 - Increase if responses feel repetitive
-
-**Effects:**
-- Positive values = less likely to repeat same words
-- Makes output more diverse
-- Too high can make output less coherent
 
 ### Presence Penalty
 
@@ -297,30 +238,6 @@ Fine-tune how models generate responses by adjusting parameters.
 **When to use:**
 - Higher values for more diverse discussions
 - Lower values for focused, on-topic responses
-- Increase to explore related topics
-
-**Effects:**
-- Positive values = more likely to introduce new topics
-- Makes conversations more exploratory
-- Too high can cause topic drift
-
-### Stop Sequences
-
-**What it controls:** Tokens that stop generation when encountered
-
-**Format:** Text strings (e.g., "END", "###", "\n\n")
-
-**When to use:**
-- Structured output formats
-- Preventing certain patterns
-- Controlling output boundaries
-- Custom formatting needs
-
-**Example:**
-```
-Stop sequences: ["END", "---"]
-Model will stop generating when it encounters these strings
-```
 
 ## Creating and Using Presets
 
@@ -334,7 +251,7 @@ Presets save your model configuration for reuse.
 - Save time by not reconfiguring each time
 - Consistency across conversations
 - Quick switching between use cases
-- Share configurations with others
+- Share configurations with team
 
 **What presets save:**
 - Selected model
@@ -344,13 +261,12 @@ Presets save your model configuration for reuse.
 - Frequency penalty
 - Presence penalty
 - Stop sequences
-- Other endpoint-specific settings
 
 ### Creating a Preset
 
 **Step 1: Configure Your Settings**
 1. Open a conversation
-2. Select your desired model
+2. Select your desired local model
 3. Adjust all parameters as needed
 4. Test to ensure settings work well
 
@@ -358,266 +274,196 @@ Presets save your model configuration for reuse.
 1. Click the **presets** dropdown or button
 2. Select **Save as Preset**
 3. Enter a descriptive name
-   - Good: "Creative Writing - Claude Opus"
-   - Good: "Code Review - GPT-4 Low Temp"
-   - Bad: "Preset 1"
+   - Good: "Code Review - qwen3:8b Low Temp"
+   - Good: "Reasoning Tasks - deepseek-r1:8b"
+   - Good: "Fast Responses - gemma3:4b"
 4. Optionally add a description
 5. Click **Save**
 
-**Step 3: Verify**
-- The preset appears in your presets list
-- You can now select it from the presets dropdown
-
-### Using a Preset
-
-**Method 1: From Presets Menu**
-1. Click the **presets** dropdown
-2. Browse your saved presets
-3. Click on the preset you want
-4. All settings are applied instantly
-
-**Method 2: When Starting a Conversation**
-1. Click **+ New Chat**
-2. Select a preset before typing
-3. The conversation uses those settings from the start
-
-**Method 3: Mid-Conversation**
-1. Open the presets menu
-2. Select a different preset
-3. New messages use the new settings
-
-> **Note:** Changing presets mid-conversation doesn't affect previous messages.
-
-### Managing Presets
-
-**Edit a Preset:**
-1. Open presets menu
-2. Find the preset to edit
-3. Click **Edit** (pencil icon)
-4. Modify settings
-5. Click **Save Changes**
-
-**Delete a Preset:**
-1. Open presets menu
-2. Find the preset to delete
-3. Click **Delete** (trash icon)
-4. Confirm deletion
-
-**Organize Presets:**
-- Name presets consistently
-- Group by use case: "Writing - ", "Code - ", "Analysis - "
-- Include model name for clarity
-- Add descriptions for complex configurations
-
-### Preset Ideas
-
-**Creative Writing**
-```
-Model: Claude 3 Opus or GPT-4
-Temperature: 1.2
-Max Tokens: 4096
-Frequency Penalty: 0.7
-Presence Penalty: 0.6
-```
+### Preset Ideas for Local Models
 
 **Code Generation**
 ```
-Model: GPT-4 or Claude Sonnet
+Model: qwen3:8b or phi4-mini:latest
 Temperature: 0.2
 Max Tokens: 2048
 Frequency Penalty: 0.0
 Presence Penalty: 0.0
 ```
 
-**Data Analysis**
+**Reasoning & Problem Solving**
 ```
-Model: GPT-4 Turbo
+Model: deepseek-r1:8b
 Temperature: 0.3
 Max Tokens: 2048
 Frequency Penalty: 0.0
 Presence Penalty: 0.0
 ```
 
-**Brainstorming**
+**Complex Analysis**
 ```
-Model: Claude 3 Opus or GPT-4
-Temperature: 1.5
-Max Tokens: 2048
-Frequency Penalty: 1.0
-Presence Penalty: 0.8
+Model: gemma3:27b
+Temperature: 0.4
+Max Tokens: 4096
+Frequency Penalty: 0.0
+Presence Penalty: 0.0
 ```
 
-**Concise Answers**
+**Quick Q&A**
 ```
-Model: GPT-3.5 Turbo or Claude Haiku
-Temperature: 0.5
+Model: gemma3:4b
+Temperature: 0.7
 Max Tokens: 512
 Frequency Penalty: 0.0
 Presence Penalty: 0.0
 ```
 
-## Endpoint-Specific Settings
+**Creative Writing**
+```
+Model: gemma3:27b
+Temperature: 1.2
+Max Tokens: 4096
+Frequency Penalty: 0.7
+Presence Penalty: 0.6
+```
 
-Some providers offer unique settings.
+## File Search (RAG) with Local Models
 
-### OpenAI-Specific
+All local models support document search through uploaded files.
 
-**Function Calling / Tools:**
-- Enable AI to use tools and functions
-- Useful for structured outputs
-- Required for some agents
+### How It Works
 
-**Response Format:**
-- JSON mode for structured output
-- Text mode for natural language
+1. **Upload documents** in workspace or conversation
+2. **Files are indexed** using embeddinggemma:latest
+3. **Ask questions** and AI searches through your documents
+4. **Get answers with citations** from your files
 
-**Seed (Reproducibility):**
-- Set a seed value for consistent results
-- Same input + same seed = same output
-- Useful for testing and debugging
+### Supported File Types
 
-### Anthropic-Specific
+- PDF documents
+- Text files (.txt, .md)
+- Microsoft Office files (.docx, .xlsx)
+- Images (with OCR)
 
-**System Messages:**
-- Claude handles system messages differently
-- Provides context and instructions
-- Affects entire conversation
+### Best Practices
 
-**Thinking/Reasoning:**
-- Some Claude models show "thinking" process
-- Can enable/disable in settings
-- Provides insight into reasoning
+1. **Upload relevant documents** before starting conversation
+2. **Wait for "Indexed" status** (green checkmark) before querying
+3. **Ask specific questions** for better search results
+4. **Use workspaces** to organize documents by project
+
+### Progress Tracking
+
+When uploading files, you'll see:
+- **Converting...** - Processing images (HEIC conversion)
+- **Uploading...** - File transfer in progress
+- **Indexing...** - Generating embeddings for search
+- **Indexed** ✅ - Ready for search
 
 ## Best Practices
 
 ### Model Selection
 
-1. **Start simple**: Use GPT-3.5 or Claude Haiku for initial testing
-2. **Upgrade when needed**: Switch to GPT-4 or Opus for complex tasks
-3. **Match model to task**: Don't use expensive models for simple tasks
-4. **Test different models**: Compare results across providers
-5. **Consider context length**: Use Claude for long documents
+1. **Start with qwen3:8b**: Good balance of speed and capability (default)
+2. **Use gemma3:4b for speed**: When you need fast responses
+3. **Switch to deepseek-r1:8b**: For complex reasoning tasks
+4. **Use gemma3:27b**: For highest quality outputs
+5. **Try phi4-mini:latest**: Excellent for coding tasks
 
 ### Parameter Tuning
 
 1. **Start with defaults**: Adjust only if results aren't satisfactory
 2. **Change one parameter at a time**: Easier to understand effects
 3. **Lower temperature for accuracy**: Higher for creativity
-4. **Balance cost and quality**: Higher max tokens = higher cost
-5. **Test your settings**: Verify they produce desired results
+4. **Test your settings**: Verify they produce desired results
 
-### Preset Management
+### Working with Files
 
-1. **Create presets for common tasks**: Save time and ensure consistency
-2. **Name descriptively**: Include use case and model
-3. **Document complex presets**: Add descriptions
-4. **Review and update**: Settings that worked may need adjustment over time
-5. **Share with team**: If working collaboratively
+1. **Upload documents to workspaces**: Better organization
+2. **Wait for indexing**: Don't query until "Indexed" status shows
+3. **Ask specific questions**: Better search results
+4. **Use file citations**: Verify information from documents
 
-### Cost Optimization
+## Common Scenarios
 
-1. **Use appropriate models**: Don't overuse expensive models
-2. **Limit max tokens**: Set reasonable limits
-3. **Lower temperature**: Slightly reduces unpredictability and potential retries
-4. **Batch similar tasks**: Use same conversation when possible
-5. **Monitor usage**: Check your credit/token usage regularly
+### Scenario 1: Code Debugging
+
+**Best configuration:**
+- Model: qwen3:8b or phi4-mini:latest
+- Temperature: 0.2
+- Max Tokens: 2048
+- Reasoning: Need accuracy and consistency
+
+### Scenario 2: Complex Problem Solving
+
+**Best configuration:**
+- Model: deepseek-r1:8b
+- Temperature: 0.3
+- Max Tokens: 2048
+- Reasoning: Shows thinking process, step-by-step solution
+
+### Scenario 3: Document Analysis with RAG
+
+**Best configuration:**
+- Model: gemma3:27b
+- Temperature: 0.4
+- Max Tokens: 2048
+- Files: Upload relevant documents first
+- Reasoning: Best comprehension of uploaded documents
+
+### Scenario 4: Quick Answers
+
+**Best configuration:**
+- Model: gemma3:4b
+- Temperature: 0.7
+- Max Tokens: 512
+- Reasoning: Fast, efficient for simple questions
 
 ## Troubleshooting
 
 ### Model Not Available
-**Problem:** The model you want doesn't appear in the list
+**Problem:** A model doesn't appear in the list
 
 **Solutions:**
-- Check with your administrator
-- Verify your account permissions
-- Some models may require specific subscriptions
-- Model availability can change
+- Check that Ollama is running on the server
+- Verify model is pulled: `ollama list`
+- Contact administrator if model is missing
 
-### Responses Too Random/Inconsistent
-**Problem:** AI generates very different responses to similar inputs
-
-**Solutions:**
-- Lower temperature (try 0.3-0.5)
-- Lower top P value
-- Reduce frequency and presence penalties
-- Try a different model
-
-### Responses Too Generic/Boring
-**Problem:** AI responses lack creativity or variety
+### Slow Responses
+**Problem:** Model takes too long to respond
 
 **Solutions:**
-- Increase temperature (try 1.0-1.5)
-- Increase frequency penalty
-- Increase presence penalty
-- Try a different prompt approach
-- Use a more capable model
+- Switch to smaller model (gemma3:4b, qwen3:8b)
+- Reduce max tokens
+- Check server resource usage
+- Use faster parameters (lower temperature)
+
+### File Not Indexing
+**Problem:** Uploaded file stuck on "Indexing..."
+
+**Solutions:**
+- Wait up to 5 minutes (automatic status polling)
+- Check RAG service is running
+- Verify network connectivity
+- Try re-uploading the file
 
 ### Responses Cut Off
-**Problem:** AI stops mid-sentence or doesn't complete response
+**Problem:** AI stops mid-sentence
 
 **Solutions:**
 - Increase max tokens
-- Check if response hit token limit
-- Some conversations may need to be continued manually
 - Ask "Please continue" to get more
-
-### Preset Not Working
-**Problem:** Selecting a preset doesn't apply settings
-
-**Solutions:**
-- Refresh the page
-- Delete and recreate the preset
-- Check if preset includes all needed settings
-- Verify model is still available
-
-## Common Scenarios
-
-### Scenario 1: Writing a Technical Document
-
-**Best configuration:**
-- Model: GPT-4 or Claude Sonnet
-- Temperature: 0.5-0.7
-- Max Tokens: 4096
-- Frequency Penalty: 0.5
-- Reasoning: Balanced creativity with technical accuracy
-
-### Scenario 2: Debugging Code
-
-**Best configuration:**
-- Model: GPT-4 or Claude Sonnet
-- Temperature: 0.2
-- Max Tokens: 2048
-- Frequency Penalty: 0.0
-- Reasoning: Need accuracy and consistency
-
-### Scenario 3: Creative Storytelling
-
-**Best configuration:**
-- Model: Claude Opus or GPT-4
-- Temperature: 1.3
-- Max Tokens: 4096
-- Frequency Penalty: 0.8
-- Presence Penalty: 0.6
-- Reasoning: Maximize creativity and variety
-
-### Scenario 4: Quick Q&A
-
-**Best configuration:**
-- Model: GPT-3.5 Turbo or Claude Haiku
-- Temperature: 0.7
-- Max Tokens: 512
-- Frequency Penalty: 0.0
-- Reasoning: Fast, cost-effective, concise
+- Some responses naturally need continuation
 
 ## Next Steps
 
 Explore these related features:
 
-- **[Agents Marketplace](./04-agents.md)**: Use pre-configured AI agents with optimal settings
-- **[Prompts Library](./07-prompts.md)**: Combine prompts with presets for powerful workflows
-- **[Advanced Features](./09-advanced.md)**: Explore advanced model capabilities
-- **[Settings & Personalization](./10-settings.md)**: Customize your overall TESSA experience
+- **[Workspaces](./12-workspaces.md)**: Organize conversations and files by project
+- **[File Search](./05-file-search.md)**: Upload and search through documents
+- **[Prompts Library](./07-prompts.md)**: Combine prompts with presets
+- **[Settings & Personalization](./10-settings.md)**: Customize your TESSA experience
 
 ---
 
-**Master model configuration** to get the best results for every task!
+**Master local model configuration** to get the best results from your Local Models!
