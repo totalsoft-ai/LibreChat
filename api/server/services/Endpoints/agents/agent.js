@@ -99,6 +99,12 @@ const initializeAgent = async ({
   });
 
   const provider = agent.provider;
+
+  // Extract workspace from multiple sources for compatibility
+  const workspaceId = req.conversationWorkspace ||
+                      req.body.workspace ||
+                      req.body.conversation?.workspace;
+
   const {
     tools: structuredTools,
     toolContextMap,
@@ -111,6 +117,7 @@ const initializeAgent = async ({
     tools: agent.tools,
     model: agent.model,
     tool_resources,
+    workspaceId,
   })) ?? {};
 
   agent.endpoint = provider;

@@ -60,6 +60,11 @@ const validateConvoAccess = async (req, res, next) => {
       return await denyRequest(req, res, errorMessage);
     }
 
+    // Attach workspace to request for downstream use
+    if (conversation?.workspace) {
+      req.conversationWorkspace = conversation.workspace;
+    }
+
     if (cache) {
       await cache.set(key, 'authorized', Time.TEN_MINUTES);
     }

@@ -553,6 +553,11 @@ async function loadAgentTools({ req, res, agent, signal, tool_resources, openAIA
     });
   }
 
+  // Extract workspace from request context
+  const workspaceId = req.conversationWorkspace ||
+                      req.body.workspace ||
+                      req.body.conversation?.workspace;
+
   const { loadedTools, toolContextMap } = await loadTools({
     agent,
     signal,
@@ -568,6 +573,7 @@ async function loadAgentTools({ req, res, agent, signal, tool_resources, openAIA
       processFileURL,
       uploadImageBuffer,
       returnMetadata: true,
+      workspaceId,
       [Tools.web_search]: webSearchCallbacks,
     },
     webSearch: appConfig.webSearch,
