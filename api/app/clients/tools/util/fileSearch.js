@@ -25,27 +25,27 @@ const primeFiles = async (options) => {
   const agentResourceIds = new Set(file_ids);
   const resourceFiles = tool_resources?.[EToolResources.file_search]?.files ?? [];
 
-  // Get files: if no files attached, search ALL user's files in namespace
+  // Get files: if no files attached, search ALL workspace files or user's personal files
   let allFiles;
   if (file_ids.length === 0 && req?.user?.id) {
-    // No files attached - get ALL user's files with embedded: true (indexed in RAG)
-    const queryContext = workspaceId ? `workspace ${workspaceId}` : 'all namespaces';
-    logger.info(`[primeFiles] No files attached, fetching all indexed files for user: ${req.user.id} in ${queryContext}`);
-
     const fileQuery = {
-      user: req.user.id,
       embedded: true,  // Only get files that are indexed in RAG
       filepath: 'vectordb'  // Only RAG-indexed files
     };
 
-    // Add workspace filter if workspaceId is provided
     if (workspaceId) {
+      // In workspace: get ALL files from workspace (shared among all members)
       fileQuery.workspace = workspaceId;
-      logger.info(`[primeFiles] Filtering files by workspace: ${workspaceId}`);
+      logger.info(`[primeFiles] No files attached, fetching all indexed files in workspace: ${workspaceId}`);
+    } else {
+      // In personal: get only user's own files
+      fileQuery.user = req.user.id;
+      logger.info(`[primeFiles] No files attached, fetching all indexed files for user: ${req.user.id} (personal)`);
     }
 
     allFiles = (await getFiles(fileQuery, null, { text: 0 })) ?? [];
-    logger.info(`[primeFiles] Found ${allFiles.length} indexed files for user ${req.user.id} in ${queryContext}`);
+    const context = workspaceId ? `workspace ${workspaceId}` : `user ${req.user.id} (personal)`;
+    logger.info(`[primeFiles] Found ${allFiles.length} indexed files in ${context}`);
     if (allFiles.length > 0) {
       logger.debug(`[primeFiles] Files: ${allFiles.map(f => `${f.filename} (workspace: ${f.workspace || 'none'})`).join(', ')}`);
     }
