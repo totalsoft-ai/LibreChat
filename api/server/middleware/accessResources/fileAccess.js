@@ -104,6 +104,22 @@ const fileAccess = async (req, res, next) => {
       return next();
     }
 
+    /** Workspace visibility access (file visible to all workspace members) */
+    if (file.workspace) {
+      // Allow access if file belongs to workspace and user is member
+      // (regardless of visibility setting for workspace files)
+      const Workspace = require('~/models/Workspace');
+      const workspace = await Workspace.findOne({
+        workspaceId: file.workspace,
+        isActive: true,
+      });
+
+      if (workspace && workspace.isMember(userId)) {
+        req.fileAccess = { file };
+        return next();
+      }
+    }
+
     logger.warn(`[fileAccess] User ${userId} denied access to file ${fileId}`);
     return res.status(403).json({
       error: 'Forbidden',

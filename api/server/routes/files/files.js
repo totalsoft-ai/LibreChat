@@ -46,17 +46,39 @@ router.get('/', async (req, res) => {
     const { workspace } = req.query;
 
     // Build file filter
-    const filter = { user: req.user.id };
+    const filter = {};
 
     // Handle workspace filter
     if (workspace !== undefined) {
       if (workspace === null || workspace === 'personal' || workspace === '') {
-        // Filter for personal files (no workspace)
+        // Personal files - only current user's files
+        filter.user = req.user.id;
         filter.$or = [{ workspace: null }, { workspace: { $exists: false } }];
       } else {
-        // Filter for specific workspace
+        // Workspace files - verify membership and return all workspace files
+        const Workspace = require('~/models/Workspace');
+        const ws = await Workspace.findOne({ workspaceId: workspace, isActive: true });
+
+        if (!ws) {
+          return res.status(404).json({ message: 'Workspace not found' });
+        }
+
+        if (!ws.isMember(req.user.id)) {
+          return res.status(403).json({ message: 'Not a workspace member' });
+        }
+
+        // Return all workspace files (regardless of visibility setting)
+        // For workspace context, all files in the workspace are visible to members
         filter.workspace = workspace;
+//        filter.$or = [
+//          { visibility: 'workspace' },
+//          { visibility: 'private' },
+//          { visibility: { $exists: false } },
+//        ];
       }
+    } else {
+      // No workspace parameter - only user's files
+      filter.user = req.user.id;
     }
 
     const files = await getFiles(filter);
@@ -476,6 +498,8 @@ router.post('/', async (req, res) => {
 
       // Store workspaceId string instead of ObjectId for consistency with schema
       metadata.workspace = ws.workspaceId;
+      // Auto-set visibility to 'workspace' for workspace files
+      metadata.visibility = 'workspace';
     }
 
     const isAssistantEndpoint =

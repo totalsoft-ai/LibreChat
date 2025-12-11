@@ -11,7 +11,7 @@ const mongoose = require('mongoose');
  */
 const searchConversation = async (conversationId) => {
   try {
-    return await Conversation.findOne({ conversationId }, 'conversationId user').lean();
+    return await Conversation.findOne({ conversationId }, 'conversationId user workspace').lean();
   } catch (error) {
     logger.error('[searchConversation] Error searching conversation', error);
     throw new Error('Error searching conversation');
