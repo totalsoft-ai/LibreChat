@@ -53,8 +53,16 @@ jobs:
       run: |
         Copy-Item "custom\config\k8s\custom-values_dev.yaml" "custom\config\k8s\custom-values.yaml" -Force
 
-    
-    
+
+    - name: Create production certificates from secrets
+      if: ${{ github.event.inputs.environment == 'production' }}
+      shell: pwsh
+      run: |
+        New-Item -ItemType Directory -Force -Path "custom/cert"
+        "${{ secrets.TESSA_TLS_CERT }}" | Out-File -FilePath "custom/cert/tessa-totalsoft.crt" -Encoding ASCII
+        "${{ secrets.TESSA_TLS_KEY }}" | Out-File -FilePath "custom/cert/tessa-totalsoft.key" -Encoding ASCII
+        Write-Host "Production certificates created from secrets" -ForegroundColor Green
+
     - name: Run build and deploy script
       shell: pwsh
       run: |

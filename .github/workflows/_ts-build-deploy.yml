@@ -54,7 +54,15 @@ jobs:
             exit 1
           }
         }
-      
+
+    - name: Create production certificates from secrets
+      shell: pwsh
+      run: |
+        New-Item -ItemType Directory -Force -Path "custom/cert"
+        "${{ secrets.TESSA_TLS_CERT }}" | Out-File -FilePath "custom/cert/tessa-totalsoft.crt" -Encoding ASCII
+        "${{ secrets.TESSA_TLS_KEY }}" | Out-File -FilePath "custom/cert/tessa-totalsoft.key" -Encoding ASCII
+        Write-Host "Production certificates created from secrets" -ForegroundColor Green
+
     - name: Run build and deploy script
       shell: pwsh
       run: |
@@ -123,7 +131,7 @@ jobs:
           "LIBRECHAT_WEBHOOK_URL" = "${{ vars.LIBRECHAT_WEBHOOK_URL }}"
           "RAG_SKIP_EMBEDDED_CHECK" ="${{ vars.RAG_SKIP_EMBEDDED_CHECK }}"
           "MINIO_ENDPOINT_URL" ="${{ vars.MINIO_ENDPOINT_URL }}"
-          "AWS_REGION" ="${{"" vars.AWS_REGION }}"
+          "AWS_REGION" ="${{ vars.AWS_REGION }}"
           "MINIO_BUCKET_NAME" ="${{ vars.MINIO_BUCKET_NAME }}"
           "MINIO_WORKSPACE_BUCKET_NAME" ="${{ vars.MINIO_WORKSPACE_BUCKET_NAME }}"
         }
