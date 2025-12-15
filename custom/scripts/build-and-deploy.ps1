@@ -135,17 +135,27 @@ if ($EnvVars.Count -gt 0) {
 }
 
 # Create TLS secret directly with kubectl
-$CertFile = Join-Path -Path $ProjectRoot -ChildPath "custom\cert\wildcard-totalsoft.crt"
-$KeyFile = Join-Path -Path $ProjectRoot -ChildPath "custom\cert\wildcard-totalsoft.key"
+# Choose certificate based on namespace (environment)
+if ($Namespace -eq "librechat") {
+    # Production environment
+    $CertFile = Join-Path -Path $ProjectRoot -ChildPath "custom\cert\tessa-totalsoft.crt"
+    $KeyFile = Join-Path -Path $ProjectRoot -ChildPath "custom\cert\tessa-totalsoft.key"
+    Write-Host "Using PRODUCTION certificate (tessa-totalsoft)" -ForegroundColor Yellow
+} else {
+    # Dev environment (librechat-dev) or any other
+    $CertFile = Join-Path -Path $ProjectRoot -ChildPath "custom\cert\wildcard-totalsoft.crt"
+    $KeyFile = Join-Path -Path $ProjectRoot -ChildPath "custom\cert\wildcard-totalsoft.key"
+    Write-Host "Using DEV certificate (wildcard-totalsoft)" -ForegroundColor Yellow
+}
 
 if ((Test-Path $CertFile) -and (Test-Path $KeyFile)) {
     Write-Host "Creating TLS secret for ingress..." -ForegroundColor Cyan
     $tlsSecretName = "totalsoft-wildcard-tls"
-    
+
     # Delete the existing TLS secret if it exists
     Write-Host "Deleting existing TLS secret if it exists..." -ForegroundColor Cyan
     kubectl delete secret $tlsSecretName --namespace $Namespace --ignore-not-found
-    
+
     $secretCmd = "kubectl create secret tls $tlsSecretName --namespace $Namespace --cert=`"$CertFile`" --key=`"$KeyFile`" --dry-run=client -o yaml"
     Invoke-Expression "$secretCmd | kubectl apply -f -"
     Write-Host "TLS secret '$tlsSecretName' created successfully" -ForegroundColor Green
