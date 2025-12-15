@@ -54,7 +54,15 @@ jobs:
             exit 1
           }
         }
-      
+
+    - name: Create production certificates from secrets
+      shell: pwsh
+      run: |
+        New-Item -ItemType Directory -Force -Path "custom/cert"
+        "${{ secrets.TESSA_TLS_CERT }}" | Out-File -FilePath "custom/cert/tessa-totalsoft.crt" -Encoding ASCII
+        "${{ secrets.TESSA_TLS_KEY }}" | Out-File -FilePath "custom/cert/tessa-totalsoft.key" -Encoding ASCII
+        Write-Host "Production certificates created from secrets" -ForegroundColor Green
+
     - name: Run build and deploy script
       shell: pwsh
       run: |
@@ -84,6 +92,8 @@ jobs:
           "OPENID_CLIENT_SECRET" = "${{ secrets.OPENID_CLIENT_SECRET }}"
           "OPENID_SESSION_SECRET" = "${{ secrets.OPENID_SESSION_SECRET }}"
           "ORCHESTRATOR_API_KEY" = "${{ secrets.ORCHESTRATOR_API_KEY }}"
+          "MINIO_ACCESS_KEY_ID" = "${{ secrets.MINIO_ACCESS_KEY_ID }}"
+          "MINIO_SECRET_ACCESS_KEY" = "${{ secrets.MINIO_SECRET_ACCESS_KEY }}"
         }
 
         $envVarsHashtable = @{
@@ -115,6 +125,15 @@ jobs:
           "OPENID_ISSUER" = "${{ vars.OPENID_ISSUER }}"
           "ORCHESTRATOR_URL" = "${{ vars.ORCHESTRATOR_URL }}"
           "EMBEDDINGS_API_URL" = "${{ vars.EMBEDDINGS_API_URL }}"
+          "RAG_API_URL" = "${{ vars.RAG_API_URL }}"
+          "CHARISMA_REPORTS_INFORMATOR" = "${{ vars.CHARISMA_REPORTS_INFORMATOR }}"
+          "RAG_DISABLE_QUERIES" = "true"
+          "LIBRECHAT_WEBHOOK_URL" = "${{ vars.LIBRECHAT_WEBHOOK_URL }}"
+          "RAG_SKIP_EMBEDDED_CHECK" ="${{ vars.RAG_SKIP_EMBEDDED_CHECK }}"
+          "MINIO_ENDPOINT_URL" ="${{ vars.MINIO_ENDPOINT_URL }}"
+          "AWS_REGION" ="${{ vars.AWS_REGION }}"
+          "MINIO_BUCKET_NAME" ="${{ vars.MINIO_BUCKET_NAME }}"
+          "MINIO_WORKSPACE_BUCKET_NAME" ="${{ vars.MINIO_WORKSPACE_BUCKET_NAME }}"
         }
 
         ./custom/scripts/build-and-deploy.ps1 `
@@ -127,3 +146,22 @@ jobs:
           -RegistryPassword "${{ secrets.REGISTRY_PASSWORD }}" `
           -Secrets $secretsHashtable `
           -EnvVars $envVarsHashtable
+    - name: Cleanup Docker image after successful deployment
+      if: success()
+      shell: pwsh
+      run: |
+        $imageName = "${{ github.event.inputs.imageName }}"
+        $imageTag = "${{ steps.set-tag.outputs.IMAGE_TAG }}"
+        $registry = "registry.totalsoft.local"
+        $fullImageName = "${registry}/${imageName}:${imageTag}"
+        
+        Write-Host "Cleaning up Docker image: $fullImageName"
+        
+        # Remove only the specific Docker image used in this deployment
+        try {
+          docker rmi $fullImageName
+          Write-Host "Successfully removed local Docker image: $fullImageName"
+        } catch {
+          Write-Host "Warning: Could not remove local Docker image: $fullImageName"
+          Write-Host "Error: $($_.Exception.Message)"
+        }
