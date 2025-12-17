@@ -1,4 +1,6 @@
 import type { Logger as WinstonLogger } from 'winston';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
 import type { RunnableConfig } from '@langchain/core/runnables';
 
 export type SearchRefType = 'search' | 'image' | 'news' | 'video' | 'ref';
