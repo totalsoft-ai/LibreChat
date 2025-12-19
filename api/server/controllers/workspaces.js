@@ -1,11 +1,13 @@
 const { logger } = require('@librechat/data-schemas');
 const Workspace = require('~/models/Workspace');
-const { Conversation, Agent, Prompt, File, Message, Activity } = require('~/db/models');
+const Activity = require('~/models/Activity');
+const { Conversation, Agent, Prompt, File, Message } = require('~/db/models');
 const {
   getWorkspaceActivity,
   getTopContributors,
   getRecentSharedResources,
 } = require('~/server/services/ActivityService');
+const { processDeleteRequest } = require('~/server/services/Files/process');
 
 /**
  * Normalize workspace members to ensure consistent structure
@@ -303,12 +305,12 @@ const deleteWorkspace = async (req, res) => {
       });
     }
 
-    // Hard delete: permanently remove workspace document from MongoDB
+    // Extract workspace IDs for cleanup queries (before deletion)
     const workspaceIdString = workspace.workspaceId;
     const workspaceObjectIdString = workspace._id?.toString();
-    await Workspace.deleteOne({ _id: workspace._id });
 
     // Clean up workspace resources - delete conversations/messages and unlink others from workspace
+    // IMPORTANT: Workspace document deletion moved to END to ensure namespace resolution works during file deletion
 
     try {
       // Get all conversations related to this workspace. Older records may use ObjectId as string,
@@ -319,6 +321,35 @@ const deleteWorkspace = async (req, res) => {
       ).lean();
       const conversationIds = workspaceConversations.map((c) => c.conversationId);
 
+      // Get all files related to this workspace for physical deletion
+      const workspaceFiles = await File.find({
+        workspace: { $in: [workspaceIdString, workspaceObjectIdString] },
+      }).lean();
+
+      // Delete physical files from storage (local/S3/Firebase/Azure) and RAG vectorstore
+      const fileDeletionResults = { deleted: [], failed: [], totalDeleted: 0, totalFailed: 0 };
+      if (workspaceFiles.length > 0) {
+        try {
+          const result = await processDeleteRequest({
+            req,
+            files: workspaceFiles,
+          });
+
+          fileDeletionResults.deleted = result.deleted || [];
+          fileDeletionResults.failed = result.failed || [];
+          fileDeletionResults.totalDeleted = result.totalDeleted || 0;
+          fileDeletionResults.totalFailed = result.totalFailed || 0;
+
+          logger.info(
+            `[deleteWorkspace] Physical files deleted: ${result.totalDeleted}/${result.totalRequested}, ` +
+              `failed: ${result.totalFailed}`,
+          );
+        } catch (error) {
+          logger.error('[deleteWorkspace] Error during physical file deletion:', error);
+          // Continue with other deletions even if file deletion fails
+        }
+      }
+
       // Delete all conversations in this workspace
       const conversationResult = await Conversation.deleteMany({
         workspace: { $in: [workspaceIdString, workspaceObjectIdString] },
@@ -328,52 +359,75 @@ const deleteWorkspace = async (req, res) => {
       );
 
       // Delete associated messages (if conversations were found)
+      let messageDeleteCount = 0;
       if (conversationIds.length > 0) {
-        const messageDeleteResult = await Message.deleteMany({ conversationId: { $in: conversationIds } });
+        const messageDeleteResult = await Message.deleteMany({
+          conversationId: { $in: conversationIds },
+        });
+        messageDeleteCount = messageDeleteResult.deletedCount;
         logger.info(
-          `[deleteWorkspace] Deleted ${messageDeleteResult.deletedCount} messages from ${conversationIds.length} conversations`,
+          `[deleteWorkspace] Deleted ${messageDeleteCount} messages from ${conversationIds.length} conversations`,
         );
       }
 
-      // Unlink agents from workspace (keep them but remove workspace association)
-      const agentResult = await Agent.updateMany(
-        { workspace: { $in: [workspaceIdString, workspaceObjectIdString] } },
-        { $set: { workspace: null } },
-      );
+      // Delete agents from workspace
+      const agentResult = await Agent.deleteMany({
+        workspace: { $in: [workspaceIdString, workspaceObjectIdString] },
+      });
       logger.info(
-        `[deleteWorkspace] Unlinked ${agentResult.modifiedCount} agents from workspace ${workspaceId}`,
+        `[deleteWorkspace] Deleted ${agentResult.deletedCount} agents from workspace ${workspaceId}`,
       );
 
-      // Unlink prompts from workspace
-      const promptResult = await Prompt.updateMany(
-        { workspace: { $in: [workspaceIdString, workspaceObjectIdString] } },
-        { $set: { workspace: null } },
-      );
+      // Delete prompts from workspace
+      const promptResult = await Prompt.deleteMany({
+        workspace: { $in: [workspaceIdString, workspaceObjectIdString] },
+      });
       logger.info(
-        `[deleteWorkspace] Unlinked ${promptResult.modifiedCount} prompts from workspace ${workspaceId}`,
+        `[deleteWorkspace] Deleted ${promptResult.deletedCount} prompts from workspace ${workspaceId}`,
       );
 
-      // Unlink files from workspace
-      const fileResult = await File.updateMany(
-        { workspace: { $in: [workspaceIdString, workspaceObjectIdString] } },
-        { $set: { workspace: null } },
-      );
-      logger.info(`[deleteWorkspace] Unlinked ${fileResult.modifiedCount} files from workspace ${workspaceId}`);
+      // Note: Files already deleted by processDeleteRequest above (physical + RAG + MongoDB)
 
       // Remove activity logs tied to this workspace
       const activityResult = await Activity.deleteMany({ workspace: workspace._id });
-      logger.info(`[deleteWorkspace] Deleted ${activityResult.deletedCount} activity records for workspace ${workspaceId}`);
+      logger.info(
+        `[deleteWorkspace] Deleted ${activityResult.deletedCount} activity records for workspace ${workspaceId}`,
+      );
+
+      // FINAL STEP: Delete workspace document from MongoDB (moved from line 311)
+      // This ensures workspace exists during file cleanup for proper namespace resolution
+      await Workspace.deleteOne({ _id: workspace._id });
+
+      logger.info(`[deleteWorkspace] Workspace deleted: ${workspaceId} by user ${userId}`);
+
+      // Return comprehensive deletion summary
+      res.json({
+        message: 'Workspace deleted successfully',
+        workspaceId,
+        deletionSummary: {
+          workspace: 1,
+          conversations: conversationResult.deletedCount,
+          messages: messageDeleteCount,
+          agents: agentResult.deletedCount,
+          prompts: promptResult.deletedCount,
+          files: {
+            total: workspaceFiles.length,
+            physicalDeleted: fileDeletionResults.totalDeleted,
+            physicalFailed: fileDeletionResults.totalFailed,
+            failedFiles: fileDeletionResults.failed,
+          },
+          activities: activityResult.deletedCount,
+        },
+      });
     } catch (cleanupError) {
       logger.error('[deleteWorkspace] Error during resource cleanup:', cleanupError);
-      // Continue even if cleanup fails - workspace is already archived
+      // Workspace NOT deleted if cleanup fails - provides atomic-like behavior and allows retry
+      res.status(500).json({
+        message: 'Error deleting workspace resources',
+        workspaceId,
+        error: cleanupError.message,
+      });
     }
-
-    logger.info(`[deleteWorkspace] Workspace deleted: ${workspaceId} by user ${userId}`);
-
-    res.json({
-      message: 'Workspace deleted successfully',
-      workspaceId,
-    });
   } catch (error) {
     logger.error('[deleteWorkspace] Error:', error);
     res.status(500).json({
@@ -823,7 +877,9 @@ const getWorkspaceStartPage = async (req, res) => {
     const userId = req.user.id;
 
     const workspace = await Workspace.findOne({ workspaceId, isActive: true, isArchived: false })
-      .select('name description avatar color settings.startPage settings.welcomeMessage settings.guidelines stats members')
+      .select(
+        'name description avatar color settings.startPage settings.welcomeMessage settings.guidelines stats members',
+      )
       .populate({
         path: 'members.user',
         select: 'name email username avatar',

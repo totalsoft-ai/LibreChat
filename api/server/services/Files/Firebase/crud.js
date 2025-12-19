@@ -221,11 +221,16 @@ const deleteFirebaseFile = async (req, file) => {
         logger.debug(
           `[deleteFirebaseFile] File ${file.file_id} not found in RAG (not embedded or already deleted)`,
         );
+      } else if (error.code === 'ECONNREFUSED' || error.message?.includes('ECONNREFUSED')) {
+        // RAG API not available - log warning but continue with Firebase deletion
+        logger.warn(
+          `[deleteFirebaseFile] RAG API unavailable for file ${sourceToDelete}: ${error.message}. Continuing with Firebase deletion.`,
+        );
       } else {
         logger.error(
           `[deleteFirebaseFile] Error deleting from RAG API for file ${sourceToDelete}: ${error.message}`,
         );
-        // Propagate error to prevent MongoDB deletion if RAG deletion fails
+        // Propagate error to prevent MongoDB deletion if RAG deletion fails critically
         throw new Error(`RAG deletion failed for ${file.file_id}: ${error.message}`);
       }
     }

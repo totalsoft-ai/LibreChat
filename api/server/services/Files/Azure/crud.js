@@ -142,11 +142,16 @@ async function deleteFileFromAzure(req, file) {
         logger.debug(
           `[deleteFileFromAzure] File ${file.file_id} not found in RAG (not embedded or already deleted)`,
         );
+      } else if (error.code === 'ECONNREFUSED' || error.message?.includes('ECONNREFUSED')) {
+        // RAG API not available - log warning but continue with Azure deletion
+        logger.warn(
+          `[deleteFileFromAzure] RAG API unavailable for file ${sourceToDelete}: ${error.message}. Continuing with Azure deletion.`,
+        );
       } else {
         logger.error(
           `[deleteFileFromAzure] Error deleting from RAG API for file ${sourceToDelete}: ${error.message}`,
         );
-        // Propagate error to prevent MongoDB deletion if RAG deletion fails
+        // Propagate error to prevent MongoDB deletion if RAG deletion fails critically
         throw new Error(`RAG deletion failed for ${file.file_id}: ${error.message}`);
       }
     }

@@ -196,11 +196,16 @@ async function deleteFileFromS3(req, file) {
         logger.debug(
           `[deleteFileFromS3] File ${file.file_id} not found in RAG (not embedded or already deleted)`,
         );
+      } else if (error.code === 'ECONNREFUSED' || error.message?.includes('ECONNREFUSED')) {
+        // RAG API not available - log warning but continue with S3 deletion
+        logger.warn(
+          `[deleteFileFromS3] RAG API unavailable for file ${sourceToDelete}: ${error.message}. Continuing with S3 deletion.`,
+        );
       } else {
         logger.error(
           `[deleteFileFromS3] Error deleting from RAG API for file ${sourceToDelete}: ${error.message}`,
         );
-        // Propagate error to prevent MongoDB deletion if RAG deletion fails
+        // Propagate error to prevent MongoDB deletion if RAG deletion fails critically
         throw new Error(`RAG deletion failed for ${file.file_id}: ${error.message}`);
       }
     }

@@ -244,8 +244,12 @@ const deleteLocalFile = async (req, file) => {
     );
 
     try {
-      logger.debug(`[deleteLocalFile] RAG delete request - URL: ${process.env.RAG_API_URL}/documents`);
-      logger.debug(`[deleteLocalFile] Headers - X-Namespace: ${namespace}, X-File-ID: ${file.file_id}`);
+      logger.debug(
+        `[deleteLocalFile] RAG delete request - URL: ${process.env.RAG_API_URL}/documents`,
+      );
+      logger.debug(
+        `[deleteLocalFile] Headers - X-Namespace: ${namespace}, X-File-ID: ${file.file_id}`,
+      );
       logger.debug(`[deleteLocalFile] Payload - document_ids: [${file.file_id}]`);
       logger.debug(`[deleteLocalFile] File object all fields: ${JSON.stringify(file)}`);
 
@@ -271,11 +275,16 @@ const deleteLocalFile = async (req, file) => {
         logger.debug(
           `[deleteLocalFile] File ${file.file_id} not found in RAG (not embedded or already deleted). RAG response: ${JSON.stringify(error.response.data)}`,
         );
+      } else if (error.code === 'ECONNREFUSED' || error.message?.includes('ECONNREFUSED')) {
+        // RAG API not available - log warning but continue with local file deletion
+        logger.warn(
+          `[deleteLocalFile] RAG API unavailable for file ${sourceToDelete}: ${error.message}. Continuing with local file deletion.`,
+        );
       } else {
         logger.error(
           `[deleteLocalFile] Error deleting from RAG API for file ${sourceToDelete}: ${error.message}. Response data: ${JSON.stringify(error.response?.data)}, Status: ${error.response?.status}`,
         );
-        // Propagate error to prevent MongoDB deletion if RAG deletion fails
+        // Propagate error to prevent MongoDB deletion if RAG deletion fails critically
         throw new Error(`RAG deletion failed for ${file.file_id}: ${error.message}`);
       }
     }
@@ -297,7 +306,9 @@ const deleteLocalFile = async (req, file) => {
     }
 
     await unlinkFile(filepath);
-    logger.info(`[deleteLocalFile] Successfully deleted file from user uploads - file_id: ${file.file_id}`);
+    logger.info(
+      `[deleteLocalFile] Successfully deleted file from user uploads - file_id: ${file.file_id}`,
+    );
     return;
   }
 
@@ -314,7 +325,9 @@ const deleteLocalFile = async (req, file) => {
   }
 
   await unlinkFile(filepath);
-  logger.info(`[deleteLocalFile] Successfully deleted file from public path - file_id: ${file.file_id}`);
+  logger.info(
+    `[deleteLocalFile] Successfully deleted file from public path - file_id: ${file.file_id}`,
+  );
 };
 
 /**
