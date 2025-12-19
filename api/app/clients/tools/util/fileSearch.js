@@ -229,9 +229,6 @@ const createFileSearchTool = async ({ userId, files, entity_id, fileCitations = 
       const results = await Promise.all(queryPromises);
       const validResults = results.filter((result) => result !== null);
 
-      if (validResults.length === 0) {
-        return 'No results found or errors occurred while searching the files.';
-      }
 
       const formattedResults = validResults
         .flatMap((result, fileIndex) =>
@@ -262,11 +259,25 @@ const createFileSearchTool = async ({ userId, files, entity_id, fileCitations = 
         // TODO: make this configurable
         .slice(0, 10);
 
+      if (!formattedResults || formattedResults.length === 0) {
+        logger.info(`[${Tools.file_search}] No results found in documents`);
+
+        return [
+          `[NO_RESULTS]
+        I could not find this information in the uploaded documents.`,
+          {
+            [Tools.file_search]: {
+              sources: [],
+              noResults: true,
+            },
+          },
+        ];
+      }
+
       const strictModeHeader = `[SEARCH RESULTS - ANSWER ONLY FROM THESE RESULTS]
-If the answer to the user's question is not in these results, respond with: "I could not find this information in the uploaded documents."
+MANDATORY: If the answer to the user's question is not in these results, respond with: "I could not find this information in the uploaded documents."
 DO NOT use external knowledge. ONLY use the information below.
 
-MANDATORY: ALWAYS cite the [SOURCE: filename] when providing information.
 Format your answer like: "According to [filename], ..." or "Based on [filename], ..."
 IMPORTANT: Answer in the SAME LANGUAGE as the user's question. If user asks in Romanian, answer in Romanian. If in English, answer in English.
 

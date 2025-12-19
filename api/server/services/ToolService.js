@@ -162,6 +162,63 @@ async function processRequiredActions(client, requiredActions) {
 
       const toolCallIndex = client.mappedOrder.get(toolCall.id);
 
+      // Handle array return format (e.g., file_search tool with [content, metadata])
+      if (Array.isArray(output)) {
+        // Check if it's the expected [content, metadata] format
+        if (output.length === 2 && typeof output[0] === 'string' && typeof output[1] === 'object') {
+          const [fullContent, metadata] = output;
+
+          // Handle file_search tool specifically
+          if (metadata?.[Tools.file_search]) {
+            const { sources = [], fileCitations = false } = metadata[Tools.file_search];
+
+            // Split content into lines
+            const lines = fullContent.split('\n');
+
+            // Find where actual results start (after header)
+            // Header ends with a blank line before first [SOURCE: ...]
+            let resultsStartIndex = -1;
+            for (let i = 0; i < lines.length; i++) {
+              if (lines[i].trim().startsWith('[SOURCE:')) {
+                resultsStartIndex = i;
+                break;
+              }
+            }
+
+            // Extract only results for UI (without model instructions header)
+            const resultsForUI = resultsStartIndex >= 0
+              ? lines.slice(resultsStartIndex).join('\n')
+              : 'No search results found in the indexed documents.';
+
+            // Store structured output in toolCall for UI display
+            toolCall.function.output = resultsForUI.trim();
+
+            // Add metadata for potential future use
+            toolCall.sources = sources;
+            toolCall.fileCitations = fileCitations;
+
+            // Continue with normal processing flow
+            // The toolCall will be added to client.seenToolCalls and client.addContentData below
+            // Return full content (with header) for AI model
+            client.seenToolCalls && client.seenToolCalls.set(toolCall.id, toolCall);
+            client.addContentData({
+              [ContentTypes.TOOL_CALL]: toolCall,
+              index: toolCallIndex,
+              type: ContentTypes.TOOL_CALL,
+            });
+
+            return {
+              tool_call_id: currentAction.toolCallId,
+              output: fullContent, // Full content with header for AI model
+            };
+          }
+        }
+
+        // For other array formats, stringify
+        output = JSON.stringify(output);
+        toolCall.function.output = output;
+      }
+
       // If the tool produced LibreChat artifacts, stream them as assistant text and skip the box
       try {
         // Case 1: pre-formatted artifact blocks in a string
