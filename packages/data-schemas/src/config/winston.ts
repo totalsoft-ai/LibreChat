@@ -2,6 +2,7 @@ import winston from 'winston';
 import 'winston-daily-rotate-file';
 import { redactFormat, redactMessage, debugTraverse, jsonTruncateFormat } from './parsers';
 import { getLogDirectory } from './utils';
+import PostgresTransport from './transports/postgresTransport';
 
 const logDir = getLogDirectory();
 
@@ -65,6 +66,15 @@ if (useDebugLogging) {
       maxSize: '20m',
       maxFiles: '14d',
       format: winston.format.combine(fileFormat, debugTraverse),
+    }),
+  );
+}
+
+// Add PostgreSQL transport if configured
+if (process.env.POSTGRES_LOGS_URI) {
+  transports.push(
+    new PostgresTransport({
+      level: 'warn', // Capture warnings and errors
     }),
   );
 }

@@ -90,14 +90,26 @@ const PlantUMLDiagram: React.FC<PlantUMLDiagramProps> = ({ content }) => {
 \${cleanContent}
 @enduml\`;
 
+        console.log('🔵 PlantUML rendering started:', {
+          originalLength: content.length,
+          cleanedLength: cleanContent.length,
+          contentPreview: plantUMLContent.substring(0, 150),
+        });
+
         // Encode using proper PlantUML text encoding
         const encoded = encodePlantUMLText(plantUMLContent);
         const imageUrl = \`http://www.plantuml.com/plantuml/svg/~1\${encoded}\`;
 
+        console.log('✅ PlantUML URL generated:', {
+          encodedLength: encoded.length,
+          url: imageUrl,
+          testUrl: imageUrl.substring(0, 100) + '...',
+        });
+
         setDiagramSrc(imageUrl);
         setIsLoading(false);
       } catch (error) {
-        console.error('PlantUML rendering error:', error);
+        console.error('❌ PlantUML rendering error:', error);
         setError('Error rendering PlantUML diagram');
         setIsLoading(false);
       }
@@ -118,8 +130,14 @@ const PlantUMLDiagram: React.FC<PlantUMLDiagramProps> = ({ content }) => {
 
   if (error) {
     return (
-      <div className="flex h-64 w-full items-center justify-center bg-gray-50 p-4">
-        <div className="text-red-600">{error}</div>
+      <div className="flex h-64 w-full flex-col items-center justify-center bg-gray-50 p-4">
+        <div className="text-red-600 mb-2">{error}</div>
+        <div className="text-sm text-gray-500">Check browser console for details</div>
+        {diagramSrc && (
+          <div className="mt-2 text-xs text-gray-400 max-w-md truncate">
+            URL: {diagramSrc.substring(0, 80)}...
+          </div>
+        )}
       </div>
     );
   }
@@ -130,7 +148,18 @@ const PlantUMLDiagram: React.FC<PlantUMLDiagramProps> = ({ content }) => {
         src={diagramSrc}
         alt="PlantUML Diagram"
         style={{ maxWidth: '100%', height: 'auto' }}
-        onError={() => setError('Failed to load diagram')}
+        onError={(e) => {
+          console.error('PlantUML image load failed:', {
+            url: diagramSrc,
+            encodedLength: diagramSrc.split('~1')[1]?.length || 0,
+            originalContent: content.substring(0, 100),
+            error: e,
+          });
+          setError('Failed to load diagram');
+        }}
+        onLoad={() => {
+          console.log('PlantUML diagram loaded successfully:', diagramSrc);
+        }}
       />
     </div>
   );

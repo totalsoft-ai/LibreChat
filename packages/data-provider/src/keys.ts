@@ -62,6 +62,10 @@ export enum QueryKeys {
   workspaceStats = 'workspaceStats',
   docs = 'docs',
   docsList = 'docsList',
+  /* Admin Events */
+  eventsAuth = 'eventsAuth',
+  eventsInternal = 'eventsInternal',
+  eventsLogs = 'eventsLogs',
 }
 
 // Dynamic query keys that require parameters

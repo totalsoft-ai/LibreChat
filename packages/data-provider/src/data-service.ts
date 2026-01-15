@@ -116,6 +116,11 @@ export function getUser(): Promise<t.TUser> {
   return request.get(endpoints.user());
 }
 
+export function getUsers(search?: string): Promise<{ users: string[]; count: number }> {
+  const params = search ? `?search=${encodeURIComponent(search)}` : '';
+  return request.get(`${endpoints.user()}/list${params}`);
+}
+
 export function getUserBalance(): Promise<t.TBalanceResponse> {
   return request.get(endpoints.balance());
 }
@@ -1025,4 +1030,46 @@ export function getDocsList(): Promise<DocListResponse> {
 
 export function getDocContent(docId: string): Promise<DocContent> {
   return request.get(endpoints.docs(docId));
+}
+
+// Admin Events
+export interface EventsQueryParams {
+  page?: number;
+  pageSize?: number;
+  eventType?: string;
+  user?: string;
+  fromDate?: string;
+  toDate?: string;
+}
+
+export interface EventItem {
+  id: string;
+  timestamp: string;
+  user: string;
+  eventType: string;
+  resourceType?: string | null;
+  resourceName?: string | null;
+  details?: string | null;
+}
+
+export interface EventsResponse {
+  data: EventItem[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export function getEventsAuth(params?: EventsQueryParams): Promise<EventsResponse> {
+  return request.get(endpoints.eventsAuth(params as Record<string, unknown>));
+}
+
+export function getEventsInternal(params?: EventsQueryParams): Promise<EventsResponse> {
+  return request.get(endpoints.eventsInternal(params as Record<string, unknown>));
+}
+
+export function getEventsLogs(params?: EventsQueryParams): Promise<EventsResponse> {
+  return request.get(endpoints.eventsLogs(params as Record<string, unknown>));
 }

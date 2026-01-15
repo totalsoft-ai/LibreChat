@@ -22,6 +22,7 @@ import ChatRoute from './ChatRoute';
 import Search from './Search';
 import Root from './Root';
 import Help from './Help';
+import Events from './Events';
 
 const AuthLayout = () => (
   <AuthContextProvider>
@@ -132,6 +133,10 @@ export const router = createBrowserRouter([
           {
             path: 'help/:section?',
             element: <Help />,
+          },
+          {
+            path: 'events',
+            element: <Events />,
           },
         ],
       },

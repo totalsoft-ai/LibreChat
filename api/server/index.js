@@ -18,6 +18,7 @@ const {
 } = require('@librechat/api');
 const { connectDb, indexSync } = require('~/db');
 const initializeOAuthReconnectManager = require('./services/initializeOAuthReconnectManager');
+const { initializePool, createLogsTable } = require('./services/PostgresLogsService');
 const createValidateImageRequest = require('./middleware/validateImageRequest');
 const { jwtLogin, ldapLogin, passportLogin } = require('~/strategies');
 const { updateInterfacePermissions } = require('~/models/interface');
@@ -147,6 +148,7 @@ const startServer = async () => {
   app.use('/api/mcp', routes.mcp);
   app.use('/api/workspaces', routes.workspaces);
   app.use('/api/docs', routes.docs);
+  app.use('/api/admin/events', routes.adminEvents);
 
   app.use(ErrorController);
 
@@ -187,6 +189,20 @@ const startServer = async () => {
     await initializeMCPs();
     await initializeOAuthReconnectManager();
     await checkMigrations();
+
+    // Initialize PostgreSQL logs database
+    if (process.env.POSTGRES_LOGS_URI) {
+      try {
+        initializePool();
+        await createLogsTable();
+        logger.info('PostgreSQL logs database initialized');
+
+        // Așteaptă un pic pentru async operations
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      } catch (error) {
+        logger.warn('Failed to initialize PostgreSQL logs database:', error.message);
+      }
+    }
   });
 };
 
