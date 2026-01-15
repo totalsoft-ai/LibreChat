@@ -1,4 +1,5 @@
 import { EarthIcon } from 'lucide-react';
+import { useAtomValue } from 'jotai';
 import { ControlCombobox } from '@librechat/client';
 import { useCallback, useEffect, useRef } from 'react';
 import { useFormContext, Controller } from 'react-hook-form';
@@ -7,8 +8,9 @@ import type { UseMutationResult, QueryObserverResult } from '@tanstack/react-que
 import type { Agent, AgentCreateParams } from 'librechat-data-provider';
 import type { TAgentCapabilities, AgentForm } from '~/common';
 import { cn, createProviderOption, processAgentOption, getDefaultAgentFormValues } from '~/utils';
-import { useListAgentsQuery, useGetStartupConfig } from '~/data-provider';
-import { useLocalize } from '~/hooks';
+import { useLocalize, useAgentDefaultPermissionLevel } from '~/hooks';
+import { useListAgentsQuery } from '~/data-provider';
+import { currentWorkspaceAtom, currentWorkspaceIdAtom } from '~/store/workspaces';
 
 const keys = new Set(Object.keys(defaultAgentFormValues));
 
@@ -26,26 +28,40 @@ export default function AgentSelect({
   const localize = useLocalize();
   const lastSelectedAgent = useRef<string | null>(null);
   const { control, reset } = useFormContext();
+  const permissionLevel = useAgentDefaultPermissionLevel();
+  const currentWorkspaceId = useAtomValue(currentWorkspaceIdAtom);
+  const currentWorkspace = useAtomValue(currentWorkspaceAtom);
+  const workspaceObjectId = (currentWorkspace as { _id?: string } | null)?.['_id'];
+  const workspaceFilter = workspaceObjectId ?? 'personal';
 
-  const { data: startupConfig } = useGetStartupConfig();
-  const { data: agents = null } = useListAgentsQuery(undefined, {
-    select: (res) =>
-      res.data.map((agent) =>
-        processAgentOption({
-          agent: {
-            ...agent,
-            name: agent.name || agent.id,
-          },
-          instanceProjectId: startupConfig?.instanceProjectId,
-        }),
-      ),
-  });
+  const { data: agents = null, refetch } = useListAgentsQuery(
+    {
+      requiredPermission: permissionLevel,
+      workspace: workspaceFilter,
+    },
+    {
+      select: (res) =>
+        res.data.map((agent) =>
+          processAgentOption({
+            agent: {
+              ...agent,
+              name: agent.name || agent.id,
+            },
+          }),
+        ),
+      // Keep previous data to avoid showing a single 'Loading...' placeholder while refetching
+      keepPreviousData: true,
+    },
+  );
+
+  // Refetch agents when workspace changes
+  useEffect(() => {
+    refetch();
+  }, [currentWorkspaceId, workspaceFilter, refetch]);
 
   const resetAgentForm = useCallback(
     (fullAgent: Agent) => {
-      const { instanceProjectId } = startupConfig ?? {};
-      const isGlobal =
-        (instanceProjectId != null && fullAgent.projectIds?.includes(instanceProjectId)) ?? false;
+      const isGlobal = fullAgent.isPublic ?? false;
       const update = {
         ...fullAgent,
         provider: createProviderOption(fullAgent.provider),
@@ -77,6 +93,10 @@ export default function AgentSelect({
         agent: update,
         model: update.model,
         tools: agentTools,
+        // Ensure the category is properly set for the form
+        category: fullAgent.category || 'general',
+        // Make sure support_contact is properly loaded
+        support_contact: fullAgent.support_contact,
       };
 
       Object.entries(fullAgent).forEach(([name, value]) => {
@@ -115,7 +135,7 @@ export default function AgentSelect({
 
       reset(formValues);
     },
-    [reset, startupConfig],
+    [reset],
   );
 
   const onSelect = useCallback(

@@ -1,8 +1,8 @@
 const { logger } = require('@librechat/data-schemas');
 const { createTempChatExpirationDate } = require('@librechat/api');
-const { getCustomConfig } = require('~/server/services/Config/getCustomConfig');
 const { getMessages, deleteMessages } = require('./Message');
 const { Conversation } = require('~/db/models');
+const mongoose = require('mongoose');
 
 /**
  * Searches for a conversation by conversationId and returns a lean document with only conversationId and user.
@@ -11,7 +11,7 @@ const { Conversation } = require('~/db/models');
  */
 const searchConversation = async (conversationId) => {
   try {
-    return await Conversation.findOne({ conversationId }, 'conversationId user').lean();
+    return await Conversation.findOne({ conversationId }, 'conversationId user workspace').lean();
   } catch (error) {
     logger.error('[searchConversation] Error searching conversation', error);
     throw new Error('Error searching conversation');
@@ -87,7 +87,7 @@ module.exports = {
    * @param {Object} metadata - Additional metadata to log for operation.
    * @returns {Promise<TConversation>} The conversation object.
    */
-  saveConvo: async (req, { conversationId, newConversationId, ...convo }, metadata) => {
+  saveConvo: async (req, { conversationId, newConversationId, workspace, ...convo }, metadata) => {
     try {
       if (metadata?.context) {
         logger.debug(`[saveConvo] ${metadata.context}`);
@@ -100,10 +100,61 @@ module.exports = {
         update.conversationId = newConversationId;
       }
 
+      // Normalize workspace field
+      // The Conversation schema expects `workspace` as a workspaceId string.
+      // Avoid sending nested workspace objects or mixing ObjectId with workspaceId.
+      if (workspace) {
+        const Workspace = require('~/models/Workspace');
+        try {
+          if (typeof workspace === 'string' && workspace.length > 0) {
+            // If a 24-char ObjectId string was provided, try to resolve to workspaceId
+            const looksLikeObjectId = mongoose.Types.ObjectId.isValid(workspace) && workspace.length === 24;
+            if (looksLikeObjectId) {
+              const wsById = await Workspace.findOne({ _id: workspace, isActive: true, isArchived: false }).lean();
+              if (wsById) {
+                update.workspace = wsById.workspaceId;
+              } else {
+                // Fallback: use the provided string assuming it's already the workspaceId
+                update.workspace = workspace;
+              }
+            } else {
+              // Treat as workspaceId and verify it exists
+              const ws = await Workspace.findOne({ workspaceId: workspace, isActive: true, isArchived: false }).lean();
+              if (ws) {
+                update.workspace = ws.workspaceId; // store string workspaceId
+              } else {
+                logger.warn(`[saveConvo] Invalid workspace: ${workspace}`);
+                // Remove workspace from update so it doesn't create a conflicting nested object
+                delete update.workspace;
+              }
+            }
+          } else if (workspace && typeof workspace === 'object') {
+            // If we received a whole workspace object, only keep the workspaceId string
+            const wsId = workspace.workspaceId || workspace.workspaceId?.toString();
+            if (wsId) {
+              // Validate workspace exists
+              const ws = await Workspace.findOne({ workspaceId: wsId, isActive: true, isArchived: false }).lean();
+              if (ws) {
+                update.workspace = ws.workspaceId;
+              } else {
+                delete update.workspace;
+              }
+            } else {
+              // If no workspaceId in object, remove the property
+              delete update.workspace;
+            }
+          }
+        } catch (err) {
+          logger.error(`[saveConvo] Error resolving workspace ${workspace}:`, err);
+          // If error resolving workspace, drop workspace property from update
+          delete update.workspace;
+        }
+      }
+
       if (req?.body?.isTemporary) {
         try {
-          const customConfig = await getCustomConfig();
-          update.expiredAt = createTempChatExpirationDate(customConfig);
+          const appConfig = req.config;
+          update.expiredAt = createTempChatExpirationDate(appConfig?.interfaceConfig);
         } catch (err) {
           logger.error('Error creating temporary chat expiration date:', err);
           logger.info(`---\`saveConvo\` context: ${metadata?.context}`);
@@ -120,12 +171,35 @@ module.exports = {
       }
 
       /** Note: the resulting Model object is necessary for Meilisearch operations */
+      // Ensure no nested workspace paths are present to avoid conflicting update paths
+      // e.g. workspace and workspace.some nested keys in the same $set
+      if (update && typeof update === 'object') {
+        // Remove keys like 'workspace._id' or 'workspace.name' if present
+        Object.keys(update).forEach((k) => {
+          if (k.startsWith('workspace.') || k.includes('workspace.')) {
+            delete update[k];
+          }
+        });
+      }
+
+      // Prevent conflicts: if workspace is being set, remove it from unset
+      if (update.workspace !== undefined && updateOperation.$unset) {
+        delete updateOperation.$unset.workspace;
+        // If unset is now empty, remove it entirely
+        if (Object.keys(updateOperation.$unset).length === 0) {
+          delete updateOperation.$unset;
+        }
+      }
+
       const conversation = await Conversation.findOneAndUpdate(
         { conversationId, user: req.user.id },
         updateOperation,
         {
           new: true,
           upsert: true,
+          // Select only necessary fields to reduce memory usage
+          select:
+            'conversationId title user endpoint model agent_id assistant_id spec iconURL createdAt updatedAt messages',
         },
       );
 
@@ -158,9 +232,44 @@ module.exports = {
   },
   getConvosByCursor: async (
     user,
-    { cursor, limit = 25, isArchived = false, tags, search, order = 'desc' } = {},
+    { cursor, limit = 25, isArchived = false, tags, search, order = 'desc', workspace } = {},
   ) => {
     const filters = [{ user }];
+
+    // Workspace filtering
+    if (workspace !== undefined) {
+      if (workspace === null || workspace === 'personal') {
+        // Filter for personal conversations (no workspace)
+        filters.push({ $or: [{ workspace: null }, { workspace: { $exists: false } }] });
+      } else {
+        // Filter for specific workspace
+        // Convert workspaceId string to ObjectId if needed
+        let workspaceFilter = workspace;
+        if (typeof workspace === 'string' && workspace.length > 0) {
+          // Validate that the workspace exists and is active
+          try {
+            const Workspace = require('~/models/Workspace');
+            const ws = await Workspace.findOne({
+              workspaceId: workspace,
+              isActive: true,
+              isArchived: false,
+            });
+            if (!ws) {
+              // Workspace not found, return empty results
+              return { conversations: [], nextCursor: null };
+            }
+            // Use workspaceId string as stored in the Conversation schema
+            workspaceFilter = ws.workspaceId;
+          } catch (error) {
+            logger.error('[getConvosByCursor] Error validating workspace:', error);
+            // On error, return empty results
+            return { conversations: [], nextCursor: null };
+          }
+        }
+        filters.push({ workspace: workspaceFilter });
+      }
+    }
+
     if (isArchived) {
       filters.push({ isArchived: true });
     } else {
@@ -175,7 +284,7 @@ module.exports = {
 
     if (search) {
       try {
-        const meiliResults = await Conversation.meiliSearch(search);
+        const meiliResults = await Conversation.meiliSearch(search, { filter: `user = "${user}"` });
         const matchingIds = Array.isArray(meiliResults.hits)
           ? meiliResults.hits.map((result) => result.conversationId)
           : [];
@@ -216,7 +325,7 @@ module.exports = {
       return { message: 'Error getting conversations' };
     }
   },
-  getConvosQueried: async (user, convoIds, cursor = null, limit = 25) => {
+  getConvosQueried: async (user, convoIds, cursor = null, limit = 25, workspace = undefined) => {
     try {
       if (!convoIds?.length) {
         return { conversations: [], nextCursor: null, convoMap: {} };
@@ -224,11 +333,26 @@ module.exports = {
 
       const conversationIds = convoIds.map((convo) => convo.conversationId);
 
-      const results = await Conversation.find({
+      const filter = {
         user,
         conversationId: { $in: conversationIds },
         $or: [{ expiredAt: { $exists: false } }, { expiredAt: null }],
-      }).lean();
+      };
+
+      // Add workspace filtering if provided
+      if (workspace !== undefined) {
+        if (workspace === null || workspace === 'personal') {
+          filter.$and = [{ $or: [{ workspace: null }, { workspace: { $exists: false } }] }];
+        } else if (typeof workspace === 'string' && workspace.length > 0) {
+          filter.workspace = workspace;
+        }
+      }
+
+      const results = await Conversation.find(filter)
+        .select(
+          'conversationId endpoint title createdAt updatedAt user model agent_id assistant_id spec iconURL',
+        )
+        .lean();
 
       results.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
 

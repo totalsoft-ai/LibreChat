@@ -20,10 +20,12 @@ class DocumentSummarizerTool extends Tool {
     this.schema = z.object({
       action: z.enum(['summarize_text', 'summarize_file']),
       text: z.string().optional(),
-      file_data: z.object({
-        name: z.string(),
-        content: z.string(),
-      }).optional(),
+      file_data: z
+        .object({
+          name: z.string(),
+          content: z.string(),
+        })
+        .optional(),
     });
   }
 
@@ -78,7 +80,10 @@ class DocumentSummarizerTool extends Tool {
       const isDoc = fileContent.slice(0, 8).toString('hex') === 'd0cf11e0a1b11ae1'; // DOC signature
       const isTxt =
         fileContent.slice(0, 4).toString('utf8').includes('\n') ||
-        fileContent.slice(0, 100).toString('utf8').match(/^[\x00-\x7F\s]*$/); // Text check
+        fileContent
+          .slice(0, 100)
+          .toString('utf8')
+          .match(/^[\x00-\x7F\s]*$/); // Text check
 
       if (fileExtension === 'pdf' && !isPdf) {
         throw new Error('Fișierul nu pare să fie un PDF valid');
@@ -142,4 +147,4 @@ class DocumentSummarizerTool extends Tool {
   }
 }
 
-module.exports = DocumentSummarizerTool; 
+module.exports = DocumentSummarizerTool;

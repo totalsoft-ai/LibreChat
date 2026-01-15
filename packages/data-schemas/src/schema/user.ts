@@ -51,6 +51,7 @@ const userSchema = new Schema<IUser>(
       trim: true,
       minlength: 8,
       maxlength: 128,
+      select: false,
     },
     avatar: {
       type: String,
@@ -114,9 +115,11 @@ const userSchema = new Schema<IUser>(
     },
     totpSecret: {
       type: String,
+      select: false,
     },
     backupCodes: {
       type: [BackupCodeSchema],
+      select: false,
     },
     refreshToken: {
       type: [SessionSchema],
@@ -138,8 +141,18 @@ const userSchema = new Schema<IUser>(
       },
       default: {},
     },
+    /** Field for external source identification (for consistency with TPrincipal schema) */
+    idOnTheSource: {
+      type: String,
+      sparse: true,
+    },
   },
   { timestamps: true },
 );
+
+// Indexes for common query patterns
+userSchema.index({ role: 1 }); // For role-based queries
+userSchema.index({ provider: 1 }); // For provider-based filtering
+userSchema.index({ createdAt: -1 }); // For sorting users by registration date
 
 export default userSchema;

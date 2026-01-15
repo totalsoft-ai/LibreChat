@@ -2,10 +2,27 @@ const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
 const fetch = require('node-fetch');
+const { logger } = require('@librechat/data-schemas');
+const { getFirebaseStorage, generateShortLivedToken } = require('@librechat/api');
 const { ref, uploadBytes, getDownloadURL, deleteObject } = require('firebase/storage');
 const { getBufferMetadata } = require('~/server/utils');
-const { getFirebaseStorage } = require('./initialize');
-const { logger } = require('~/config');
+
+/**
+ * Sanitizes a namespace string for PostgreSQL compatibility
+ * @param {string} raw - Raw user email or ID
+ * @returns {string} Sanitized namespace
+ */
+function sanitizeNamespace(raw) {
+  if (!raw) return 'ns_default';
+  let s = String(raw)
+    .toLowerCase()
+    .replace(/[-.@\s]/g, '_')
+    .replace(/[^a-z0-9_]/g, '_');
+  if (!/^[a-z]/.test(s)) s = `ns_${s}`;
+  if (s.length > 63) s = s.slice(0, 63);
+  s = s.replace(/^_+|_+$/g, '');
+  return s || 'ns_default';
+}
 
 /**
  * Deletes a file from Firebase Storage.
@@ -145,7 +162,10 @@ function extractFirebaseFilePath(urlString) {
     }
 
     return '';
-  } catch (error) {
+  } catch {
+    logger.debug(
+      '[extractFirebaseFilePath] Failed to extract Firebase file path from URL, returning empty string',
+    );
     // If URL parsing fails, return an empty string
     return '';
   }
@@ -164,16 +184,56 @@ function extractFirebaseFilePath(urlString) {
  *          Throws an error if there is an issue with deletion.
  */
 const deleteFirebaseFile = async (req, file) => {
-  if (file.embedded && process.env.RAG_API_URL) {
-    const jwtToken = req.headers.authorization.split(' ')[1];
-    axios.delete(`${process.env.RAG_API_URL}/documents`, {
-      headers: {
-        Authorization: `Bearer ${jwtToken}`,
-        'Content-Type': 'application/json',
-        accept: 'application/json',
-      },
-      data: [file.file_id],
-    });
+  // Always attempt to delete from RAG if RAG_API_URL is configured
+  // This handles files that may have been embedded but webhook wasn't called
+  if (process.env.RAG_API_URL) {
+    const { getNamespace } = require('../VectorDB/crud');
+    const jwtToken = generateShortLivedToken(req.user.id);
+    const namespace = await getNamespace({ user: req.user, workspaceId: file.workspace });
+
+    // RAG API uses source path as document identifier: "./uploads/public/{filename}"
+    const sourceToDelete = `./uploads/public/${file.filename}`;
+
+    logger.info(
+      `[deleteFirebaseFile] Attempting to delete from RAG - source: ${sourceToDelete}, file_id: ${file.file_id}, workspace: ${file.workspace || 'none'}, namespace: ${namespace}, embedded: ${file.embedded}`,
+    );
+
+    try {
+      const response = await axios.delete(`${process.env.RAG_API_URL}/documents`, {
+        headers: {
+          Authorization: `Bearer ${jwtToken}`,
+          'X-Namespace': namespace,
+          'X-File-ID': file.file_id,
+          'Content-Type': 'application/json',
+          accept: 'application/json',
+        },
+        data: {
+          document_ids: [file.file_id],
+        },
+        timeout: 30000, // 30 second timeout
+      });
+      logger.info(
+        `[deleteFirebaseFile] Successfully deleted from RAG vectorstore - source: ${sourceToDelete}, file_id: ${file.file_id}`,
+      );
+    } catch (error) {
+      // 404 is expected if file wasn't embedded
+      if (error.response?.status === 404) {
+        logger.debug(
+          `[deleteFirebaseFile] File ${file.file_id} not found in RAG (not embedded or already deleted)`,
+        );
+      } else if (error.code === 'ECONNREFUSED' || error.message?.includes('ECONNREFUSED')) {
+        // RAG API not available - log warning but continue with Firebase deletion
+        logger.warn(
+          `[deleteFirebaseFile] RAG API unavailable for file ${sourceToDelete}: ${error.message}. Continuing with Firebase deletion.`,
+        );
+      } else {
+        logger.error(
+          `[deleteFirebaseFile] Error deleting from RAG API for file ${sourceToDelete}: ${error.message}`,
+        );
+        // Propagate error to prevent MongoDB deletion if RAG deletion fails critically
+        throw new Error(`RAG deletion failed for ${file.file_id}: ${error.message}`);
+      }
+    }
   }
 
   const fileName = extractFirebaseFilePath(file.filepath);
@@ -211,14 +271,24 @@ async function uploadFileToFirebase({ req, file, file_id }) {
   const inputBuffer = await fs.promises.readFile(inputFilePath);
   const bytes = Buffer.byteLength(inputBuffer);
   const userId = req.user.id;
-
   const fileName = `${file_id}__${path.basename(inputFilePath)}`;
-
-  const downloadURL = await saveBufferToFirebase({ userId, buffer: inputBuffer, fileName });
-
-  await fs.promises.unlink(inputFilePath);
-
-  return { filepath: downloadURL, bytes };
+  try {
+    const downloadURL = await saveBufferToFirebase({ userId, buffer: inputBuffer, fileName });
+    return { filepath: downloadURL, bytes };
+  } catch (err) {
+    logger.error('[uploadFileToFirebase] Error saving file buffer to Firebase:', err);
+    try {
+      if (file && file.path) {
+        await fs.promises.unlink(file.path);
+      }
+    } catch (unlinkError) {
+      logger.error(
+        '[uploadFileToFirebase] Error deleting temporary file, likely already deleted:',
+        unlinkError.message,
+      );
+    }
+    throw err;
+  }
 }
 
 /**

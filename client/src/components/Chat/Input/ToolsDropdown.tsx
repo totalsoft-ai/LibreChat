@@ -13,6 +13,7 @@ import {
 import { useLocalize, useHasAccess, useAgentCapabilities } from '~/hooks';
 import ArtifactsSubMenu from '~/components/Chat/Input/ArtifactsSubMenu';
 import MCPSubMenu from '~/components/Chat/Input/MCPSubMenu';
+import { useGetStartupConfig } from '~/data-provider';
 import { useBadgeRowContext } from '~/Providers';
 import { cn } from '~/utils';
 
@@ -26,15 +27,16 @@ const ToolsDropdown = ({ disabled }: ToolsDropdownProps) => {
   const [isPopoverActive, setIsPopoverActive] = useState(false);
   const {
     webSearch,
-    mcpSelect,
     artifacts,
     fileSearch,
     agentsConfig,
-    startupConfig,
+    mcpServerManager,
     codeApiKeyForm,
     codeInterpreter,
     searchApiKeyForm,
   } = useBadgeRowContext();
+  const { data: startupConfig } = useGetStartupConfig();
+
   const { codeEnabled, webSearchEnabled, artifactsEnabled, fileSearchEnabled } =
     useAgentCapabilities(agentsConfig?.capabilities ?? defaultAgentCapabilities);
 
@@ -54,7 +56,6 @@ const ToolsDropdown = ({ disabled }: ToolsDropdownProps) => {
   } = codeInterpreter;
   const { isPinned: isFileSearchPinned, setIsPinned: setIsFileSearchPinned } = fileSearch;
   const { isPinned: isArtifactsPinned, setIsPinned: setIsArtifactsPinned } = artifacts;
-  const { mcpServerNames } = mcpSelect;
 
   const canUseWebSearch = useHasAccess({
     permissionType: PermissionTypes.WEB_SEARCH,
@@ -214,59 +215,60 @@ const ToolsDropdown = ({ disabled }: ToolsDropdownProps) => {
     });
   }
 
-  if (canRunCode && codeEnabled) {
-    dropdownItems.push({
-      onClick: handleCodeInterpreterToggle,
-      hideOnClick: false,
-      render: (props) => (
-        <div {...props}>
-          <div className="flex items-center gap-2">
-            <TerminalSquareIcon className="icon-md" />
-            <span>{localize('com_assistants_code_interpreter')}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            {showCodeSettings && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsCodeDialogOpen(true);
-                }}
-                ref={codeMenuTriggerRef}
-                className={cn(
-                  'rounded p-1 transition-all duration-200',
-                  'hover:bg-surface-secondary hover:shadow-sm',
-                  'text-text-secondary hover:text-text-primary',
-                )}
-                aria-label="Configure code interpreter"
-              >
-                <div className="h-4 w-4">
-                  <Settings className="h-4 w-4" />
-                </div>
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsCodePinned(!isCodePinned);
-              }}
-              className={cn(
-                'rounded p-1 transition-all duration-200',
-                'hover:bg-surface-secondary hover:shadow-sm',
-                !isCodePinned && 'text-text-primary hover:text-text-primary',
-              )}
-              aria-label={isCodePinned ? 'Unpin' : 'Pin'}
-            >
-              <div className="h-4 w-4">
-                <PinIcon unpin={isCodePinned} />
-              </div>
-            </button>
-          </div>
-        </div>
-      ),
-    });
-  }
+  // Code Interpreter - Commented out to hide from interface
+  // if (canRunCode && codeEnabled) {
+  //   dropdownItems.push({
+  //     onClick: handleCodeInterpreterToggle,
+  //     hideOnClick: false,
+  //     render: (props) => (
+  //       <div {...props}>
+  //         <div className="flex items-center gap-2">
+  //           <TerminalSquareIcon className="icon-md" />
+  //           <span>{localize('com_assistants_code_interpreter')}</span>
+  //         </div>
+  //         <div className="flex items-center gap-1">
+  //           {showCodeSettings && (
+  //             <button
+  //               type="button"
+  //               onClick={(e) => {
+  //                 e.stopPropagation();
+  //                 setIsCodeDialogOpen(true);
+  //               }}
+  //               ref={codeMenuTriggerRef}
+  //               className={cn(
+  //                 'rounded p-1 transition-all duration-200',
+  //                 'hover:bg-surface-secondary hover:shadow-sm',
+  //                 'text-text-secondary hover:text-text-primary',
+  //               )}
+  //               aria-label="Configure code interpreter"
+  //             >
+  //               <div className="h-4 w-4">
+  //                 <Settings className="h-4 w-4" />
+  //               </div>
+  //             </button>
+  //           )}
+  //           <button
+  //             type="button"
+  //             onClick={(e) => {
+  //               e.stopPropagation();
+  //               setIsCodePinned(!isCodePinned);
+  //             }}
+  //             className={cn(
+  //               'rounded p-1 transition-all duration-200',
+  //               'hover:bg-surface-secondary hover:shadow-sm',
+  //               !isCodePinned && 'text-text-primary hover:text-text-primary',
+  //             )}
+  //             aria-label={isCodePinned ? 'Unpin' : 'Pin'}
+  //           >
+  //             <div className="h-4 w-4">
+  //               <PinIcon unpin={isCodePinned} />
+  //             </div>
+  //           </button>
+  //         </div>
+  //       </div>
+  //     ),
+  //   });
+  // }
 
   if (artifactsEnabled) {
     dropdownItems.push({
@@ -285,11 +287,16 @@ const ToolsDropdown = ({ disabled }: ToolsDropdownProps) => {
     });
   }
 
-  if (mcpServerNames && mcpServerNames.length > 0) {
+  const { configuredServers } = mcpServerManager;
+  if (configuredServers && configuredServers.length > 0) {
     dropdownItems.push({
       hideOnClick: false,
       render: (props) => <MCPSubMenu {...props} placeholder={mcpPlaceholder} />,
     });
+  }
+
+  if (dropdownItems.length === 0) {
+    return null;
   }
 
   const menuTrigger = (

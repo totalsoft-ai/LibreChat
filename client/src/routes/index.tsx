@@ -8,6 +8,9 @@ import {
   TwoFactorScreen,
   RequestPasswordReset,
 } from '~/components/Auth';
+import { MarketplaceProvider } from '~/components/Agents/MarketplaceContext';
+import AgentMarketplace from '~/components/Agents/Marketplace';
+import StartPage from '~/components/Workspace/StartPage';
 import { OAuthSuccess, OAuthError } from '~/components/OAuth';
 import { AuthContextProvider } from '~/hooks/AuthContext';
 import RouteErrorBoundary from './RouteErrorBoundary';
@@ -18,6 +21,8 @@ import ShareRoute from './ShareRoute';
 import ChatRoute from './ChatRoute';
 import Search from './Search';
 import Root from './Root';
+import Help from './Help';
+import Events from './Events';
 
 const AuthLayout = () => (
   <AuthContextProvider>
@@ -46,30 +51,30 @@ export const router = createBrowserRouter([
       },
     ],
   },
-//  {
-//    path: '/',
-//    element: <StartupLayout />,
-//    errorElement: <RouteErrorBoundary />,
-//    children: [
-//      {
-//        path: 'register',
-//        element: <Registration />,
-//      },
-//      {
-//        path: 'forgot-password',
-//        element: <RequestPasswordReset />,
-//      },
-//      {
-//        path: 'reset-password',
-//        element: <ResetPassword />,
-//      },
-//    ],
-//  },
-//  {
-//    path: 'verify',
-//    element: <VerifyEmail />,
-//    errorElement: <RouteErrorBoundary />,
-//  },
+  //  {
+  //    path: '/',
+  //    element: <StartupLayout />,
+  //    errorElement: <RouteErrorBoundary />,
+  //    children: [
+  //      {
+  //        path: 'register',
+  //        element: <Registration />,
+  //      },
+  //      {
+  //        path: 'forgot-password',
+  //        element: <RequestPasswordReset />,
+  //      },
+  //      {
+  //        path: 'reset-password',
+  //        element: <ResetPassword />,
+  //      },
+  //    ],
+  //  },
+  //  {
+  //    path: 'verify',
+  //    element: <VerifyEmail />,
+  //    errorElement: <RouteErrorBoundary />,
+  //  },
   {
     element: <AuthLayout />,
     errorElement: <RouteErrorBoundary />,
@@ -104,6 +109,34 @@ export const router = createBrowserRouter([
           {
             path: 'search',
             element: <Search />,
+          },
+          {
+            path: 'workspace/:workspaceId/start',
+            element: <StartPage />,
+          },
+          {
+            path: 'agents',
+            element: (
+              <MarketplaceProvider>
+                <AgentMarketplace />
+              </MarketplaceProvider>
+            ),
+          },
+          {
+            path: 'agents/:category',
+            element: (
+              <MarketplaceProvider>
+                <AgentMarketplace />
+              </MarketplaceProvider>
+            ),
+          },
+          {
+            path: 'help/:section?',
+            element: <Help />,
+          },
+          {
+            path: 'events',
+            element: <Events />,
           },
         ],
       },

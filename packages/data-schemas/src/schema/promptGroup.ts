@@ -1,21 +1,6 @@
-import { Schema, Document, Types } from 'mongoose';
+import { Schema } from 'mongoose';
 import { Constants } from 'librechat-data-provider';
-
-export interface IPromptGroup {
-  name: string;
-  numberOfGenerations: number;
-  oneliner: string;
-  category: string;
-  projectIds: Types.ObjectId[];
-  productionId: Types.ObjectId;
-  author: Types.ObjectId;
-  authorName: string;
-  command?: string;
-  createdAt?: Date;
-  updatedAt?: Date;
-}
-
-export interface IPromptGroupDocument extends IPromptGroup, Document {}
+import type { IPromptGroupDocument } from '~/types';
 
 const promptGroupSchema = new Schema<IPromptGroupDocument>(
   {
@@ -59,6 +44,37 @@ const promptGroupSchema = new Schema<IPromptGroupDocument>(
       type: String,
       required: true,
     },
+    workspace: {
+      type: String,
+      ref: 'Workspace',
+      default: null,
+      index: true,
+    },
+    visibility: {
+      type: String,
+      enum: ['private', 'workspace', 'shared_with', 'global'],
+      default: 'private',
+      index: true,
+    },
+    sharedWith: {
+      type: [Schema.Types.ObjectId],
+      ref: 'User',
+      default: [],
+    },
+    isPinned: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    pinnedAt: {
+      type: Date,
+      default: null,
+    },
+    pinnedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
     command: {
       type: String,
       index: true,
@@ -81,5 +97,10 @@ const promptGroupSchema = new Schema<IPromptGroupDocument>(
 );
 
 promptGroupSchema.index({ createdAt: 1, updatedAt: 1 });
+promptGroupSchema.index({ workspace: 1, author: 1 }); // For workspace prompt group listing
+promptGroupSchema.index({ workspace: 1 }); // For workspace filtering
+promptGroupSchema.index({ workspace: 1, visibility: 1 }); // For filtering by visibility
+promptGroupSchema.index({ workspace: 1, visibility: 1, author: 1 }); // For workspace shared resources
+promptGroupSchema.index({ workspace: 1, isPinned: 1 }); // For pinned resources
 
 export default promptGroupSchema;

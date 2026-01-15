@@ -5,6 +5,7 @@ const { checkAccess, loadWebSearchAuth } = require('@librechat/api');
 const {
   Tools,
   AuthType,
+  Constants,
   Permissions,
   ToolCallTypes,
   PermissionTypes,
@@ -35,9 +36,10 @@ const toolAccessPermType = {
  */
 const verifyWebSearchAuth = async (req, res) => {
   try {
+    const appConfig = req.config;
     const userId = req.user.id;
     /** @type {TCustomConfig['webSearch']} */
-    const webSearchConfig = req.app.locals?.webSearch || {};
+    const webSearchConfig = appConfig?.webSearch || {};
     const result = await loadWebSearchAuth({
       userId,
       loadAuthValues,
@@ -110,6 +112,7 @@ const verifyToolAuth = async (req, res) => {
  */
 const callTool = async (req, res) => {
   try {
+    const appConfig = req.config;
     const { toolId = '' } = req.params;
     if (!fieldsMap[toolId]) {
       logger.warn(`[${toolId}/call] User ${req.user.id} attempted call to invalid tool`);
@@ -146,6 +149,15 @@ const callTool = async (req, res) => {
       );
       return res.status(403).json({ message: 'Forbidden: Insufficient permissions' });
     }
+
+    // Fetch workspace from conversation if conversationId is provided
+    let workspaceId;
+    if (conversationId && conversationId !== Constants.NEW_CONVO) {
+      const { getConvo } = require('~/models/Conversation');
+      const conversation = await getConvo(req.user.id, conversationId);
+      workspaceId = conversation?.workspace;
+    }
+
     const { loadedTools } = await loadTools({
       user: req.user.id,
       tools: [toolId],
@@ -155,8 +167,11 @@ const callTool = async (req, res) => {
         returnMetadata: true,
         processFileURL,
         uploadImageBuffer,
-        fileStrategy: req.app.locals.fileStrategy,
+        workspaceId,
       },
+      webSearch: appConfig.webSearch,
+      fileStrategy: appConfig.fileStrategy,
+      imageOutputType: appConfig.imageOutputType,
     });
 
     const tool = loadedTools[0];

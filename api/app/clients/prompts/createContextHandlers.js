@@ -1,7 +1,6 @@
 const axios = require('axios');
-const { isEnabled } = require('@librechat/api');
 const { logger } = require('@librechat/data-schemas');
-const { generateShortLivedToken } = require('~/server/services/AuthService');
+const { isEnabled, generateShortLivedToken } = require('@librechat/api');
 
 const footer = `Use the context as your learned knowledge to better answer the user.
 
@@ -12,7 +11,7 @@ In your response, remember to follow these guidelines:
 `;
 
 function createContextHandlers(req, userMessageContent) {
-  if (!process.env.RAG_API_URL) {
+  if (!process.env.RAG_API_URL || process.env.RAG_DISABLE_QUERIES === 'true') {
     return;
   }
 
@@ -48,7 +47,9 @@ function createContextHandlers(req, userMessageContent) {
   };
 
   const processFile = async (file) => {
-    if (file.embedded && !processedIds.has(file.file_id)) {
+    // Feature flag to skip embedded check for testing/debugging RAG queries
+    const skipEmbeddedCheck = process.env.RAG_SKIP_EMBEDDED_CHECK === 'true';
+    if ((file.embedded || skipEmbeddedCheck) && !processedIds.has(file.file_id)) {
       try {
         const promise = query(file);
         queryPromises.push(promise);

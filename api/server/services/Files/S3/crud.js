@@ -1,21 +1,19 @@
 const fs = require('fs');
-const path = require('path');
 const fetch = require('node-fetch');
+const { initializeS3 } = require('@librechat/api');
+const { logger } = require('@librechat/data-schemas');
 const { FileSources } = require('librechat-data-provider');
+const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const {
   PutObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
   DeleteObjectCommand,
 } = require('@aws-sdk/client-s3');
-const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
-const { initializeS3 } = require('./initialize');
-const { logger } = require('~/config');
-
-const bucketName = process.env.AWS_BUCKET_NAME;
+const { getBucketName } = require('./bucketResolver');
 const defaultBasePath = 'images';
 
-let s3UrlExpirySeconds = 7 * 24 * 60 * 60;
+let s3UrlExpirySeconds = 2 * 60; // 2 minutes
 let s3RefreshExpiryMs = null;
 
 if (process.env.S3_URL_EXPIRY_SECONDS !== undefined) {
@@ -25,7 +23,7 @@ if (process.env.S3_URL_EXPIRY_SECONDS !== undefined) {
     s3UrlExpirySeconds = Math.min(parsed, 7 * 24 * 60 * 60);
   } else {
     logger.warn(
-      `[S3] Invalid S3_URL_EXPIRY_SECONDS value: "${process.env.S3_URL_EXPIRY_SECONDS}". Using 7-day expiry.`,
+      `[S3] Invalid S3_URL_EXPIRY_SECONDS value: "${process.env.S3_URL_EXPIRY_SECONDS}". Using 2-minute expiry.`,
     );
   }
 }
@@ -56,16 +54,18 @@ const getS3Key = (basePath, userId, fileName) => `${basePath}/${userId}/${fileNa
  * @param {Buffer} params.buffer - The buffer containing file data.
  * @param {string} params.fileName - The file name to use in S3.
  * @param {string} [params.basePath='images'] - The base path in the bucket.
+ * @param {string} [params.workspace] - Workspace ID for bucket selection.
  * @returns {Promise<string>} Signed URL of the uploaded file.
  */
-async function saveBufferToS3({ userId, buffer, fileName, basePath = defaultBasePath }) {
+async function saveBufferToS3({ userId, buffer, fileName, basePath = defaultBasePath, workspace }) {
   const key = getS3Key(basePath, userId, fileName);
+  const bucketName = getBucketName({ workspace });
   const params = { Bucket: bucketName, Key: key, Body: buffer };
 
   try {
     const s3 = initializeS3();
     await s3.send(new PutObjectCommand(params));
-    return await getS3URL({ userId, fileName, basePath });
+    return await getS3URL({ userId, fileName, basePath, workspace });
   } catch (error) {
     logger.error('[saveBufferToS3] Error uploading buffer to S3:', error.message);
     throw error;
@@ -80,11 +80,31 @@ async function saveBufferToS3({ userId, buffer, fileName, basePath = defaultBase
  * @param {string} params.userId - The user's unique identifier.
  * @param {string} params.fileName - The file name in S3.
  * @param {string} [params.basePath='images'] - The base path in the bucket.
+ * @param {string} [params.customFilename] - Custom filename for Content-Disposition header (overrides extracted filename).
+ * @param {string} [params.contentType] - Custom content type for the response.
+ * @param {string} [params.workspace] - Workspace ID for bucket selection.
  * @returns {Promise<string>} A URL to access the S3 object
  */
-async function getS3URL({ userId, fileName, basePath = defaultBasePath }) {
+async function getS3URL({
+  userId,
+  fileName,
+  basePath = defaultBasePath,
+  customFilename = null,
+  contentType = null,
+  workspace,
+}) {
   const key = getS3Key(basePath, userId, fileName);
+  const bucketName = getBucketName({ workspace });
   const params = { Bucket: bucketName, Key: key };
+
+  // Add response headers if specified
+  if (customFilename) {
+    params.ResponseContentDisposition = `attachment; filename="${customFilename}"`;
+  }
+
+  if (contentType) {
+    params.ResponseContentType = contentType;
+  }
 
   try {
     const s3 = initializeS3();
@@ -103,14 +123,15 @@ async function getS3URL({ userId, fileName, basePath = defaultBasePath }) {
  * @param {string} params.URL - The source URL of the file.
  * @param {string} params.fileName - The file name to use in S3.
  * @param {string} [params.basePath='images'] - The base path in the bucket.
+ * @param {string} [params.workspace] - Workspace ID for bucket selection.
  * @returns {Promise<string>} Signed URL of the uploaded file.
  */
-async function saveURLToS3({ userId, URL, fileName, basePath = defaultBasePath }) {
+async function saveURLToS3({ userId, URL, fileName, basePath = defaultBasePath, workspace }) {
   try {
     const response = await fetch(URL);
     const buffer = await response.buffer();
     // Optionally you can call getBufferMetadata(buffer) if needed.
-    return await saveBufferToS3({ userId, buffer, fileName, basePath });
+    return await saveBufferToS3({ userId, buffer, fileName, basePath, workspace });
   } catch (error) {
     logger.error('[saveURLToS3] Error uploading file from URL to S3:', error.message);
     throw error;
@@ -127,11 +148,67 @@ async function saveURLToS3({ userId, URL, fileName, basePath = defaultBasePath }
  */
 async function deleteFileFromS3(req, file) {
   const key = extractKeyFromS3Url(file.filepath);
+  const bucketName = getBucketName({ file });
   const params = { Bucket: bucketName, Key: key };
   if (!key.includes(req.user.id)) {
     const message = `[deleteFileFromS3] User ID mismatch: ${req.user.id} vs ${key}`;
     logger.error(message);
     throw new Error(message);
+  }
+
+  // Always attempt to delete from RAG if RAG_API_URL is configured
+  // This handles files that may have been embedded but webhook wasn't called
+  if (process.env.RAG_API_URL) {
+    const axios = require('axios');
+    const { generateShortLivedToken } = require('@librechat/api');
+    const { getNamespace } = require('../VectorDB/crud');
+
+    const jwtToken = generateShortLivedToken(req.user.id);
+    const namespace = await getNamespace({ user: req.user, workspaceId: file.workspace });
+
+    // RAG API uses source path as document identifier: "./uploads/public/{filename}"
+    const sourceToDelete = `./uploads/public/${file.filename}`;
+
+    logger.info(
+      `[deleteFileFromS3] Attempting to delete from RAG - source: ${sourceToDelete}, file_id: ${file.file_id}, workspace: ${file.workspace || 'none'}, namespace: ${namespace}, embedded: ${file.embedded}`,
+    );
+
+    try {
+      const response = await axios.delete(`${process.env.RAG_API_URL}/documents`, {
+        headers: {
+          Authorization: `Bearer ${jwtToken}`,
+          'X-Namespace': namespace,
+          'X-File-ID': file.file_id,
+          'Content-Type': 'application/json',
+          accept: 'application/json',
+        },
+        data: {
+          document_ids: [file.file_id],
+        },
+        timeout: 30000, // 30 second timeout
+      });
+      logger.info(
+        `[deleteFileFromS3] Successfully deleted from RAG vectorstore - source: ${sourceToDelete}, file_id: ${file.file_id}`,
+      );
+    } catch (error) {
+      // 404 is expected if file wasn't embedded
+      if (error.response?.status === 404) {
+        logger.debug(
+          `[deleteFileFromS3] File ${file.file_id} not found in RAG (not embedded or already deleted)`,
+        );
+      } else if (error.code === 'ECONNREFUSED' || error.message?.includes('ECONNREFUSED')) {
+        // RAG API not available - log warning but continue with S3 deletion
+        logger.warn(
+          `[deleteFileFromS3] RAG API unavailable for file ${sourceToDelete}: ${error.message}. Continuing with S3 deletion.`,
+        );
+      } else {
+        logger.error(
+          `[deleteFileFromS3] Error deleting from RAG API for file ${sourceToDelete}: ${error.message}`,
+        );
+        // Propagate error to prevent MongoDB deletion if RAG deletion fails critically
+        throw new Error(`RAG deletion failed for ${file.file_id}: ${error.message}`);
+      }
+    }
   }
 
   try {
@@ -182,13 +259,14 @@ async function deleteFileFromS3(req, file) {
  * @param {Express.Multer.File} params.file - The file object from Multer.
  * @param {string} params.file_id - Unique file identifier.
  * @param {string} [params.basePath='images'] - The base path in the bucket.
+ * @param {string} [params.workspace] - Workspace ID for bucket selection.
  * @returns {Promise<{ filepath: string, bytes: number }>}
  */
-async function uploadFileToS3({ req, file, file_id, basePath = defaultBasePath }) {
+async function uploadFileToS3({ req, file, file_id, basePath = defaultBasePath, workspace }) {
   try {
     const inputFilePath = file.path;
     const userId = req.user.id;
-    const fileName = `${file_id}__${path.basename(inputFilePath)}`;
+    const fileName = `${file_id}__${file.originalname}`;
     const key = getS3Key(basePath, userId, fileName);
 
     const stats = await fs.promises.stat(inputFilePath);
@@ -196,6 +274,7 @@ async function uploadFileToS3({ req, file, file_id, basePath = defaultBasePath }
     const fileStream = fs.createReadStream(inputFilePath);
 
     const s3 = initializeS3();
+    const bucketName = getBucketName({ workspace });
     const uploadParams = {
       Bucket: bucketName,
       Key: key,
@@ -203,7 +282,7 @@ async function uploadFileToS3({ req, file, file_id, basePath = defaultBasePath }
     };
 
     await s3.send(new PutObjectCommand(uploadParams));
-    const fileURL = await getS3URL({ userId, fileName, basePath });
+    const fileURL = await getS3URL({ userId, fileName, basePath, workspace });
     return { filepath: fileURL, bytes };
   } catch (error) {
     logger.error('[uploadFileToS3] Error streaming file to S3:', error);
@@ -234,7 +313,20 @@ function extractKeyFromS3Url(fileUrlOrKey) {
 
   try {
     const url = new URL(fileUrlOrKey);
-    return url.pathname.substring(1);
+    // For path-style URLs (e.g., https://minio.local/bucket-name/key/path),
+    // pathname is /bucket-name/key/path
+    // We need to remove the leading slash AND the bucket name
+    const pathWithoutLeadingSlash = url.pathname.substring(1);
+
+    // Remove the first segment (bucket name) from path-style URLs
+    // Path-style: /bucket-name/uploads/user/file.jpg -> uploads/user/file.jpg
+    const firstSlashIndex = pathWithoutLeadingSlash.indexOf('/');
+    if (firstSlashIndex !== -1) {
+      return pathWithoutLeadingSlash.substring(firstSlashIndex + 1);
+    }
+
+    // If no slash found, might be just bucket name (edge case), return as-is
+    return pathWithoutLeadingSlash;
   } catch (error) {
     const parts = fileUrlOrKey.split('/');
 
@@ -251,11 +343,13 @@ function extractKeyFromS3Url(fileUrlOrKey) {
  *
  * @param {ServerRequest} req - Server request object.
  * @param {string} filePath - The S3 key of the file.
+ * @param {string} [workspace] - Workspace ID for bucket selection.
  * @returns {Promise<NodeJS.ReadableStream>}
  */
-async function getS3FileStream(_req, filePath) {
+async function getS3FileStream(_req, filePath, workspace) {
   try {
     const Key = extractKeyFromS3Url(filePath);
+    const bucketName = getBucketName({ workspace });
     const params = { Bucket: bucketName, Key };
     const s3 = initializeS3();
     const data = await s3.send(new GetObjectCommand(params));
@@ -328,9 +422,10 @@ function needsRefresh(signedUrl, bufferSeconds) {
 /**
  * Generates a new URL for an expired S3 URL
  * @param {string} currentURL - The current file URL
+ * @param {string} [workspace] - Workspace ID for bucket selection
  * @returns {Promise<string | undefined>}
  */
-async function getNewS3URL(currentURL) {
+async function getNewS3URL(currentURL, workspace) {
   try {
     const s3Key = extractKeyFromS3Url(currentURL);
     if (!s3Key) {
@@ -349,6 +444,7 @@ async function getNewS3URL(currentURL) {
       userId,
       fileName,
       basePath,
+      workspace,
     });
   } catch (error) {
     logger.error('Error getting new S3 URL:', error);
@@ -385,7 +481,7 @@ async function refreshS3FileUrls(files, batchUpdateFiles, bufferSeconds = 3600) 
       continue;
     }
     try {
-      const newURL = await getNewS3URL(file.filepath);
+      const newURL = await getNewS3URL(file.filepath, file.workspace);
       if (!newURL) {
         continue;
       }
@@ -443,6 +539,7 @@ async function refreshS3Url(fileObj, bufferSeconds = 3600) {
       userId,
       fileName,
       basePath,
+      workspace: fileObj.workspace,
     });
 
     logger.debug(`Refreshed S3 URL for key: ${s3Key}`);

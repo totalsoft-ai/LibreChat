@@ -58,7 +58,7 @@ const Part = memo(
         </>
       );
     } else if (part.type === ContentTypes.TEXT) {
-      const text = typeof part.text === 'string' ? part.text : part.text.value;
+      const text = typeof part.text === 'string' ? part.text : part.text?.value;
 
       if (typeof text !== 'string') {
         return null;
@@ -72,7 +72,7 @@ const Part = memo(
         </Container>
       );
     } else if (part.type === ContentTypes.THINK) {
-      const reasoning = typeof part.think === 'string' ? part.think : part.think.value;
+      const reasoning = typeof part.think === 'string' ? part.think : part.think?.value;
       if (typeof reasoning !== 'string') {
         return null;
       }
@@ -86,13 +86,14 @@ const Part = memo(
 
       const isToolCall =
         'args' in toolCall && (!toolCall.type || toolCall.type === ToolCallTypes.TOOL_CALL);
-      if (isToolCall && toolCall.name === Tools.execute_code && toolCall.args) {
+      if (isToolCall && toolCall.name === Tools.execute_code) {
         return (
           <ExecuteCode
-            args={typeof toolCall.args === 'string' ? toolCall.args : ''}
+            attachments={attachments}
+            isSubmitting={isSubmitting}
             output={toolCall.output ?? ''}
             initialProgress={toolCall.progress ?? 0.1}
-            attachments={attachments}
+            args={typeof toolCall.args === 'string' ? toolCall.args : ''}
           />
         );
       } else if (
@@ -196,15 +197,14 @@ const Part = memo(
             width: width + 'px',
           }}
         />
-            );
-           } else if (part.type === 'application/vnd.plantuml') {
-       // Handle PlantUML diagrams
-       const plantUMLContent = part['application/vnd.plantuml'];
-       if (typeof plantUMLContent === 'string') {
-         return <PlantUMLDiagram content={plantUMLContent} />;
-       }
-     }
-              
+      );
+    } else if (part.type === 'application/vnd.plantuml') {
+      // Handle PlantUML diagrams
+      const plantUMLContent = part['application/vnd.plantuml'];
+      if (typeof plantUMLContent === 'string') {
+        return <PlantUMLDiagram content={plantUMLContent} />;
+      }
+    }
 
     return null;
   },

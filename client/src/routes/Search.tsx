@@ -1,20 +1,19 @@
 import { useEffect, useMemo } from 'react';
-import { useRecoilValue } from 'recoil';
+import { useAtomValue } from 'jotai';
 import { Spinner, useToastContext } from '@librechat/client';
 import MinimalMessagesWrapper from '~/components/Chat/Messages/MinimalMessages';
 import { useNavScrolling, useLocalize, useAuthContext } from '~/hooks';
 import SearchMessage from '~/components/Chat/Messages/SearchMessage';
 import { useMessagesInfiniteQuery } from '~/data-provider';
 import { useFileMapContext } from '~/Providers';
-import { buildTree } from '~/utils';
-import store from '~/store';
+import { searchAtom } from '~/store/search';
 
 export default function Search() {
   const localize = useLocalize();
   const fileMap = useFileMapContext();
   const { showToast } = useToastContext();
   const { isAuthenticated } = useAuthContext();
-  const search = useRecoilValue(store.search);
+  const search = useAtomValue(searchAtom);
   const searchQuery = search.debouncedQuery;
 
   const {
@@ -43,9 +42,20 @@ export default function Search() {
   });
 
   const messages = useMemo(() => {
-    const msgs = searchMessages?.pages.flatMap((page) => page.messages) || [];
-    const dataTree = buildTree({ messages: msgs, fileMap });
-    return dataTree?.length === 0 ? null : (dataTree ?? null);
+    const msgs =
+      searchMessages?.pages.flatMap((page) =>
+        page.messages.map((message) => {
+          if (!message.files || !fileMap) {
+            return message;
+          }
+          return {
+            ...message,
+            files: message.files.map((file) => fileMap[file.file_id ?? ''] ?? file),
+          };
+        }),
+      ) || [];
+
+    return msgs.length === 0 ? null : msgs;
   }, [fileMap, searchMessages?.pages]);
 
   useEffect(() => {

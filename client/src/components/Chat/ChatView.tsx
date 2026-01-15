@@ -3,20 +3,21 @@ import { useRecoilValue } from 'recoil';
 import { useForm } from 'react-hook-form';
 import { Spinner } from '@librechat/client';
 import { useParams } from 'react-router-dom';
-import { Constants } from 'librechat-data-provider';
+import { Constants, buildTree } from 'librechat-data-provider';
 import type { TMessage } from 'librechat-data-provider';
 import type { ChatFormValues } from '~/common';
 import { ChatContext, AddedChatContext, useFileMapContext, ChatFormProvider } from '~/Providers';
 import { useChatHelpers, useAddedResponse, useSSE } from '~/hooks';
 import ConversationStarters from './Input/ConversationStarters';
 import { useGetMessagesByConvoId } from '~/data-provider';
+import { ErrorBoundary, ErrorFallback } from '~/components/ui';
 import MessagesView from './Messages/MessagesView';
 import Presentation from './Presentation';
-import { buildTree, cn } from '~/utils';
 import ChatForm from './Input/ChatForm';
 import Landing from './Landing';
 import Header from './Header';
 import Footer from './Footer';
+import { cn } from '~/utils';
 import store from '~/store';
 
 function LoadingSpinner() {
@@ -75,39 +76,57 @@ function ChatView({ index = 0 }: { index?: number }) {
   }
 
   return (
-    <ChatFormProvider {...methods}>
-      <ChatContext.Provider value={chatHelpers}>
-        <AddedChatContext.Provider value={addedChatHelpers}>
-          <Presentation>
-            <div className="flex h-full w-full flex-col">
-              {!isLoading && <Header />}
-              <>
-                <div
-                  className={cn(
-                    'flex flex-col',
-                    isLandingPage
-                      ? 'flex-1 items-center justify-end sm:justify-center'
-                      : 'h-full overflow-y-auto',
-                  )}
-                >
-                  {content}
+    <ErrorBoundary
+      fallback={(error) => (
+        <ErrorFallback
+          error={error}
+          resetError={() => window.location.reload()}
+          title="Chat Error"
+          message="We encountered an error while loading the chat. Please try refreshing the page."
+          className="mx-auto my-8 max-w-2xl"
+        />
+      )}
+      onError={(error, errorInfo) => {
+        // Log to console in development
+        console.error('ChatView Error:', error, errorInfo);
+        // In production, you could send this to an error reporting service
+        // Example: errorReportingService.captureException(error, { extra: errorInfo });
+      }}
+    >
+      <ChatFormProvider {...methods}>
+        <ChatContext.Provider value={chatHelpers}>
+          <AddedChatContext.Provider value={addedChatHelpers}>
+            <Presentation>
+              <div className="flex h-full w-full flex-col">
+                {!isLoading && <Header />}
+                <>
                   <div
                     className={cn(
-                      'w-full',
-                      isLandingPage && 'max-w-3xl transition-all duration-200 xl:max-w-4xl',
+                      'flex flex-col',
+                      isLandingPage
+                        ? 'flex-1 items-center justify-end sm:justify-center'
+                        : 'h-full overflow-y-auto',
                     )}
                   >
-                    <ChatForm index={index} />
-                    {isLandingPage ? <ConversationStarters /> : <Footer />}
+                    {content}
+                    <div
+                      className={cn(
+                        'w-full',
+                        isLandingPage && 'max-w-3xl transition-all duration-200 xl:max-w-4xl',
+                      )}
+                    >
+                      <ChatForm index={index} />
+                      {isLandingPage ? <ConversationStarters /> : <Footer />}
+                    </div>
                   </div>
-                </div>
-                {isLandingPage && <Footer />}
-              </>
-            </div>
-          </Presentation>
-        </AddedChatContext.Provider>
-      </ChatContext.Provider>
-    </ChatFormProvider>
+                  {isLandingPage && <Footer />}
+                </>
+              </div>
+            </Presentation>
+          </AddedChatContext.Provider>
+        </ChatContext.Provider>
+      </ChatFormProvider>
+    </ErrorBoundary>
   );
 }
 

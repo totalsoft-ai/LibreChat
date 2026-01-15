@@ -1,24 +1,27 @@
 import download from 'downloadjs';
 import { useCallback } from 'react';
+import { useParams } from 'react-router-dom';
 import exportFromJSON from 'export-from-json';
 import { useQueryClient } from '@tanstack/react-query';
 import {
+  buildTree,
   QueryKeys,
   ContentTypes,
   ToolCallTypes,
   imageGenTools,
   isImageVisionTool,
+  useExportConversationMutation,
 } from 'librechat-data-provider';
 import type {
+  TMessageContentParts,
+  TConversation,
   TMessage,
   TPreset,
-  TConversation,
-  TMessageContentParts,
 } from 'librechat-data-provider';
+import { useToastContext } from '@librechat/client';
 import useBuildMessageTree from '~/hooks/Messages/useBuildMessageTree';
 import { useScreenshot } from '~/hooks/ScreenshotContext';
-import { cleanupPreset, buildTree } from '~/utils';
-import { useParams } from 'react-router-dom';
+import { cleanupPreset } from '~/utils';
 
 type ExportValues = {
   fieldName: string;
@@ -44,17 +47,20 @@ export default function useExportConversation({
   const queryClient = useQueryClient();
   const { captureScreenshot } = useScreenshot();
   const buildMessageTree = useBuildMessageTree();
+  const { showToast } = useToastContext();
+  const exportMutation = useExportConversationMutation();
 
   const { conversationId: paramId } = useParams();
 
   const getMessageTree = useCallback(() => {
-    const queryParam = paramId === 'new' ? paramId : conversation?.conversationId ?? paramId ?? '';
+    const queryParam =
+      paramId === 'new' ? paramId : (conversation?.conversationId ?? paramId ?? '');
     const messages = queryClient.getQueryData<TMessage[]>([QueryKeys.messages, queryParam]) ?? [];
     const dataTree = buildTree({ messages });
-    return dataTree?.length === 0 ? null : dataTree ?? null;
+    return dataTree?.length === 0 ? null : (dataTree ?? null);
   }, [paramId, conversation?.conversationId, queryClient]);
 
-  const getMessageText = (message: TMessage | undefined, format = 'text') => {
+  const getMessageText = (message: Partial<TMessage> | undefined, format = 'text') => {
     if (!message) {
       return '';
     }
@@ -67,7 +73,7 @@ export default function useExportConversation({
     };
 
     if (!message.content) {
-      return formatText(message.sender || '', message.text);
+      return formatText(message.sender || '', message.text || '');
     }
 
     return message.content
@@ -90,7 +96,12 @@ export default function useExportConversation({
 
     if (content.type === ContentTypes.ERROR) {
       // ERROR
-      return [sender, content[ContentTypes.TEXT].value];
+      return [
+        sender,
+        typeof content[ContentTypes.TEXT] === 'object'
+          ? (content[ContentTypes.TEXT].value ?? '')
+          : (content[ContentTypes.TEXT] ?? ''),
+      ];
     }
 
     if (content.type === ContentTypes.TEXT) {
@@ -156,7 +167,7 @@ export default function useExportConversation({
   };
 
   const exportCSV = async () => {
-    const data: TMessage[] = [];
+    const data: Partial<TMessage>[] = [];
 
     const messages = await buildMessageTree({
       messageId: conversation?.conversationId,
@@ -168,6 +179,9 @@ export default function useExportConversation({
 
     if (Array.isArray(messages)) {
       for (const message of messages) {
+        if (!message) {
+          continue;
+        }
         data.push(message);
       }
     } else {
@@ -245,10 +259,10 @@ export default function useExportConversation({
     if (Array.isArray(messages)) {
       for (const message of messages) {
         data += `${getMessageText(message, 'md')}\n`;
-        if (message.error) {
+        if (message?.error) {
           data += '*(This is an error message)*\n';
         }
-        if (message.unfinished === true) {
+        if (message?.unfinished === true) {
           data += '*(This is an unfinished message)*\n';
         }
         data += '\n\n';
@@ -301,10 +315,10 @@ export default function useExportConversation({
     if (Array.isArray(messages)) {
       for (const message of messages) {
         data += `${getMessageText(message)}\n`;
-        if (message.error) {
+        if (message?.error) {
           data += '(This is an error message)\n';
         }
-        if (message.unfinished === true) {
+        if (message?.unfinished === true) {
           data += '(This is an unfinished message)\n';
         }
         data += '\n\n';
@@ -363,16 +377,60 @@ export default function useExportConversation({
     });
   };
 
+  const exportViaAPI = async (format: 'json' | 'markdown' | 'pdf') => {
+    if (!conversation?.conversationId) {
+      showToast({
+        message: 'No conversation to export',
+        status: 'error',
+      });
+      return;
+    }
+
+    try {
+      const blob = await exportMutation.mutateAsync({
+        conversationId: conversation.conversationId,
+        format,
+      });
+
+      // Determine file extension and content type
+      const extension = format === 'markdown' ? 'md' : format;
+      const contentTypeMap = {
+        json: 'application/json',
+        markdown: 'text/markdown',
+        pdf: 'application/pdf',
+      };
+
+      download(blob, `${filename}.${extension}`, contentTypeMap[format]);
+
+      showToast({
+        message: `Conversation exported as ${format.toUpperCase()}`,
+        status: 'success',
+      });
+    } catch (error) {
+      console.error('Export failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      showToast({
+        message: `Failed to export conversation: ${errorMessage}`,
+        status: 'error',
+      });
+    }
+  };
+
   const exportConversation = () => {
+    // Use backend API for JSON, Markdown, and PDF (server-side generation with better formatting)
     if (type === 'json') {
-      exportJSON();
-    } else if (type == 'text') {
+      exportViaAPI('json');
+    } else if (type === 'markdown') {
+      exportViaAPI('markdown');
+    } else if (type === 'pdf') {
+      exportViaAPI('pdf');
+    }
+    // Use client-side export for others
+    else if (type === 'text') {
       exportText();
-    } else if (type == 'markdown') {
-      exportMarkdown();
-    } else if (type == 'csv') {
+    } else if (type === 'csv') {
       exportCSV();
-    } else if (type == 'screenshot') {
+    } else if (type === 'screenshot') {
       exportScreenshot();
     }
   };

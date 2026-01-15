@@ -6,6 +6,7 @@ interface AgentCapabilitiesResult {
   actionsEnabled: boolean;
   artifactsEnabled: boolean;
   ocrEnabled: boolean;
+  contextEnabled: boolean;
   fileSearchEnabled: boolean;
   webSearchEnabled: boolean;
   codeEnabled: boolean;
@@ -34,6 +35,11 @@ export default function useAgentCapabilities(
     [capabilities],
   );
 
+  const contextEnabled = useMemo(
+    () => capabilities?.includes(AgentCapabilities.context) ?? false,
+    [capabilities],
+  );
+
   const fileSearchEnabled = useMemo(
     () => capabilities?.includes(AgentCapabilities.file_search) ?? false,
     [capabilities],
@@ -44,16 +50,19 @@ export default function useAgentCapabilities(
     [capabilities],
   );
 
-  const codeEnabled = useMemo(
-    () => capabilities?.includes(AgentCapabilities.execute_code) ?? false,
-    [capabilities],
-  );
+  // Code Interpreter - Commented out to hide from interface
+  // const codeEnabled = useMemo(
+  //   () => capabilities?.includes(AgentCapabilities.execute_code) ?? false,
+  //   [capabilities],
+  // );
+  const codeEnabled = false; // Force disabled
 
   return {
     ocrEnabled,
     codeEnabled,
     toolsEnabled,
     actionsEnabled,
+    contextEnabled,
     artifactsEnabled,
     webSearchEnabled,
     fileSearchEnabled,

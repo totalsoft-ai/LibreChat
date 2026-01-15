@@ -1,7 +1,6 @@
 const { z } = require('zod');
 const { logger } = require('@librechat/data-schemas');
 const { createTempChatExpirationDate } = require('@librechat/api');
-const { getCustomConfig } = require('~/server/services/Config/getCustomConfig');
 const { Message } = require('~/db/models');
 
 const idSchema = z.string().uuid();
@@ -11,7 +10,7 @@ const idSchema = z.string().uuid();
  *
  * @async
  * @function saveMessage
- * @param {Express.Request} req - The request object containing user information.
+ * @param {ServerRequest} req - The request object containing user information.
  * @param {Object} params - The message data object.
  * @param {string} params.endpoint - The endpoint where the message originated.
  * @param {string} params.iconURL - The URL of the sender's icon.
@@ -57,8 +56,8 @@ async function saveMessage(req, params, metadata) {
 
     if (req?.body?.isTemporary) {
       try {
-        const customConfig = await getCustomConfig();
-        update.expiredAt = createTempChatExpirationDate(customConfig);
+        const appConfig = req.config;
+        update.expiredAt = createTempChatExpirationDate(appConfig?.interfaceConfig);
       } catch (err) {
         logger.error('Error creating temporary chat expiration date:', err);
         logger.info(`---\`saveMessage\` context: ${metadata?.context}`);
@@ -311,11 +310,16 @@ async function deleteMessagesSince(req, { messageId, conversationId }) {
  */
 async function getMessages(filter, select) {
   try {
+    const query = Message.find(filter);
+
     if (select) {
-      return await Message.find(filter).select(select).sort({ createdAt: 1 }).lean();
+      query.select(select);
+    } else {
+      // Exclude heavy fields by default
+      query.select('-__v');
     }
 
-    return await Message.find(filter).sort({ createdAt: 1 }).lean();
+    return await query.sort({ createdAt: 1 }).lean();
   } catch (err) {
     logger.error('Error getting messages:', err);
     throw err;
@@ -335,7 +339,9 @@ async function getMessage({ user, messageId }) {
     return await Message.findOne({
       user,
       messageId,
-    }).lean();
+    })
+      .select('-__v') // Exclude version key
+      .lean();
   } catch (err) {
     logger.error('Error getting message:', err);
     throw err;

@@ -1,3 +1,4 @@
+const accessPermissions = require('./accessPermissions');
 const assistants = require('./assistants');
 const categories = require('./categories');
 const tokenizer = require('./tokenizer');
@@ -16,6 +17,7 @@ const models = require('./models');
 const convos = require('./convos');
 const config = require('./config');
 const agents = require('./agents');
+const exportRoute = require('./export');
 const roles = require('./roles');
 const oauth = require('./oauth');
 const files = require('./files');
@@ -26,8 +28,15 @@ const edit = require('./edit');
 const keys = require('./keys');
 const user = require('./user');
 const mcp = require('./mcp');
+const workspaces = require('./workspaces');
+const docs = require('./docs');
+const adminEvents = require('./admin/events');
 
 module.exports = {
+  adminEvents,
+  workspaces,
+  mcp,
+  docs,
   edit,
   auth,
   keys,
@@ -55,5 +64,6 @@ module.exports = {
   assistants,
   categories,
   staticRoute,
-  mcp,
+  exportRoute,
+  accessPermissions,
 };

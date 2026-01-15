@@ -21,12 +21,12 @@ export enum QueryKeys {
   assistant = 'assistant',
   agents = 'agents',
   agent = 'agent',
-  endpointsConfigOverride = 'endpointsConfigOverride',
   files = 'files',
   fileConfig = 'fileConfig',
   tools = 'tools',
   toolAuth = 'toolAuth',
   toolCalls = 'toolCalls',
+  mcpTools = 'mcpTools',
   mcpConnectionStatus = 'mcpConnectionStatus',
   mcpAuthValues = 'mcpAuthValues',
   agentTools = 'agentTools',
@@ -43,6 +43,8 @@ export enum QueryKeys {
   promptGroup = 'promptGroup',
   categories = 'categories',
   randomPrompts = 'randomPrompts',
+  agentCategories = 'agentCategories',
+  marketplaceAgents = 'marketplaceAgents',
   roles = 'roles',
   conversationTags = 'conversationTags',
   health = 'health',
@@ -50,11 +52,27 @@ export enum QueryKeys {
   banner = 'banner',
   /* Memories */
   memories = 'memories',
+  principalSearch = 'principalSearch',
+  accessRoles = 'accessRoles',
+  resourcePermissions = 'resourcePermissions',
+  effectivePermissions = 'effectivePermissions',
+  graphToken = 'graphToken',
+  workspaces = 'workspaces',
+  workspace = 'workspace',
+  workspaceStats = 'workspaceStats',
+  docs = 'docs',
+  docsList = 'docsList',
+  /* Admin Events */
+  eventsAuth = 'eventsAuth',
+  eventsInternal = 'eventsInternal',
+  eventsLogs = 'eventsLogs',
 }
 
 // Dynamic query keys that require parameters
 export const DynamicQueryKeys = {
   agentFiles: (agentId: string) => ['agentFiles', agentId] as const,
+  workspace: (identifier: string) => [QueryKeys.workspace, identifier] as const,
+  workspaceStats: (workspaceId: string) => [QueryKeys.workspaceStats, workspaceId] as const,
 } as const;
 
 export enum MutationKeys {

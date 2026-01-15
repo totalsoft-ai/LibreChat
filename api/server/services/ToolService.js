@@ -1,11 +1,12 @@
-const fs = require('fs');
-const path = require('path');
 const { sleep } = require('@librechat/agents');
-const { getToolkitKey } = require('@librechat/api');
 const { logger } = require('@librechat/data-schemas');
-const { zodToJsonSchema } = require('zod-to-json-schema');
-const { Calculator } = require('@langchain/community/tools/calculator');
-const { tool: toolFn, Tool, DynamicStructuredTool } = require('@langchain/core/tools');
+const { tool: toolFn, DynamicStructuredTool } = require('@langchain/core/tools');
+const {
+  getToolkitKey,
+  hasCustomUserVars,
+  getUserMCPAuthMap,
+  isActionDomainAllowed,
+} = require('@librechat/api');
 const {
   Tools,
   Constants,
@@ -26,140 +27,14 @@ const {
   loadActionSets,
   domainParser,
 } = require('./ActionService');
-const {
-  createOpenAIImageTools,
-  createYouTubeTools,
-  manifestToolMap,
-  toolkits,
-} = require('~/app/clients/tools');
 const { processFileURL, uploadImageBuffer } = require('~/server/services/Files/process');
 const { getEndpointsConfig, getCachedTools } = require('~/server/services/Config');
+const { manifestToolMap, toolkits } = require('~/app/clients/tools/manifest');
 const { createOnSearchResults } = require('~/server/services/Tools/search');
-const { isActionDomainAllowed } = require('~/server/services/domains');
 const { recordUsage } = require('~/server/services/Threads');
 const { loadTools } = require('~/app/clients/tools/util');
 const { redactMessage } = require('~/config/parsers');
-
-/**
- * Loads and formats tools from the specified tool directory.
- *
- * The directory is scanned for JavaScript files, excluding any files in the filter set.
- * For each file, it attempts to load the file as a module and instantiate a class, if it's a subclass of `StructuredTool`.
- * Each tool instance is then formatted to be compatible with the OpenAI Assistant.
- * Additionally, instances of LangChain Tools are included in the result.
- *
- * @param {object} params - The parameters for the function.
- * @param {string} params.directory - The directory path where the tools are located.
- * @param {Array<string>} [params.adminFilter=[]] - Array of admin-defined tool keys to exclude from loading.
- * @param {Array<string>} [params.adminIncluded=[]] - Array of admin-defined tool keys to include from loading.
- * @returns {Record<string, FunctionTool>} An object mapping each tool's plugin key to its instance.
- */
-function loadAndFormatTools({ directory, adminFilter = [], adminIncluded = [] }) {
-  const filter = new Set([...adminFilter]);
-  const included = new Set(adminIncluded);
-  const tools = [];
-  /* Structured Tools Directory */
-  const files = fs.readdirSync(directory);
-
-  if (included.size > 0 && adminFilter.length > 0) {
-    logger.warn(
-      'Both `includedTools` and `filteredTools` are defined; `filteredTools` will be ignored.',
-    );
-  }
-
-  for (const file of files) {
-    const filePath = path.join(directory, file);
-    if (!file.endsWith('.js') || (filter.has(file) && included.size === 0)) {
-      continue;
-    }
-
-    let ToolClass = null;
-    try {
-      ToolClass = require(filePath);
-    } catch (error) {
-      logger.error(`[loadAndFormatTools] Error loading tool from ${filePath}:`, error);
-      continue;
-    }
-
-    if (!ToolClass || !(ToolClass.prototype instanceof Tool)) {
-      continue;
-    }
-
-    let toolInstance = null;
-    try {
-      toolInstance = new ToolClass({ override: true });
-    } catch (error) {
-      logger.error(
-        `[loadAndFormatTools] Error initializing \`${file}\` tool; if it requires authentication, is the \`override\` field configured?`,
-        error,
-      );
-      continue;
-    }
-
-    if (!toolInstance) {
-      continue;
-    }
-
-    if (filter.has(toolInstance.name) && included.size === 0) {
-      continue;
-    }
-
-    if (included.size > 0 && !included.has(file) && !included.has(toolInstance.name)) {
-      continue;
-    }
-
-    const formattedTool = formatToOpenAIAssistantTool(toolInstance);
-    tools.push(formattedTool);
-  }
-
-  /** Basic Tools & Toolkits; schema: { input: string } */
-  const basicToolInstances = [
-    new Calculator(),
-    ...createOpenAIImageTools({ override: true }),
-    ...createYouTubeTools({ override: true }),
-  ];
-  for (const toolInstance of basicToolInstances) {
-    const formattedTool = formatToOpenAIAssistantTool(toolInstance);
-    let toolName = formattedTool[Tools.function].name;
-    toolName = getToolkitKey({ toolkits, toolName }) ?? toolName;
-    if (filter.has(toolName) && included.size === 0) {
-      continue;
-    }
-
-    if (included.size > 0 && !included.has(toolName)) {
-      continue;
-    }
-    tools.push(formattedTool);
-  }
-
-  tools.push(ImageVisionTool);
-
-  return tools.reduce((map, tool) => {
-    map[tool.function.name] = tool;
-    return map;
-  }, {});
-}
-
-/**
- * Formats a `StructuredTool` instance into a format that is compatible
- * with OpenAI's ChatCompletionFunctions. It uses the `zodToJsonSchema`
- * function to convert the schema of the `StructuredTool` into a JSON
- * schema, which is then used as the parameters for the OpenAI function.
- *
- * @param {StructuredTool} tool - The StructuredTool to format.
- * @returns {FunctionTool} The OpenAI Assistant Tool.
- */
-function formatToOpenAIAssistantTool(tool) {
-  return {
-    type: Tools.function,
-    [Tools.function]: {
-      name: tool.name,
-      description: tool.description,
-      parameters: zodToJsonSchema(tool.schema),
-    },
-  };
-}
-
+const { findPluginAuthsByKeys } = require('~/models');
 /**
  * Processes the required actions by calling the appropriate tools and returning the outputs.
  * @param {OpenAIClient} client - OpenAI or StreamRunManager Client.
@@ -202,7 +77,8 @@ async function processRequiredActions(client, requiredActions) {
     `[required actions] user: ${client.req.user.id} | thread_id: ${requiredActions[0].thread_id} | run_id: ${requiredActions[0].run_id}`,
     requiredActions,
   );
-  const toolDefinitions = await getCachedTools({ userId: client.req.user.id, includeGlobal: true });
+  const appConfig = client.req.config;
+  const toolDefinitions = await getCachedTools();
   const seenToolkits = new Set();
   const tools = requiredActions
     .map((action) => {
@@ -233,9 +109,11 @@ async function processRequiredActions(client, requiredActions) {
       req: client.req,
       uploadImageBuffer,
       openAIApiKey: client.apiKey,
-      fileStrategy: client.req.app.locals.fileStrategy,
       returnMetadata: true,
     },
+    webSearch: appConfig.webSearch,
+    fileStrategy: appConfig.fileStrategy,
+    imageOutputType: appConfig.imageOutputType,
   });
 
   const ToolMap = loadedTools.reduce((map, tool) => {
@@ -284,6 +162,63 @@ async function processRequiredActions(client, requiredActions) {
 
       const toolCallIndex = client.mappedOrder.get(toolCall.id);
 
+      // Handle array return format (e.g., file_search tool with [content, metadata])
+      if (Array.isArray(output)) {
+        // Check if it's the expected [content, metadata] format
+        if (output.length === 2 && typeof output[0] === 'string' && typeof output[1] === 'object') {
+          const [fullContent, metadata] = output;
+
+          // Handle file_search tool specifically
+          if (metadata?.[Tools.file_search]) {
+            const { sources = [], fileCitations = false } = metadata[Tools.file_search];
+
+            // Split content into lines
+            const lines = fullContent.split('\n');
+
+            // Find where actual results start (after header)
+            // Header ends with a blank line before first [SOURCE: ...]
+            let resultsStartIndex = -1;
+            for (let i = 0; i < lines.length; i++) {
+              if (lines[i].trim().startsWith('[SOURCE:')) {
+                resultsStartIndex = i;
+                break;
+              }
+            }
+
+            // Extract only results for UI (without model instructions header)
+            const resultsForUI = resultsStartIndex >= 0
+              ? lines.slice(resultsStartIndex).join('\n')
+              : 'No search results found in the indexed documents.';
+
+            // Store structured output in toolCall for UI display
+            toolCall.function.output = resultsForUI.trim();
+
+            // Add metadata for potential future use
+            toolCall.sources = sources;
+            toolCall.fileCitations = fileCitations;
+
+            // Continue with normal processing flow
+            // The toolCall will be added to client.seenToolCalls and client.addContentData below
+            // Return full content (with header) for AI model
+            client.seenToolCalls && client.seenToolCalls.set(toolCall.id, toolCall);
+            client.addContentData({
+              [ContentTypes.TOOL_CALL]: toolCall,
+              index: toolCallIndex,
+              type: ContentTypes.TOOL_CALL,
+            });
+
+            return {
+              tool_call_id: currentAction.toolCallId,
+              output: fullContent, // Full content with header for AI model
+            };
+          }
+        }
+
+        // For other array formats, stringify
+        output = JSON.stringify(output);
+        toolCall.function.output = output;
+      }
+
       // If the tool produced LibreChat artifacts, stream them as assistant text and skip the box
       try {
         // Case 1: pre-formatted artifact blocks in a string
@@ -304,7 +239,9 @@ async function processRequiredActions(client, requiredActions) {
                 return _m; // leave as-is if not JSON
               }
             });
-          } catch {logger.error('Error parsing artifact JSON:', json);}        
+          } catch {
+            logger.error('Error parsing artifact JSON:', json);
+          }
           // Also normalize attribute-style keys: id=>identifier, mime=>type
           try {
             value = value
@@ -322,10 +259,14 @@ async function processRequiredActions(client, requiredActions) {
         }
 
         // Case 1.5: Detect PlantUML code blocks and convert to artifacts for visualization
-        if (typeof output === 'string' && output.includes('@startuml') && output.includes('@enduml')) {
+        if (
+          typeof output === 'string' &&
+          output.includes('@startuml') &&
+          output.includes('@enduml')
+        ) {
           const plantUMLRegex = /@startuml[\s\S]*?@enduml/g;
           const matches = output.match(plantUMLRegex);
-          
+
           if (matches && matches.length > 0) {
             let processedOutput = output;
             matches.forEach((match, idx) => {
@@ -333,11 +274,11 @@ async function processRequiredActions(client, requiredActions) {
               const title = `PlantUML Diagram ${idx + 1}`;
               const type = 'application/vnd.plantuml';
               const artifactBlock = `:::artifact{identifier="${identifier}" title="${title}" type="${type}"}\n${match}\n:::`;
-              
+
               // Replace the PlantUML code with the artifact block
               processedOutput = processedOutput.replace(match, artifactBlock);
             });
-            
+
             client.addContentData({
               [ContentTypes.TEXT]: { value: processedOutput },
               type: ContentTypes.TEXT,
@@ -396,9 +337,13 @@ async function processRequiredActions(client, requiredActions) {
                 };
               }
             }
-          } catch {logger.error('Error parsing artifact JSON: @startuml', json);}
+          } catch {
+            logger.error('Error parsing artifact JSON: @startuml', json);
+          }
         }
-      } catch {logger.error('Error parsing artifact JSON: case 2', json);}
+      } catch {
+        logger.error('Error parsing artifact JSON: case 2', json);
+      }
 
       if (imageGenTools.has(currentAction.tool)) {
         const imageOutput = output;
@@ -471,8 +416,10 @@ async function processRequiredActions(client, requiredActions) {
           const domain = await domainParser(action.metadata.domain, true);
           domainMap.set(domain, action);
 
-          // Check if domain is allowed
-          const isDomainAllowed = await isActionDomainAllowed(action.metadata.domain);
+          const isDomainAllowed = await isActionDomainAllowed(
+            action.metadata.domain,
+            appConfig?.actions?.allowedDomains,
+          );
           if (!isDomainAllowed) {
             continue;
           }
@@ -592,23 +539,30 @@ async function processRequiredActions(client, requiredActions) {
  * @param {Object} params - Run params containing user and request information.
  * @param {ServerRequest} params.req - The request object.
  * @param {ServerResponse} params.res - The request object.
+ * @param {AbortSignal} params.signal
  * @param {Pick<Agent, 'id' | 'provider' | 'model' | 'tools'} params.agent - The agent to load tools for.
  * @param {string | undefined} [params.openAIApiKey] - The OpenAI API key.
- * @returns {Promise<{ tools?: StructuredTool[] }>} The agent tools.
+ * @returns {Promise<{ tools?: StructuredTool[]; userMCPAuthMap?: Record<string, Record<string, string>> }>} The agent tools.
  */
-async function loadAgentTools({ req, res, agent, tool_resources, openAIApiKey }) {
+async function loadAgentTools({ req, res, agent, signal, tool_resources, openAIApiKey }) {
   if (!agent.tools || agent.tools.length === 0) {
     return {};
-  } else if (agent.tools && agent.tools.length === 1 && agent.tools[0] === AgentCapabilities.ocr) {
+  } else if (
+    agent.tools &&
+    agent.tools.length === 1 &&
+    /** Legacy handling for `ocr` as may still exist in existing Agents */
+    (agent.tools[0] === AgentCapabilities.context || agent.tools[0] === AgentCapabilities.ocr)
+  ) {
     return {};
   }
 
+  const appConfig = req.config;
   const endpointsConfig = await getEndpointsConfig(req);
   let enabledCapabilities = new Set(endpointsConfig?.[EModelEndpoint.agents]?.capabilities ?? []);
   /** Edge case: use defined/fallback capabilities when the "agents" endpoint is not enabled */
   if (enabledCapabilities.size === 0 && agent.id === Constants.EPHEMERAL_AGENT_ID) {
     enabledCapabilities = new Set(
-      req.app?.locals?.[EModelEndpoint.agents]?.capabilities ?? defaultAgentCapabilities,
+      appConfig.endpoints?.[EModelEndpoint.agents]?.capabilities ?? defaultAgentCapabilities,
     );
   }
   const checkCapability = (capability) => {
@@ -640,13 +594,31 @@ async function loadAgentTools({ req, res, agent, tool_resources, openAIApiKey })
   if (!_agentTools || _agentTools.length === 0) {
     return {};
   }
-  /** @type {ReturnType<createOnSearchResults>} */
+  /** @type {ReturnType<typeof createOnSearchResults>} */
   let webSearchCallbacks;
   if (includesWebSearch) {
     webSearchCallbacks = createOnSearchResults(res);
   }
+
+  /** @type {Record<string, Record<string, string>>} */
+  let userMCPAuthMap;
+  if (hasCustomUserVars(req.config)) {
+    userMCPAuthMap = await getUserMCPAuthMap({
+      tools: agent.tools,
+      userId: req.user.id,
+      findPluginAuthsByKeys,
+    });
+  }
+
+  // Extract workspace from request context
+  const workspaceId = req.conversationWorkspace ||
+                      req.body.workspace ||
+                      req.body.conversation?.workspace;
+
   const { loadedTools, toolContextMap } = await loadTools({
     agent,
+    signal,
+    userMCPAuthMap,
     functions: true,
     user: req.user.id,
     tools: _agentTools,
@@ -658,9 +630,12 @@ async function loadAgentTools({ req, res, agent, tool_resources, openAIApiKey })
       processFileURL,
       uploadImageBuffer,
       returnMetadata: true,
-      fileStrategy: req.app.locals.fileStrategy,
+      workspaceId,
       [Tools.web_search]: webSearchCallbacks,
     },
+    webSearch: appConfig.webSearch,
+    fileStrategy: appConfig.fileStrategy,
+    imageOutputType: appConfig.imageOutputType,
   });
 
   const agentTools = [];
@@ -710,6 +685,7 @@ async function loadAgentTools({ req, res, agent, tool_resources, openAIApiKey })
   if (!checkCapability(AgentCapabilities.actions)) {
     return {
       tools: agentTools,
+      userMCPAuthMap,
       toolContextMap,
     };
   }
@@ -721,6 +697,7 @@ async function loadAgentTools({ req, res, agent, tool_resources, openAIApiKey })
     }
     return {
       tools: agentTools,
+      userMCPAuthMap,
       toolContextMap,
     };
   }
@@ -734,7 +711,10 @@ async function loadAgentTools({ req, res, agent, tool_resources, openAIApiKey })
     domainMap.set(domain, action);
 
     // Check if domain is allowed (do this once per action set)
-    const isDomainAllowed = await isActionDomainAllowed(action.metadata.domain);
+    const isDomainAllowed = await isActionDomainAllowed(
+      action.metadata.domain,
+      appConfig?.actions?.allowedDomains,
+    );
     if (!isDomainAllowed) {
       continue;
     }
@@ -829,13 +809,12 @@ async function loadAgentTools({ req, res, agent, tool_resources, openAIApiKey })
   return {
     tools: agentTools,
     toolContextMap,
+    userMCPAuthMap,
   };
 }
 
 module.exports = {
   getToolkitKey,
   loadAgentTools,
-  loadAndFormatTools,
   processRequiredActions,
-  formatToOpenAIAssistantTool,
 };

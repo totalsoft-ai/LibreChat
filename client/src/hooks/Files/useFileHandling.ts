@@ -1,10 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { v4 } from 'uuid';
+import { useAtomValue } from 'jotai';
+import { useSetRecoilState } from 'recoil';
 import { useToastContext } from '@librechat/client';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   QueryKeys,
+  Constants,
   EModelEndpoint,
+  EToolResources,
   mergeFileConfig,
   isAgentsEndpoint,
   isAssistantsEndpoint,
@@ -19,9 +23,11 @@ import useLocalize, { TranslationKeys } from '~/hooks/useLocalize';
 import { useDelayedUploadToast } from './useDelayedUploadToast';
 import { processFileForUpload } from '~/utils/heicConverter';
 import { useChatContext } from '~/Providers/ChatContext';
+import { ephemeralAgentByConvoId, currentWorkspaceIdAtom } from '~/store';
 import { logger, validateFiles } from '~/utils';
 import useClientResize from './useClientResize';
 import useUpdateFiles from './useUpdateFiles';
+import useFileStatusPolling from './useFileStatusPolling';
 
 type UseFileHandling = {
   fileSetter?: FileSetter;
@@ -39,11 +45,22 @@ const useFileHandling = (params?: UseFileHandling) => {
   const abortControllerRef = useRef<AbortController | null>(null);
   const { startUploadTimer, clearUploadTimer } = useDelayedUploadToast();
   const { files, setFiles, setFilesLoading, conversation } = useChatContext();
+  const setEphemeralAgent = useSetRecoilState(
+    ephemeralAgentByConvoId(conversation?.conversationId ?? Constants.NEW_CONVO),
+  );
   const setError = (error: string) => setErrors((prevErrors) => [...prevErrors, error]);
   const { addFile, replaceFile, updateFileById, deleteFileById } = useUpdateFiles(
     params?.fileSetter ?? setFiles,
   );
   const { resizeImageIfNeeded } = useClientResize();
+  const currentWorkspaceId = useAtomValue(currentWorkspaceIdAtom);
+
+  // Enable polling for files with embedded: false
+  useFileStatusPolling(files, {
+    enabled: true,
+    pollInterval: 3000, // Check every 3 seconds
+    maxDuration: 300000, // Stop after 5 minutes
+  });
 
   const agent_id = params?.additionalMetadata?.agent_id ?? '';
   const assistant_id = params?.additionalMetadata?.assistant_id ?? '';
@@ -133,12 +150,23 @@ const useFileHandling = (params?: UseFileHandling) => {
         const error = _error as TError | undefined;
         console.log('upload error', error);
         const file_id = body.get('file_id');
+        const tool_resource = body.get('tool_resource');
+        if (tool_resource === EToolResources.execute_code) {
+          setEphemeralAgent((prev) => ({
+            ...prev,
+            [EToolResources.execute_code]: false,
+          }));
+        }
         clearUploadTimer(file_id as string);
         deleteFileById(file_id as string);
-        const errorMessage =
-          error?.code === 'ERR_CANCELED'
-            ? 'com_error_files_upload_canceled'
-            : (error?.response?.data?.message ?? 'com_error_files_upload');
+
+        let errorMessage = 'com_error_files_upload';
+
+        if (error?.code === 'ERR_CANCELED') {
+          errorMessage = 'com_error_files_upload_canceled';
+        } else if (error?.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        }
         setError(errorMessage);
       },
     },
@@ -157,6 +185,11 @@ const useFileHandling = (params?: UseFileHandling) => {
     );
     formData.append('file', extendedFile.file as File, encodeURIComponent(filename));
     formData.append('file_id', extendedFile.file_id);
+
+    // Add workspace if in workspace context
+    if (currentWorkspaceId) {
+      formData.append('workspace', currentWorkspaceId);
+    }
 
     const width = extendedFile.width ?? 0;
     const height = extendedFile.height ?? 0;
@@ -199,6 +232,16 @@ const useFileHandling = (params?: UseFileHandling) => {
 
     if (!assistant_id) {
       formData.append('message_file', 'true');
+    }
+
+    // Ensure tool_resource is passed for Assistants uploads as well
+    const asstToolResource = (extendedFile as any).tool_resource ?? metadata['tool_resource'];
+    if (asstToolResource != null) {
+      formData.append('tool_resource', asstToolResource);
+      // For file_search, attach as message_file so tools can access it even without text
+      if (asstToolResource === 'file_search' && formData.get('message_file') == null) {
+        formData.append('message_file', 'true');
+      }
     }
 
     const endpointsConfig = queryClient.getQueryData<TEndpointsConfig>([QueryKeys.endpoints]);
@@ -256,6 +299,8 @@ const useFileHandling = (params?: UseFileHandling) => {
           fileConfig?.endpoints?.default ??
           defaultFileConfig.endpoints[endpoint] ??
           defaultFileConfig.endpoints.default,
+        toolResource: _toolResource,
+        fileConfig: fileConfig,
       });
     } catch (error) {
       console.error('file validation error', error);
@@ -372,13 +417,6 @@ const useFileHandling = (params?: UseFileHandling) => {
         } else {
           // File wasn't processed, proceed with original
           const isImage = originalFile.type.split('/')[0] === 'image';
-          const tool_resource =
-            initialExtendedFile.tool_resource ?? params?.additionalMetadata?.tool_resource;
-          if (isAgentsEndpoint(endpoint) && !isImage && tool_resource == null) {
-            /** Note: this needs to be removed when we can support files to providers */
-            setError('com_error_files_unsupported_capability');
-            continue;
-          }
 
           // Update progress to show ready for upload
           const readyExtendedFile = {

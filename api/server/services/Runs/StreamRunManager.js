@@ -36,7 +36,7 @@ class StreamRunManager {
     /** @type {Run | null} */
     this.run = null;
 
-    /** @type {Express.Request} */
+    /** @type {ServerRequest} */
     this.req = fields.req;
     /** @type {Express.Response} */
     this.res = fields.res;
@@ -693,6 +693,70 @@ class StreamRunManager {
       index,
     });
     this.messages.push(message);
+  }
+
+  /* <------------------ Cleanup & Disposal ------------------> */
+
+  /**
+   * Dispose of the StreamRunManager and clean up resources to prevent memory leaks.
+   * This should be called when the run is complete or aborted.
+   * @returns {void}
+   */
+  dispose() {
+    try {
+      // Clear all Maps to release references
+      if (this.steps) {
+        this.steps.clear();
+        this.steps = null;
+      }
+
+      if (this.mappedOrder) {
+        this.mappedOrder.clear();
+        this.mappedOrder = null;
+      }
+
+      if (this.orderedRunSteps) {
+        this.orderedRunSteps.clear();
+        this.orderedRunSteps = null;
+      }
+
+      if (this.processedFileIds) {
+        this.processedFileIds.clear();
+        this.processedFileIds = null;
+      }
+
+      if (this.progressCallbacks) {
+        this.progressCallbacks.clear();
+        this.progressCallbacks = null;
+      }
+
+      // Clear arrays
+      if (this.messages) {
+        this.messages = null;
+      }
+
+      // Nullify object references to break circular dependencies
+      this.run = null;
+      this.req = null;
+      this.res = null;
+      this.openai = null;
+      this.apiKey = null;
+      this.initialRunBody = null;
+      this.clientHandlers = null;
+      this.streamOptions = null;
+      this.finalMessage = null;
+      this.attachedFileIds = null;
+      this.visionPromise = null;
+      this.handlers = null;
+
+      // Clear text buffers
+      this.text = '';
+      this.intermediateText = '';
+
+      logger.debug('[StreamRunManager] Disposed successfully');
+    } catch (error) {
+      logger.error('[StreamRunManager] Error during disposal:', error);
+    }
   }
 }
 

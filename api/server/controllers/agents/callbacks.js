@@ -11,6 +11,7 @@ const {
   handleToolCalls,
   ChatModelStreamHandler,
 } = require('@librechat/agents');
+const { processFileCitations } = require('~/server/services/Files/Citations');
 const { processCodeOutput } = require('~/server/services/Files/Code/process');
 const { loadAuthValues } = require('~/server/services/Tools/credentials');
 const { saveBase64Image } = require('~/server/services/Files/process');
@@ -234,8 +235,189 @@ function createToolEndCallback({ req, res, artifactPromises }) {
       return;
     }
 
+    if (output) {
+      const { getFileStrategy } = require('~/server/utils/getFileStrategy');
+      const { getStrategyFunctions } = require('~/server/services/Files/strategies');
+      const { createFile } = require('~/models/File');
+      const { FileContext } = require('librechat-data-provider');
+
+      const jsonData = output.content[0].text;
+
+      if (jsonData) {
+        artifactPromises.push(
+          (async () => {
+            try {
+              let csvContent = '';
+
+              let parsedJsonData = jsonData;
+
+              if (typeof parsedJsonData === 'string') {
+                try {
+                  parsedJsonData = parsedJsonData.replace(/```json|```/g, '').trim();
+                  parsedJsonData = JSON.parse(parsedJsonData);
+                } catch (err) {
+                  logger.error('[MCP] Failed to parse jsonData string:', err);
+                  return null;
+                }
+              }
+
+              if (Array.isArray(parsedJsonData) && parsedJsonData.length > 0) {
+                const headers = Object.keys(parsedJsonData[0]);
+                csvContent = headers.join(',') + '\n';
+
+                for (const row of parsedJsonData) {
+                  const values = headers.map((header) => {
+                    const value = row[header];
+
+                    if (value == null) return '';
+                    const strValue = String(value);
+                    if (
+                      strValue.includes(',') ||
+                      strValue.includes('\n') ||
+                      strValue.includes('"')
+                    ) {
+                      return `"${strValue.replace(/"/g, '""')}"`;
+                    }
+                    return strValue;
+                  });
+                  csvContent += values.join(',') + '\n';
+                }
+              } else if (typeof parsedJsonData === 'object' && parsedJsonData !== null) {
+                const resultString = Object.entries(parsedJsonData)
+                  .map(([key, value]) => `${key}: ${value}`)
+                  .join(', ');
+
+                const attachment = {
+                  type: 'text',
+                  text: resultString || 'No results found',
+                  messageId: metadata.run_id,
+                  toolCallId: output.tool_call_id,
+                  conversationId: metadata.thread_id,
+                };
+
+                if (!res.headersSent) {
+                  return attachment;
+                }
+
+                res.write(`event: attachment\ndata: ${JSON.stringify(attachment)}\n\n`);
+                return attachment;
+              } else {
+                return parsedJsonData != null ? String(parsedJsonData) : 'No result found';
+              }
+
+              if (!csvContent) {
+                logger.warn('[MCP] No CSV content generated');
+                return null;
+              }
+
+              const file_id = `mcp_${new Date()}`;
+              const filename = `${file_id}-${output.name}.csv`;
+
+              const buffer = Buffer.from(csvContent, 'utf8');
+
+              const appConfig = req.config;
+              const source = getFileStrategy(appConfig, { isImage: false });
+              const { saveBuffer } = getStrategyFunctions(source);
+
+              const filepath = await saveBuffer({
+                userId: req.user.id,
+                fileName: filename,
+                buffer: buffer,
+              });
+
+              const fileRecord = await createFile(
+                {
+                  type: 'text/csv',
+                  source,
+                  context: FileContext.message_attachment,
+                  file_id,
+                  filepath,
+                  filename,
+                  user: req.user.id,
+                  bytes: buffer.length,
+                  width: null,
+                  height: null,
+                },
+                true,
+              );
+
+              const attachment = Object.assign(fileRecord, {
+                messageId: metadata.run_id,
+                toolCallId: output.tool_call_id,
+                conversationId: metadata.thread_id,
+              });
+
+              if (!res.headersSent) {
+                return attachment;
+              }
+
+              return attachment;
+            } catch (error) {
+              logger.error('[MCP] Error creating CSV file:', error);
+              return null;
+            }
+          })().catch((error) => {
+            logger.error('[MCP] Error processing MCP result artifact:', error);
+            return null;
+          }),
+        );
+      }
+
+      return;
+    }
+
     if (!output.artifact) {
       return;
+    }
+
+    if (output.artifact[Tools.file_search]) {
+      artifactPromises.push(
+        (async () => {
+          const user = req.user;
+          const attachment = await processFileCitations({
+            user,
+            metadata,
+            appConfig: req.config,
+            toolArtifact: output.artifact,
+            toolCallId: output.tool_call_id,
+          });
+          if (!attachment) {
+            return null;
+          }
+          if (!res.headersSent) {
+            return attachment;
+          }
+          res.write(`event: attachment\ndata: ${JSON.stringify(attachment)}\n\n`);
+          return attachment;
+        })().catch((error) => {
+          logger.error('Error processing file citations:', error);
+          return null;
+        }),
+      );
+    }
+
+    // TODO: a lot of duplicated code in createToolEndCallback
+    // we should refactor this to use a helper function in a follow-up PR
+    if (output.artifact[Tools.ui_resources]) {
+      artifactPromises.push(
+        (async () => {
+          const attachment = {
+            type: Tools.ui_resources,
+            messageId: metadata.run_id,
+            toolCallId: output.tool_call_id,
+            conversationId: metadata.thread_id,
+            [Tools.ui_resources]: output.artifact[Tools.ui_resources].data,
+          };
+          if (!res.headersSent) {
+            return attachment;
+          }
+          res.write(`event: attachment\ndata: ${JSON.stringify(attachment)}\n\n`);
+          return attachment;
+        })().catch((error) => {
+          logger.error('Error processing artifact content:', error);
+          return null;
+        }),
+      );
     }
 
     if (output.artifact[Tools.web_search]) {

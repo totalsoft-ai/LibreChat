@@ -17,6 +17,7 @@ const TYPE_OPTIONS = [
   { value: 'text', label: 'text (.txt)' },
   { value: 'markdown', label: 'markdown (.md)' },
   { value: 'json', label: 'json (.json)' },
+  { value: 'pdf', label: 'PDF (.pdf)' },
   { value: 'csv', label: 'csv (.csv)' },
 ];
 

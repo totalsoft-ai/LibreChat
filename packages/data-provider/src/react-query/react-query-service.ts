@@ -9,9 +9,16 @@ import { defaultOrderQuery } from '../types/assistants';
 import { MCPServerConnectionStatusResponse } from '../types/queries';
 import * as dataService from '../data-service';
 import * as m from '../types/mutations';
-import { QueryKeys } from '../keys';
+import * as q from '../types/queries';
+import { QueryKeys, DynamicQueryKeys } from '../keys';
+import * as workspaceService from '../workspace-service';
+import * as sharingService from '../sharing-service';
 import * as s from '../schemas';
 import * as t from '../types';
+import * as permissions from '../accessPermissions';
+import { ResourceType } from '../accessPermissions';
+
+export { hasPermissions } from '../accessPermissions';
 
 export const useGetSharedMessages = (
   shareId: string,
@@ -142,6 +149,7 @@ export const useRevokeUserKeyMutation = (name: string): UseMutationResult<unknow
         queryClient.invalidateQueries([QueryKeys.assistantDocs]);
         queryClient.invalidateQueries([QueryKeys.assistants]);
         queryClient.invalidateQueries([QueryKeys.assistant]);
+        queryClient.invalidateQueries([QueryKeys.mcpTools]);
         queryClient.invalidateQueries([QueryKeys.actions]);
         queryClient.invalidateQueries([QueryKeys.tools]);
       }
@@ -167,6 +175,7 @@ export const useRevokeAllUserKeysMutation = (): UseMutationResult<unknown> => {
       queryClient.invalidateQueries([QueryKeys.assistantDocs]);
       queryClient.invalidateQueries([QueryKeys.assistants]);
       queryClient.invalidateQueries([QueryKeys.assistant]);
+      queryClient.invalidateQueries([QueryKeys.mcpTools]);
       queryClient.invalidateQueries([QueryKeys.actions]);
       queryClient.invalidateQueries([QueryKeys.tools]);
     },
@@ -212,6 +221,23 @@ export const useDeletePresetMutation = (): UseMutationResult<
       queryClient.invalidateQueries([QueryKeys.presets]);
     },
   });
+};
+
+export const useExportConversationMutation = (): UseMutationResult<
+  Blob,
+  unknown,
+  { conversationId: string; format: 'json' | 'markdown' | 'md' | 'html' | 'pdf' },
+  unknown
+> => {
+  return useMutation(
+    ({
+      conversationId,
+      format,
+    }: {
+      conversationId: string;
+      format: 'json' | 'markdown' | 'md' | 'html' | 'pdf';
+    }) => dataService.exportConversationAPI(conversationId, format),
+  );
 };
 
 export const useUpdateTokenCountMutation = (): UseMutationResult<
@@ -313,6 +339,10 @@ export const useUpdateUserPluginsMutation = (
     onSuccess: (...args) => {
       queryClient.invalidateQueries([QueryKeys.user]);
       onSuccess?.(...args);
+      if (args[1]?.action === 'uninstall' && args[1]?.pluginKey?.startsWith(Constants.mcp_prefix)) {
+        const serverName = args[1]?.pluginKey?.substring(Constants.mcp_prefix.length);
+        queryClient.invalidateQueries([QueryKeys.mcpAuthValues, serverName]);
+      }
     },
   });
 };
@@ -332,7 +362,7 @@ export const useReinitializeMCPServerMutation = (): UseMutationResult<
   const queryClient = useQueryClient();
   return useMutation((serverName: string) => dataService.reinitializeMCPServer(serverName), {
     onSuccess: () => {
-      queryClient.refetchQueries([QueryKeys.tools]);
+      queryClient.invalidateQueries([QueryKeys.mcpTools]);
     },
   });
 };
@@ -382,6 +412,106 @@ export const useUpdateFeedbackMutation = (
   );
 };
 
+export const useSearchPrincipalsQuery = (
+  params: q.PrincipalSearchParams,
+  config?: UseQueryOptions<q.PrincipalSearchResponse>,
+): QueryObserverResult<q.PrincipalSearchResponse> => {
+  return useQuery<q.PrincipalSearchResponse>(
+    [QueryKeys.principalSearch, params],
+    () => dataService.searchPrincipals(params),
+    {
+      enabled: !!params.q && params.q.length >= 2,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      refetchOnMount: false,
+      staleTime: 30000,
+      ...config,
+    },
+  );
+};
+
+export const useGetAccessRolesQuery = (
+  resourceType: ResourceType,
+  config?: UseQueryOptions<q.AccessRolesResponse>,
+): QueryObserverResult<q.AccessRolesResponse> => {
+  return useQuery<q.AccessRolesResponse>(
+    [QueryKeys.accessRoles, resourceType],
+    () => dataService.getAccessRoles(resourceType),
+    {
+      enabled: !!resourceType,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      refetchOnMount: false,
+      staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+      ...config,
+    },
+  );
+};
+
+export const useGetResourcePermissionsQuery = (
+  resourceType: ResourceType,
+  resourceId: string,
+  config?: UseQueryOptions<permissions.TGetResourcePermissionsResponse>,
+): QueryObserverResult<permissions.TGetResourcePermissionsResponse> => {
+  return useQuery<permissions.TGetResourcePermissionsResponse>(
+    [QueryKeys.resourcePermissions, resourceType, resourceId],
+    () => dataService.getResourcePermissions(resourceType, resourceId),
+    {
+      enabled: !!resourceType && !!resourceId,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      refetchOnMount: false,
+      staleTime: 2 * 60 * 1000, // Cache for 2 minutes
+      ...config,
+    },
+  );
+};
+
+export const useUpdateResourcePermissionsMutation = (): UseMutationResult<
+  permissions.TUpdateResourcePermissionsResponse,
+  Error,
+  {
+    resourceType: ResourceType;
+    resourceId: string;
+    data: permissions.TUpdateResourcePermissionsRequest;
+  }
+> => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ resourceType, resourceId, data }) =>
+      dataService.updateResourcePermissions(resourceType, resourceId, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: [QueryKeys.accessRoles, variables.resourceType],
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: [QueryKeys.resourcePermissions, variables.resourceType, variables.resourceId],
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: [QueryKeys.effectivePermissions, variables.resourceType, variables.resourceId],
+      });
+    },
+  });
+};
+
+export const useGetEffectivePermissionsQuery = (
+  resourceType: ResourceType,
+  resourceId: string,
+  config?: UseQueryOptions<permissions.TEffectivePermissionsResponse>,
+): QueryObserverResult<permissions.TEffectivePermissionsResponse> => {
+  return useQuery<permissions.TEffectivePermissionsResponse>({
+    queryKey: [QueryKeys.effectivePermissions, resourceType, resourceId],
+    queryFn: () => dataService.getEffectivePermissions(resourceType, resourceId),
+    enabled: !!resourceType && !!resourceId,
+    refetchOnWindowFocus: false,
+    staleTime: 30000,
+    ...config,
+  });
+};
+
 export const useMCPServerConnectionStatusQuery = (
   serverName: string,
   config?: UseQueryOptions<MCPServerConnectionStatusResponse>,
@@ -395,6 +525,562 @@ export const useMCPServerConnectionStatusQuery = (
       refetchOnMount: false,
       staleTime: 10000, // 10 seconds
       enabled: !!serverName,
+      ...config,
+    },
+  );
+};
+
+// ==================== Workspace Hooks ====================
+
+export const useGetWorkspacesQuery = (
+  config?: UseQueryOptions<workspaceService.Workspace[]>,
+): QueryObserverResult<workspaceService.Workspace[]> => {
+  return useQuery<workspaceService.Workspace[]>(
+    [QueryKeys.workspaces],
+    () => workspaceService.getWorkspaces(),
+    {
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      refetchOnMount: true,
+      staleTime: 0, // Always consider data stale to allow refetching
+      ...config,
+    },
+  );
+};
+
+export const useGetWorkspaceQuery = (
+  identifier: string,
+  config?: UseQueryOptions<workspaceService.Workspace>,
+): QueryObserverResult<workspaceService.Workspace> => {
+  return useQuery<workspaceService.Workspace>(
+    DynamicQueryKeys.workspace(identifier),
+    () => workspaceService.getWorkspace(identifier),
+    {
+      enabled: !!identifier,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      refetchOnMount: true,
+      ...config,
+    },
+  );
+};
+
+export const useGetWorkspaceStatsQuery = (
+  workspaceId: string,
+  config?: UseQueryOptions<workspaceService.WorkspaceStats>,
+): QueryObserverResult<workspaceService.WorkspaceStats> => {
+  return useQuery<workspaceService.WorkspaceStats>(
+    DynamicQueryKeys.workspaceStats(workspaceId),
+    () => workspaceService.getWorkspaceStats(workspaceId),
+    {
+      enabled: !!workspaceId,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      refetchOnMount: true,
+      ...config,
+    },
+  );
+};
+
+export const useCreateWorkspaceMutation = (): UseMutationResult<
+  workspaceService.Workspace,
+  unknown,
+  workspaceService.CreateWorkspacePayload,
+  unknown
+> => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    (payload: workspaceService.CreateWorkspacePayload) => workspaceService.createWorkspace(payload),
+    {
+      onSuccess: (newWorkspace) => {
+        // Update the cache with the new workspace
+        queryClient.setQueryData<workspaceService.Workspace[]>(
+          [QueryKeys.workspaces],
+          (oldWorkspaces = []) => {
+            // Check if workspace already exists
+            const exists = oldWorkspaces.some((w) => w.workspaceId === newWorkspace.workspaceId);
+            if (exists) {
+              return oldWorkspaces;
+            }
+            return [newWorkspace, ...oldWorkspaces];
+          },
+        );
+        // Invalidate and refetch to ensure we get fresh data
+        queryClient.invalidateQueries([QueryKeys.workspaces], { refetchType: 'active' });
+      },
+    },
+  );
+};
+
+export const useUpdateWorkspaceMutation = (
+  workspaceId: string,
+): UseMutationResult<
+  workspaceService.Workspace,
+  unknown,
+  workspaceService.UpdateWorkspacePayload,
+  unknown
+> => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    (payload: workspaceService.UpdateWorkspacePayload) =>
+      workspaceService.updateWorkspace(workspaceId, payload),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries([QueryKeys.workspaces]);
+        queryClient.invalidateQueries(DynamicQueryKeys.workspace(workspaceId));
+      },
+    },
+  );
+};
+
+export const useDeleteWorkspaceMutation = (): UseMutationResult<void, unknown, string, unknown> => {
+  const queryClient = useQueryClient();
+  return useMutation((workspaceId: string) => workspaceService.deleteWorkspace(workspaceId), {
+    onSuccess: () => {
+      queryClient.invalidateQueries([QueryKeys.workspaces]);
+    },
+  });
+};
+
+export const useLeaveWorkspaceMutation = (): UseMutationResult<void, unknown, string, unknown> => {
+  const queryClient = useQueryClient();
+  return useMutation((workspaceId: string) => workspaceService.leaveWorkspace(workspaceId), {
+    onSuccess: () => {
+      queryClient.invalidateQueries([QueryKeys.workspaces]);
+    },
+  });
+};
+
+export const useAddWorkspaceMemberMutation = (
+  workspaceId: string,
+): UseMutationResult<
+  workspaceService.Workspace,
+  unknown,
+  workspaceService.AddMemberPayload,
+  unknown
+> => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    (payload: workspaceService.AddMemberPayload) =>
+      workspaceService.addWorkspaceMember(workspaceId, payload),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries([QueryKeys.workspaces]);
+        queryClient.invalidateQueries(DynamicQueryKeys.workspace(workspaceId));
+      },
+    },
+  );
+};
+
+export const useUpdateWorkspaceMemberRoleMutation = (
+  workspaceId: string,
+): UseMutationResult<
+  workspaceService.Workspace,
+  unknown,
+  { memberUserId: string; role: workspaceService.WorkspaceRole },
+  unknown
+> => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    ({ memberUserId, role }: { memberUserId: string; role: workspaceService.WorkspaceRole }) =>
+      workspaceService.updateWorkspaceMemberRole(workspaceId, memberUserId, { role }),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries([QueryKeys.workspaces]);
+        queryClient.invalidateQueries(DynamicQueryKeys.workspace(workspaceId));
+      },
+    },
+  );
+};
+
+export const useRemoveWorkspaceMemberMutation = (
+  workspaceId: string,
+): UseMutationResult<workspaceService.Workspace, unknown, string, unknown> => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    (memberUserId: string) => workspaceService.removeWorkspaceMember(workspaceId, memberUserId),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries([QueryKeys.workspaces]);
+        queryClient.invalidateQueries(DynamicQueryKeys.workspace(workspaceId));
+      },
+    },
+  );
+};
+
+export const useUpdateWorkspaceModelsMutation = (
+  workspaceId: string,
+): UseMutationResult<
+  { availableModels: string[] | null; availableEndpoints: string[] | null },
+  unknown,
+  { availableModels: string[] | null; availableEndpoints?: string[] | null },
+  unknown
+> => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    ({ availableModels, availableEndpoints }) =>
+      workspaceService.updateWorkspaceModels(workspaceId, availableModels, availableEndpoints),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries([QueryKeys.workspaces]);
+        queryClient.invalidateQueries(DynamicQueryKeys.workspace(workspaceId));
+      },
+    },
+  );
+};
+
+export const useUpdateWorkspaceInformationMutation = (
+  workspaceId: string,
+): UseMutationResult<
+  { description?: string; welcomeMessage?: string; guidelines?: string },
+  unknown,
+  workspaceService.UpdateWorkspaceInformationPayload,
+  unknown
+> => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    (payload) => workspaceService.updateWorkspaceInformation(workspaceId, payload),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries([QueryKeys.workspaces]);
+        queryClient.invalidateQueries(DynamicQueryKeys.workspace(workspaceId));
+        queryClient.invalidateQueries(['workspaceStartPage', workspaceId]);
+      },
+    },
+  );
+};
+
+/* Resource Sharing Mutations */
+
+/**
+ * Hook to share a resource with workspace
+ */
+export const useShareResourceMutation = (): UseMutationResult<
+  { message: string; resource: sharingService.SharedResource },
+  unknown,
+  {
+    resourceType: sharingService.ShareableResourceType;
+    resourceId: string;
+    payload: sharingService.ShareResourcePayload;
+  },
+  unknown
+> => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    ({ resourceType, resourceId, payload }) =>
+      sharingService.shareResource(resourceType, resourceId, payload),
+    {
+      onSuccess: (data, variables) => {
+        // Invalidate queries based on resource type
+        if (variables.resourceType === 'agent') {
+          queryClient.invalidateQueries([QueryKeys.agent, variables.resourceId]);
+          queryClient.invalidateQueries([QueryKeys.agents]);
+        } else if (variables.resourceType === 'prompt') {
+          queryClient.invalidateQueries(['prompt', variables.resourceId]);
+          queryClient.invalidateQueries(['prompts']);
+        } else if (variables.resourceType === 'file') {
+          queryClient.invalidateQueries(['file', variables.resourceId]);
+          queryClient.invalidateQueries([QueryKeys.files]);
+        }
+        // Invalidate workspace start page to update pinned/shared resources
+        queryClient.invalidateQueries(['workspaceStartPage']);
+      },
+    },
+  );
+};
+
+/**
+ * Hook to unshare a resource (set to private)
+ */
+export const useUnshareResourceMutation = (): UseMutationResult<
+  { message: string; resource: sharingService.SharedResource },
+  unknown,
+  {
+    resourceType: sharingService.ShareableResourceType;
+    resourceId: string;
+  },
+  unknown
+> => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    ({ resourceType, resourceId }) => sharingService.unshareResource(resourceType, resourceId),
+    {
+      onSuccess: (data, variables) => {
+        // Invalidate queries based on resource type
+        if (variables.resourceType === 'agent') {
+          queryClient.invalidateQueries([QueryKeys.agent, variables.resourceId]);
+          queryClient.invalidateQueries([QueryKeys.agents]);
+        } else if (variables.resourceType === 'prompt') {
+          queryClient.invalidateQueries(['prompt', variables.resourceId]);
+          queryClient.invalidateQueries(['prompts']);
+        } else if (variables.resourceType === 'file') {
+          queryClient.invalidateQueries(['file', variables.resourceId]);
+          queryClient.invalidateQueries([QueryKeys.files]);
+        }
+        queryClient.invalidateQueries(['workspaceStartPage']);
+      },
+    },
+  );
+};
+
+/**
+ * Hook to update resource visibility settings
+ */
+export const useUpdateVisibilityMutation = (): UseMutationResult<
+  { message: string; resource: sharingService.SharedResource },
+  unknown,
+  {
+    resourceType: sharingService.ShareableResourceType;
+    resourceId: string;
+    payload: sharingService.UpdateVisibilityPayload;
+  },
+  unknown
+> => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    ({ resourceType, resourceId, payload }) =>
+      sharingService.updateResourceVisibility(resourceType, resourceId, payload),
+    {
+      onSuccess: (data, variables) => {
+        // Invalidate queries based on resource type
+        if (variables.resourceType === 'agent') {
+          queryClient.invalidateQueries([QueryKeys.agent, variables.resourceId]);
+          queryClient.invalidateQueries([QueryKeys.agents]);
+        } else if (variables.resourceType === 'prompt') {
+          queryClient.invalidateQueries(['prompt', variables.resourceId]);
+          queryClient.invalidateQueries(['prompts']);
+        } else if (variables.resourceType === 'file') {
+          queryClient.invalidateQueries(['file', variables.resourceId]);
+          queryClient.invalidateQueries([QueryKeys.files]);
+        }
+        queryClient.invalidateQueries(['workspaceStartPage']);
+      },
+    },
+  );
+};
+
+/**
+ * Hook to get shared resources in a workspace
+ */
+export const useGetSharedResourcesQuery = (
+  workspaceId: string,
+  resourceType: sharingService.ShareableResourceType,
+  config?: UseQueryOptions<sharingService.SharedResource[]>,
+): QueryObserverResult<sharingService.SharedResource[]> => {
+  return useQuery<sharingService.SharedResource[]>(
+    ['sharedResources', workspaceId, resourceType],
+    () => sharingService.getSharedResources(workspaceId, resourceType),
+    {
+      enabled: !!workspaceId,
+      refetchOnWindowFocus: false,
+      ...config,
+    },
+  );
+};
+
+/**
+ * Hook to get the list of all available documentation sections
+ */
+export const useGetDocsListQuery = (
+  config?: UseQueryOptions<dataService.DocListResponse>,
+): QueryObserverResult<dataService.DocListResponse> => {
+  return useQuery<dataService.DocListResponse>(
+    [QueryKeys.docsList],
+    () => dataService.getDocsList(),
+    {
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      refetchOnMount: false,
+      staleTime: 5 * 60 * 1000, // 5 minutes - docs don't change often
+      ...config,
+    },
+  );
+};
+
+/**
+ * Hook to pin a resource to workspace start page
+ */
+export const usePinResourceMutation = (): UseMutationResult<
+  { message: string; resource: sharingService.SharedResource },
+  unknown,
+  {
+    resourceType: sharingService.ShareableResourceType;
+    resourceId: string;
+  },
+  unknown
+> => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    ({ resourceType, resourceId }) => sharingService.pinResource(resourceType, resourceId),
+    {
+      onSuccess: (data, variables) => {
+        // Invalidate queries based on resource type
+        if (variables.resourceType === 'agent') {
+          queryClient.invalidateQueries([QueryKeys.agent, variables.resourceId]);
+          queryClient.invalidateQueries([QueryKeys.agents]);
+        } else if (variables.resourceType === 'prompt') {
+          queryClient.invalidateQueries(['prompt', variables.resourceId]);
+          queryClient.invalidateQueries(['prompts']);
+        } else if (variables.resourceType === 'file') {
+          queryClient.invalidateQueries(['file', variables.resourceId]);
+          queryClient.invalidateQueries([QueryKeys.files]);
+        }
+        // Invalidate workspace start page to show newly pinned resource
+        queryClient.invalidateQueries(['workspaceStartPage']);
+      },
+    },
+  );
+};
+
+/**
+ * Hook to unpin a resource from workspace start page
+ */
+export const useUnpinResourceMutation = (): UseMutationResult<
+  { message: string; resource: sharingService.SharedResource },
+  unknown,
+  {
+    resourceType: sharingService.ShareableResourceType;
+    resourceId: string;
+  },
+  unknown
+> => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    ({ resourceType, resourceId }) => sharingService.unpinResource(resourceType, resourceId),
+    {
+      onSuccess: (data, variables) => {
+        // Invalidate queries based on resource type
+        if (variables.resourceType === 'agent') {
+          queryClient.invalidateQueries([QueryKeys.agent, variables.resourceId]);
+          queryClient.invalidateQueries([QueryKeys.agents]);
+        } else if (variables.resourceType === 'prompt') {
+          queryClient.invalidateQueries(['prompt', variables.resourceId]);
+          queryClient.invalidateQueries(['prompts']);
+        } else if (variables.resourceType === 'file') {
+          queryClient.invalidateQueries(['file', variables.resourceId]);
+          queryClient.invalidateQueries([QueryKeys.files]);
+        }
+        // Invalidate workspace start page to remove unpinned resource
+        queryClient.invalidateQueries(['workspaceStartPage']);
+      },
+    },
+  );
+};
+
+/**
+ * Hook to get all shared resources across all types
+ */
+export const useGetAllSharedResourcesQuery = (
+  workspaceId: string,
+  config?: Omit<
+    UseQueryOptions<
+      {
+        agents: sharingService.SharedResource[];
+        prompts: sharingService.SharedResource[];
+        files: sharingService.SharedResource[];
+      },
+      unknown,
+      {
+        agents: sharingService.SharedResource[];
+        prompts: sharingService.SharedResource[];
+        files: sharingService.SharedResource[];
+      },
+      readonly ['allSharedResources', string]
+    >,
+    'queryKey' | 'queryFn'
+  >,
+): QueryObserverResult<{
+  agents: sharingService.SharedResource[];
+  prompts: sharingService.SharedResource[];
+  files: sharingService.SharedResource[];
+}> => {
+  return useQuery(
+    ['allSharedResources', workspaceId] as const,
+    () => sharingService.getAllSharedResources(workspaceId),
+    {
+      enabled: !!workspaceId,
+      refetchOnWindowFocus: false,
+      ...config,
+    },
+  );
+};
+
+/**
+ * Hook to get specific documentation content
+ */
+export const useGetDocContentQuery = (
+  docId: string,
+  config?: UseQueryOptions<dataService.DocContent>,
+): QueryObserverResult<dataService.DocContent> => {
+  return useQuery<dataService.DocContent>(
+    [QueryKeys.docs, docId],
+    () => dataService.getDocContent(docId),
+    {
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      refetchOnMount: false,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      enabled: !!docId,
+      ...config,
+    },
+  );
+};
+
+/**
+ * Hook for fetching Keycloak authentication events (admin only)
+ */
+export const useGetEventsAuthQuery = (
+  params?: dataService.EventsQueryParams,
+  config?: UseQueryOptions<dataService.EventsResponse>,
+): QueryObserverResult<dataService.EventsResponse> => {
+  return useQuery<dataService.EventsResponse>(
+    [QueryKeys.eventsAuth, params],
+    () => dataService.getEventsAuth(params),
+    {
+      refetchOnWindowFocus: false,
+      refetchOnMount: true,
+      staleTime: 60 * 1000, // 1 minute
+      ...config,
+    },
+  );
+};
+
+/**
+ * Hook for fetching internal application events (admin only)
+ */
+export const useGetEventsInternalQuery = (
+  params?: dataService.EventsQueryParams,
+  config?: UseQueryOptions<dataService.EventsResponse>,
+): QueryObserverResult<dataService.EventsResponse> => {
+  return useQuery<dataService.EventsResponse>(
+    [QueryKeys.eventsInternal, params],
+    () => dataService.getEventsInternal(params),
+    {
+      refetchOnWindowFocus: false,
+      refetchOnMount: true,
+      staleTime: 60 * 1000, // 1 minute
+      ...config,
+    },
+  );
+};
+
+/**
+ * Hook to get error logs from Winston log files
+ * @param {EventsQueryParams} [params] - Query parameters (page, pageSize, level, fromDate, toDate)
+ * @param {UseQueryOptions} [config] - React Query configuration options
+ * @returns {QueryObserverResult<EventsResponse>} Query result with logs data
+ */
+export const useGetEventsLogsQuery = (
+  params?: dataService.EventsQueryParams,
+  config?: UseQueryOptions<dataService.EventsResponse>,
+): QueryObserverResult<dataService.EventsResponse> => {
+  return useQuery<dataService.EventsResponse>(
+    [QueryKeys.eventsLogs, params],
+    () => dataService.getEventsLogs(params),
+    {
+      refetchOnWindowFocus: false,
+      refetchOnMount: true,
+      staleTime: 60 * 1000, // 1 minute
       ...config,
     },
   );

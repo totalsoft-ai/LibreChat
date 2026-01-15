@@ -3,8 +3,8 @@ const path = require('path');
 const mime = require('mime');
 const axios = require('axios');
 const fetch = require('node-fetch');
-const { logger } = require('~/config');
-const { getAzureContainerClient } = require('./initialize');
+const { logger } = require('@librechat/data-schemas');
+const { getAzureContainerClient } = require('@librechat/api');
 
 const defaultBasePath = 'images';
 const { AZURE_STORAGE_PUBLIC_ACCESS = 'true', AZURE_CONTAINER_NAME = 'files' } = process.env;
@@ -30,7 +30,7 @@ async function saveBufferToAzure({
   containerName,
 }) {
   try {
-    const containerClient = getAzureContainerClient(containerName);
+    const containerClient = await getAzureContainerClient(containerName);
     const access = AZURE_STORAGE_PUBLIC_ACCESS?.toLowerCase() === 'true' ? 'blob' : undefined;
     // Create the container if it doesn't exist. This is done per operation.
     await containerClient.createIfNotExists({ access });
@@ -84,7 +84,7 @@ async function saveURLToAzure({
  */
 async function getAzureURL({ fileName, basePath = defaultBasePath, userId, containerName }) {
   try {
-    const containerClient = getAzureContainerClient(containerName);
+    const containerClient = await getAzureContainerClient(containerName);
     const blobPath = userId ? `${basePath}/${userId}/${fileName}` : `${basePath}/${fileName}`;
     const blockBlobClient = containerClient.getBlockBlobClient(blobPath);
     return blockBlobClient.url;
@@ -102,8 +102,63 @@ async function getAzureURL({ fileName, basePath = defaultBasePath, userId, conta
  * @param {MongoFile} params.file - The file object.
  */
 async function deleteFileFromAzure(req, file) {
+  // Always attempt to delete from RAG if RAG_API_URL is configured
+  // This handles files that may have been embedded but webhook wasn't called
+  if (process.env.RAG_API_URL) {
+    const axios = require('axios');
+    const { generateShortLivedToken } = require('@librechat/api');
+    const { getNamespace } = require('../VectorDB/crud');
+
+    const jwtToken = generateShortLivedToken(req.user.id);
+    const namespace = await getNamespace({ user: req.user, workspaceId: file.workspace });
+
+    // RAG API uses source path as document identifier: "./uploads/public/{filename}"
+    const sourceToDelete = `./uploads/public/${file.filename}`;
+
+    logger.info(
+      `[deleteFileFromAzure] Attempting to delete from RAG - source: ${sourceToDelete}, file_id: ${file.file_id}, workspace: ${file.workspace || 'none'}, namespace: ${namespace}, embedded: ${file.embedded}`,
+    );
+
+    try {
+      const response = await axios.delete(`${process.env.RAG_API_URL}/documents`, {
+        headers: {
+          Authorization: `Bearer ${jwtToken}`,
+          'X-Namespace': namespace,
+          'X-File-ID': file.file_id,
+          'Content-Type': 'application/json',
+          accept: 'application/json',
+        },
+        data: {
+          document_ids: [file.file_id],
+        },
+        timeout: 30000, // 30 second timeout
+      });
+      logger.info(
+        `[deleteFileFromAzure] Successfully deleted from RAG vectorstore - source: ${sourceToDelete}, file_id: ${file.file_id}`,
+      );
+    } catch (error) {
+      // 404 is expected if file wasn't embedded
+      if (error.response?.status === 404) {
+        logger.debug(
+          `[deleteFileFromAzure] File ${file.file_id} not found in RAG (not embedded or already deleted)`,
+        );
+      } else if (error.code === 'ECONNREFUSED' || error.message?.includes('ECONNREFUSED')) {
+        // RAG API not available - log warning but continue with Azure deletion
+        logger.warn(
+          `[deleteFileFromAzure] RAG API unavailable for file ${sourceToDelete}: ${error.message}. Continuing with Azure deletion.`,
+        );
+      } else {
+        logger.error(
+          `[deleteFileFromAzure] Error deleting from RAG API for file ${sourceToDelete}: ${error.message}`,
+        );
+        // Propagate error to prevent MongoDB deletion if RAG deletion fails critically
+        throw new Error(`RAG deletion failed for ${file.file_id}: ${error.message}`);
+      }
+    }
+  }
+
   try {
-    const containerClient = getAzureContainerClient(AZURE_CONTAINER_NAME);
+    const containerClient = await getAzureContainerClient(AZURE_CONTAINER_NAME);
     const blobPath = file.filepath.split(`${AZURE_CONTAINER_NAME}/`)[1];
     if (!blobPath.includes(req.user.id)) {
       throw new Error('User ID not found in blob path');
@@ -140,7 +195,7 @@ async function streamFileToAzure({
   containerName,
 }) {
   try {
-    const containerClient = getAzureContainerClient(containerName);
+    const containerClient = await getAzureContainerClient(containerName);
     const access = AZURE_STORAGE_PUBLIC_ACCESS?.toLowerCase() === 'true' ? 'blob' : undefined;
 
     // Create the container if it doesn't exist

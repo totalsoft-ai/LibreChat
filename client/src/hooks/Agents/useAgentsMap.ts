@@ -1,21 +1,31 @@
-import { TAgentsMap } from 'librechat-data-provider';
 import { useMemo } from 'react';
+import { useAtomValue } from 'jotai';
+import { PermissionBits } from 'librechat-data-provider';
+import type { TAgentsMap } from 'librechat-data-provider';
 import { useListAgentsQuery } from '~/data-provider';
 import { mapAgents } from '~/utils';
+import { currentWorkspaceAtom } from '~/store/workspaces';
 
 export default function useAgentsMap({
   isAuthenticated,
 }: {
   isAuthenticated: boolean;
 }): TAgentsMap | undefined {
-  const { data: agentsList = null } = useListAgentsQuery(undefined, {
-    select: (res) => mapAgents(res.data),
-    enabled: isAuthenticated,
-  });
+  const currentWorkspace = useAtomValue(currentWorkspaceAtom);
+  const workspaceObjectId = (currentWorkspace as { _id?: string } | null)?.['_id'];
+  const workspaceFilter = workspaceObjectId ?? 'personal';
 
-  const agents = useMemo<TAgentsMap | undefined>(() => {
-    return agentsList !== null ? agentsList : undefined;
-  }, [agentsList]);
+  const { data: mappedAgents = null } = useListAgentsQuery(
+    { requiredPermission: PermissionBits.VIEW, workspace: workspaceFilter },
+    {
+      select: (res) => mapAgents(res.data),
+      enabled: isAuthenticated,
+    },
+  );
 
-  return agents;
+  const agentsMap = useMemo<TAgentsMap | undefined>(() => {
+    return mappedAgents !== null ? mappedAgents : undefined;
+  }, [mappedAgents]);
+
+  return agentsMap;
 }

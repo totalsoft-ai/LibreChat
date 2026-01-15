@@ -1,31 +1,46 @@
-const { logger } = require('@librechat/data-schemas');
-const { webSearchKeys, extractWebSearchEnvVars, normalizeHttpError } = require('@librechat/api');
+const { logger, webSearchKeys } = require('@librechat/data-schemas');
+const { Tools, CacheKeys, Constants, FileSources } = require('librechat-data-provider');
+const {
+  MCPOAuthHandler,
+  MCPTokenStorage,
+  normalizeHttpError,
+  extractWebSearchEnvVars,
+} = require('@librechat/api');
 const {
   getFiles,
+  findToken,
   updateUser,
   deleteFiles,
   deleteConvos,
   deletePresets,
   deleteMessages,
   deleteUserById,
+  deleteAllSharedLinks,
   deleteAllUserSessions,
 } = require('~/models');
 const { updateUserPluginAuth, deleteUserPluginAuth } = require('~/server/services/PluginService');
 const { updateUserPluginsService, deleteUserKey } = require('~/server/services/UserService');
 const { verifyEmail, resendVerificationEmail } = require('~/server/services/AuthService');
 const { needsRefresh, getNewS3URL } = require('~/server/services/Files/S3/crud');
-const { Tools, Constants, FileSources } = require('librechat-data-provider');
 const { processDeleteRequest } = require('~/server/services/Files/process');
-const { Transaction, Balance, User } = require('~/db/models');
+const { Transaction, Balance, User, Token } = require('~/db/models');
+const { getMCPManager, getFlowStateManager } = require('~/config');
+const { getAppConfig } = require('~/server/services/Config');
 const { deleteToolCalls } = require('~/models/ToolCall');
-const { deleteAllSharedLinks } = require('~/models');
-const { getMCPManager } = require('~/config');
+const { getLogStores } = require('~/cache');
 
 const getUserController = async (req, res) => {
-  /** @type {MongoUser} */
+  const appConfig = await getAppConfig({ role: req.user?.role });
+  /** @type {IUser} */
   const userData = req.user.toObject != null ? req.user.toObject() : { ...req.user };
+  /**
+   * These fields should not exist due to secure field selection, but deletion
+   * is done in case of alternate database incompatibility with Mongo API
+   * */
+  delete userData.password;
   delete userData.totpSecret;
-  if (req.app.locals.fileStrategy === FileSources.s3 && userData.avatar) {
+  delete userData.backupCodes;
+  if (appConfig.fileStrategy === FileSources.s3 && userData.avatar) {
     const avatarNeedsRefresh = needsRefresh(userData.avatar, 3600);
     if (!avatarNeedsRefresh) {
       return res.status(200).send(userData);
@@ -81,6 +96,7 @@ const deleteUserFiles = async (req) => {
 };
 
 const updateUserPluginsController = async (req, res) => {
+  const appConfig = await getAppConfig({ role: req.user?.role });
   const { user } = req;
   const { pluginKey, action, auth, isEntityTool } = req.body;
   try {
@@ -125,7 +141,7 @@ const updateUserPluginsController = async (req, res) => {
 
     if (pluginKey === Tools.web_search) {
       /** @type  {TCustomConfig['webSearch']} */
-      const webSearchConfig = req.app.locals?.webSearch;
+      const webSearchConfig = appConfig?.webSearch;
       keys = extractWebSearchEnvVars({
         keys: action === 'install' ? keys : webSearchKeys,
         config: webSearchConfig,
@@ -153,6 +169,15 @@ const updateUserPluginsController = async (req, res) => {
           );
           ({ status, message } = normalizeHttpError(authService));
         }
+        try {
+          // if the MCP server uses OAuth, perform a full cleanup and token revocation
+          await maybeUninstallOAuthMCP(user.id, pluginKey, appConfig);
+        } catch (error) {
+          logger.error(
+            `[updateUserPluginsController] Error uninstalling OAuth MCP for ${pluginKey}:`,
+            error,
+          );
+        }
       } else {
         // This handles:
         // 1. Web_search uninstall (keys will be populated with all webSearchKeys if auth was {}).
@@ -178,7 +203,7 @@ const updateUserPluginsController = async (req, res) => {
             // Extract server name from pluginKey (format: "mcp_<serverName>")
             const serverName = pluginKey.replace(Constants.mcp_prefix, '');
             logger.info(
-              `[updateUserPluginsController] Disconnecting MCP server ${serverName} for user ${user.id} after plugin auth update for ${pluginKey}.`,
+              `[updateUserPluginsController] Attempting disconnect of MCP server "${serverName}" for user ${user.id} after plugin auth update.`,
             );
             await mcpManager.disconnectUserConnection(user.id, serverName);
           }
@@ -260,6 +285,188 @@ const resendVerificationController = async (req, res) => {
   }
 };
 
+/**
+ * OAuth MCP specific uninstall logic
+ */
+const maybeUninstallOAuthMCP = async (userId, pluginKey, appConfig) => {
+  if (!pluginKey.startsWith(Constants.mcp_prefix)) {
+    // this is not an MCP server, so nothing to do here
+    return;
+  }
+
+  const serverName = pluginKey.replace(Constants.mcp_prefix, '');
+  const mcpManager = getMCPManager(userId);
+  const serverConfig = mcpManager.getRawConfig(serverName) ?? appConfig?.mcpServers?.[serverName];
+
+  if (!mcpManager.getOAuthServers().has(serverName)) {
+    // this server does not use OAuth, so nothing to do here as well
+    return;
+  }
+
+  // 1. get client info used for revocation (client id, secret)
+  const clientTokenData = await MCPTokenStorage.getClientInfoAndMetadata({
+    userId,
+    serverName,
+    findToken,
+  });
+  if (clientTokenData == null) {
+    return;
+  }
+  const { clientInfo, clientMetadata } = clientTokenData;
+
+  // 2. get decrypted tokens before deletion
+  const tokens = await MCPTokenStorage.getTokens({
+    userId,
+    serverName,
+    findToken,
+  });
+
+  // 3. revoke OAuth tokens at the provider
+  const revocationEndpoint =
+    serverConfig.oauth?.revocation_endpoint ?? clientMetadata.revocation_endpoint;
+  const revocationEndpointAuthMethodsSupported =
+    serverConfig.oauth?.revocation_endpoint_auth_methods_supported ??
+    clientMetadata.revocation_endpoint_auth_methods_supported;
+  const oauthHeaders = serverConfig.oauth_headers ?? {};
+
+  if (tokens?.access_token) {
+    try {
+      await MCPOAuthHandler.revokeOAuthToken(
+        serverName,
+        tokens.access_token,
+        'access',
+        {
+          serverUrl: serverConfig.url,
+          clientId: clientInfo.client_id,
+          clientSecret: clientInfo.client_secret ?? '',
+          revocationEndpoint,
+          revocationEndpointAuthMethodsSupported,
+        },
+        oauthHeaders,
+      );
+    } catch (error) {
+      logger.error(`Error revoking OAuth access token for ${serverName}:`, error);
+    }
+  }
+
+  if (tokens?.refresh_token) {
+    try {
+      await MCPOAuthHandler.revokeOAuthToken(
+        serverName,
+        tokens.refresh_token,
+        'refresh',
+        {
+          serverUrl: serverConfig.url,
+          clientId: clientInfo.client_id,
+          clientSecret: clientInfo.client_secret ?? '',
+          revocationEndpoint,
+          revocationEndpointAuthMethodsSupported,
+        },
+        oauthHeaders,
+      );
+    } catch (error) {
+      logger.error(`Error revoking OAuth refresh token for ${serverName}:`, error);
+    }
+  }
+
+  // 4. delete tokens from the DB after revocation attempts
+  await MCPTokenStorage.deleteUserTokens({
+    userId,
+    serverName,
+    deleteToken: async (filter) => {
+      await Token.deleteOne(filter);
+    },
+  });
+
+  // 5. clear the flow state for the OAuth tokens
+  const flowsCache = getLogStores(CacheKeys.FLOWS);
+  const flowManager = getFlowStateManager(flowsCache);
+  const flowId = MCPOAuthHandler.generateFlowId(userId, serverName);
+  await flowManager.deleteFlow(flowId, 'mcp_get_tokens');
+  await flowManager.deleteFlow(flowId, 'mcp_oauth');
+};
+
+/**
+ * Lookup user by email for workspace member addition
+ * GET /api/user/lookup?email=user@example.com
+ */
+const getUsersListController = async (req, res) => {
+  try {
+    const { search, limit = 50 } = req.query;
+
+    const query = {};
+    if (search && typeof search === 'string' && search.trim()) {
+      // Search in email, username, or name
+      const searchRegex = new RegExp(search.trim(), 'i');
+      query.$or = [
+        { email: searchRegex },
+        { username: searchRegex },
+        { name: searchRegex },
+      ];
+    }
+
+    // Fetch users from MongoDB
+    const users = await User.find(query)
+      .select('email username name')
+      .limit(Math.min(parseInt(limit), 100)) // Max 100 users
+      .sort({ username: 1, email: 1 }) // Sort by username first, then email
+      .lean();
+
+    // Return just the identifiers (prefer username, then email, then name)
+    const userList = users.map((u) => u.username || u.email || u.name).filter((u) => u);
+
+    res.status(200).json({
+      users: userList,
+      count: userList.length,
+    });
+  } catch (error) {
+    logger.error('[getUsersListController] Error:', error);
+    res.status(500).json({
+      message: 'Error fetching users list',
+      error: error.message,
+    });
+  }
+};
+
+const lookupUserController = async (req, res) => {
+  try {
+    const { email } = req.query;
+
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    // Find users by partial email match (case-insensitive, match anywhere in email)
+    const users = await User.find({
+      email: { $regex: new RegExp(email.trim(), 'i') },
+    })
+      .select('_id name email avatar username')
+      .limit(10)
+      .lean();
+
+    if (!users || users.length === 0) {
+      return res.status(404).json({ message: 'No users found' });
+    }
+
+    // Return list of minimal user info for privacy
+    res.json({
+      users: users.map((user) => ({
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar,
+        username: user.username,
+      })),
+    });
+  } catch (error) {
+    logger.error('[lookupUserController] Error:', error);
+    res.status(500).json({
+      message: 'Error looking up user',
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   getUserController,
   getTermsStatusController,
@@ -268,4 +475,6 @@ module.exports = {
   verifyEmailController,
   updateUserPluginsController,
   resendVerificationController,
+  lookupUserController,
+  getUsersListController,
 };

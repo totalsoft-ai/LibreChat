@@ -23,6 +23,7 @@ export enum Tools {
   retrieval = 'retrieval',
   function = 'function',
   memory = 'memory',
+  ui_resources = 'ui_resources',
 }
 
 export enum EToolResources {
@@ -30,6 +31,7 @@ export enum EToolResources {
   execute_code = 'execute_code',
   file_search = 'file_search',
   image_edit = 'image_edit',
+  context = 'context',
   ocr = 'ocr',
 }
 
@@ -164,6 +166,7 @@ export type AgentModelParameters = {
   top_p: AgentParameterValue;
   frequency_penalty: AgentParameterValue;
   presence_penalty: AgentParameterValue;
+  skipMCPModelProcessing?: boolean;
 };
 
 export interface AgentBaseResource {
@@ -181,6 +184,8 @@ export interface AgentToolResources {
   [EToolResources.image_edit]?: AgentBaseResource;
   [EToolResources.execute_code]?: ExecuteCodeResource;
   [EToolResources.file_search]?: AgentFileResource;
+  [EToolResources.context]?: AgentBaseResource;
+  /** @deprecated Use context instead */
   [EToolResources.ocr]?: AgentBaseResource;
 }
 /**
@@ -196,8 +201,13 @@ export interface AgentFileResource extends AgentBaseResource {
    */
   vector_store_ids?: Array<string>;
 }
+export type SupportContact = {
+  name?: string;
+  email?: string;
+};
 
 export type Agent = {
+  _id?: string;
   id: string;
   name: string | null;
   author?: string | null;
@@ -217,6 +227,7 @@ export type Agent = {
   model: string | null;
   model_parameters: AgentModelParameters;
   conversation_starters?: string[];
+  /** @deprecated Use ACL permissions instead */
   isCollaborative?: boolean;
   tool_resources?: AgentToolResources;
   agent_ids?: string[];
@@ -224,7 +235,10 @@ export type Agent = {
   hide_sequential_outputs?: boolean;
   artifacts?: ArtifactModes;
   recursion_limit?: number;
+  isPublic?: boolean;
   version?: number;
+  category?: string;
+  support_contact?: SupportContact;
 };
 
 export type TAgentsMap = Record<string, Agent | undefined>;
@@ -239,9 +253,17 @@ export type AgentCreateParams = {
   provider: AgentProvider;
   model: string | null;
   model_parameters: AgentModelParameters;
+  // Optional workspace identifier to create the agent within a workspace.
+  workspace?: string | null;
 } & Pick<
   Agent,
-  'agent_ids' | 'end_after_tools' | 'hide_sequential_outputs' | 'artifacts' | 'recursion_limit'
+  | 'agent_ids'
+  | 'end_after_tools'
+  | 'hide_sequential_outputs'
+  | 'artifacts'
+  | 'recursion_limit'
+  | 'category'
+  | 'support_contact'
 >;
 
 export type AgentUpdateParams = {
@@ -260,15 +282,23 @@ export type AgentUpdateParams = {
   isCollaborative?: boolean;
 } & Pick<
   Agent,
-  'agent_ids' | 'end_after_tools' | 'hide_sequential_outputs' | 'artifacts' | 'recursion_limit'
+  | 'agent_ids'
+  | 'end_after_tools'
+  | 'hide_sequential_outputs'
+  | 'artifacts'
+  | 'recursion_limit'
+  | 'category'
+  | 'support_contact'
 >;
 
 export type AgentListParams = {
   limit?: number;
-  before?: string | null;
-  after?: string | null;
-  order?: 'asc' | 'desc';
-  provider?: AgentProvider;
+  requiredPermission: number;
+  category?: string;
+  search?: string;
+  cursor?: string;
+  promoted?: 0 | 1;
+  workspace?: string;
 };
 
 export type AgentListResponse = {
@@ -277,6 +307,7 @@ export type AgentListResponse = {
   first_id: string;
   last_id: string;
   has_more: boolean;
+  after?: string;
 };
 
 export type AgentFile = {
@@ -448,10 +479,20 @@ export type ContentPart = (
 ) &
   PartMetadata;
 
+export type TextData = (Text & PartMetadata) | undefined;
+
 export type TMessageContentParts =
-  | { type: ContentTypes.ERROR; text?: string | (Text & PartMetadata); error?: string }
-  | { type: ContentTypes.THINK; think: string | (Text & PartMetadata) }
-  | { type: ContentTypes.TEXT; text: string | (Text & PartMetadata); tool_call_ids?: string[] }
+  | {
+      type: ContentTypes.ERROR;
+      text?: string | TextData;
+      error?: string;
+    }
+  | { type: ContentTypes.THINK; think?: string | TextData }
+  | {
+      type: ContentTypes.TEXT;
+      text?: string | TextData;
+      tool_call_ids?: string[];
+    }
   | {
       type: ContentTypes.TOOL_CALL;
       tool_call: (

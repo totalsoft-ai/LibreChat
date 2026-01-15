@@ -1,13 +1,15 @@
 const fs = require('fs').promises;
 const express = require('express');
 const { EnvVar } = require('@librechat/agents');
+const { logger } = require('@librechat/data-schemas');
 const {
   Time,
   isUUID,
   CacheKeys,
-  Constants,
   FileSources,
+  ResourceType,
   EModelEndpoint,
+  PermissionBits,
   isAgentsEndpoint,
   checkOpenAIStorage,
 } = require('librechat-data-provider');
@@ -17,23 +19,70 @@ const {
   processDeleteRequest,
   processAgentFileUpload,
 } = require('~/server/services/Files/process');
-const { getFiles, batchUpdateFiles, hasAccessToFilesViaAgent } = require('~/models/File');
+const { fileAccess } = require('~/server/middleware/accessResources/fileAccess');
 const { getStrategyFunctions } = require('~/server/services/Files/strategies');
 const { getOpenAIClient } = require('~/server/controllers/assistants/helpers');
+const { checkPermission } = require('~/server/services/PermissionService');
 const { loadAuthValues } = require('~/server/services/Tools/credentials');
 const { refreshS3FileUrls } = require('~/server/services/Files/S3/crud');
-const { getProjectByName } = require('~/models/Project');
+const { hasAccessToFilesViaAgent } = require('~/server/services/Files');
+const { getFiles, batchUpdateFiles } = require('~/models/File');
+const { cleanFileName } = require('~/server/utils/files');
 const { getAssistant } = require('~/models/Assistant');
 const { getAgent } = require('~/models/Agent');
 const { getLogStores } = require('~/cache');
-const { logger } = require('~/config');
+const { Readable } = require('stream');
+const sharingController = require('~/server/controllers/sharing');
 
 const router = express.Router();
 
+// Mount webhook routes (no auth required for external services)
+const webhooksRouter = require('./webhooks');
+router.use('/webhooks', webhooksRouter);
+
 router.get('/', async (req, res) => {
   try {
-    const files = await getFiles({ user: req.user.id });
-    if (req.app.locals.fileStrategy === FileSources.s3) {
+    const appConfig = req.config;
+    const { workspace } = req.query;
+
+    // Build file filter
+    const filter = {};
+
+    // Handle workspace filter
+    if (workspace !== undefined) {
+      if (workspace === null || workspace === 'personal' || workspace === '') {
+        // Personal files - only current user's files
+        filter.user = req.user.id;
+        filter.$or = [{ workspace: null }, { workspace: { $exists: false } }];
+      } else {
+        // Workspace files - verify membership and return all workspace files
+        const Workspace = require('~/models/Workspace');
+        const ws = await Workspace.findOne({ workspaceId: workspace, isActive: true });
+
+        if (!ws) {
+          return res.status(404).json({ message: 'Workspace not found' });
+        }
+
+        if (!ws.isMember(req.user.id)) {
+          return res.status(403).json({ message: 'Not a workspace member' });
+        }
+
+        // Return all workspace files (regardless of visibility setting)
+        // For workspace context, all files in the workspace are visible to members
+        filter.workspace = workspace;
+//        filter.$or = [
+//          { visibility: 'workspace' },
+//          { visibility: 'private' },
+//          { visibility: { $exists: false } },
+//        ];
+      }
+    } else {
+      // No workspace parameter - only user's files
+      filter.user = req.user.id;
+    }
+
+    const files = await getFiles(filter);
+    if (appConfig.fileStrategy === FileSources.s3) {
       try {
         const cache = getLogStores(CacheKeys.S3_EXPIRY_INTERVAL);
         const alreadyChecked = await cache.get(req.user.id);
@@ -67,29 +116,25 @@ router.get('/agent/:agent_id', async (req, res) => {
       return res.status(400).json({ error: 'Agent ID is required' });
     }
 
-    // Get the agent to check ownership and attached files
     const agent = await getAgent({ id: agent_id });
-
     if (!agent) {
-      // No agent found, return empty array
       return res.status(200).json([]);
     }
 
-    // Check if user has access to the agent
     if (agent.author.toString() !== userId) {
-      // Non-authors need the agent to be globally shared and collaborative
-      const globalProject = await getProjectByName(Constants.GLOBAL_PROJECT_NAME, '_id');
+      const hasEditPermission = await checkPermission({
+        userId,
+        role: req.user.role,
+        resourceType: ResourceType.AGENT,
+        resourceId: agent._id,
+        requiredPermission: PermissionBits.EDIT,
+      });
 
-      if (
-        !globalProject ||
-        !agent.projectIds.some((pid) => pid.toString() === globalProject._id.toString()) ||
-        !agent.isCollaborative
-      ) {
+      if (!hasEditPermission) {
         return res.status(200).json([]);
       }
     }
 
-    // Collect all file IDs from agent's tool resources
     const agentFileIds = [];
     if (agent.tool_resources) {
       for (const [, resource] of Object.entries(agent.tool_resources)) {
@@ -99,12 +144,10 @@ router.get('/agent/:agent_id', async (req, res) => {
       }
     }
 
-    // If no files attached to agent, return empty array
     if (agentFileIds.length === 0) {
       return res.status(200).json([]);
     }
 
-    // Get only the files attached to this agent
     const files = await getFiles({ file_id: { $in: agentFileIds } }, null, { text: 0 });
 
     res.status(200).json(files);
@@ -116,7 +159,8 @@ router.get('/agent/:agent_id', async (req, res) => {
 
 router.get('/config', async (req, res) => {
   try {
-    res.status(200).json(req.app.locals.fileConfig);
+    const appConfig = req.config;
+    res.status(200).json(appConfig.fileConfig);
   } catch (error) {
     logger.error('[/files] Error getting fileConfig', error);
     res.status(400).json({ message: 'Error in request', error: error.message });
@@ -153,44 +197,53 @@ router.delete('/', async (req, res) => {
 
     const ownedFiles = [];
     const nonOwnedFiles = [];
-    const fileMap = new Map();
 
     for (const file of dbFiles) {
-      fileMap.set(file.file_id, file);
-      if (file.user.toString() === req.user.id) {
+      if (file.user.toString() === req.user.id.toString()) {
         ownedFiles.push(file);
       } else {
         nonOwnedFiles.push(file);
       }
     }
 
-    // If all files are owned by the user, no need for further checks
     if (nonOwnedFiles.length === 0) {
-      await processDeleteRequest({ req, files: ownedFiles });
+      const result = await processDeleteRequest({ req, files: ownedFiles });
       logger.debug(
-        `[/files] Files deleted successfully: ${ownedFiles
-          .filter((f) => f.file_id)
-          .map((f) => f.file_id)
-          .join(', ')}`,
+        `[/files] Files deleted successfully: ${result.deleted.join(', ')}`,
       );
-      res.status(200).json({ message: 'Files deleted successfully' });
+
+      if (result.failed && result.failed.length > 0) {
+        return res.status(207).json({
+          message: 'Some files could not be deleted',
+          deleted: result.deleted,
+          failed: result.failed,
+          totalRequested: result.totalRequested,
+          totalDeleted: result.totalDeleted,
+          totalFailed: result.totalFailed,
+        });
+      }
+
+      res.status(200).json({
+        message: 'Files deleted successfully',
+        count: result.totalDeleted,
+        file_ids: result.deleted,
+      });
       return;
     }
 
-    // Check access for non-owned files
     let authorizedFiles = [...ownedFiles];
     let unauthorizedFiles = [];
 
     if (req.body.agent_id && nonOwnedFiles.length > 0) {
-      // Batch check access for all non-owned files
       const nonOwnedFileIds = nonOwnedFiles.map((f) => f.file_id);
-      const accessMap = await hasAccessToFilesViaAgent(
-        req.user.id,
-        nonOwnedFileIds,
-        req.body.agent_id,
-      );
+      const accessMap = await hasAccessToFilesViaAgent({
+        userId: req.user.id,
+        role: req.user.role,
+        fileIds: nonOwnedFileIds,
+        agentId: req.body.agent_id,
+        isDelete: true,
+      });
 
-      // Separate authorized and unauthorized files
       for (const file of nonOwnedFiles) {
         if (accessMap.get(file.file_id)) {
           authorizedFiles.push(file);
@@ -199,7 +252,6 @@ router.delete('/', async (req, res) => {
         }
       }
     } else {
-      // No agent context, all non-owned files are unauthorized
       unauthorizedFiles = nonOwnedFiles;
     }
 
@@ -219,7 +271,16 @@ router.delete('/', async (req, res) => {
       const toolResourceFiles = agent.tool_resources?.[req.body.tool_resource]?.file_ids ?? [];
       const agentFiles = files.filter((f) => toolResourceFiles.includes(f.file_id));
 
-      await processDeleteRequest({ req, files: agentFiles });
+      const result = await processDeleteRequest({ req, files: agentFiles });
+
+      if (result.failed && result.failed.length > 0) {
+        return res.status(207).json({
+          message: 'Some file associations could not be removed',
+          deleted: result.deleted,
+          failed: result.failed,
+        });
+      }
+
       res.status(200).json({ message: 'File associations removed successfully from agent' });
       return;
     }
@@ -233,28 +294,59 @@ router.delete('/', async (req, res) => {
       const toolResourceFiles = assistant.tool_resources?.[req.body.tool_resource]?.file_ids ?? [];
       const assistantFiles = files.filter((f) => toolResourceFiles.includes(f.file_id));
 
-      await processDeleteRequest({ req, files: assistantFiles });
+      const result = await processDeleteRequest({ req, files: assistantFiles });
+
+      if (result.failed && result.failed.length > 0) {
+        return res.status(207).json({
+          message: 'Some file associations could not be removed',
+          deleted: result.deleted,
+          failed: result.failed,
+        });
+      }
+
       res.status(200).json({ message: 'File associations removed successfully from assistant' });
       return;
     } else if (
       req.body.assistant_id &&
       req.body.files?.[0]?.filepath === EModelEndpoint.azureAssistants
     ) {
-      await processDeleteRequest({ req, files: req.body.files });
+      const result = await processDeleteRequest({ req, files: req.body.files });
+
+      if (result.failed && result.failed.length > 0) {
+        return res.status(207).json({
+          message: 'Some file associations could not be removed',
+          deleted: result.deleted,
+          failed: result.failed,
+        });
+      }
+
       return res
         .status(200)
         .json({ message: 'File associations removed successfully from Azure Assistant' });
     }
 
-    await processDeleteRequest({ req, files: authorizedFiles });
+    const result = await processDeleteRequest({ req, files: authorizedFiles });
 
     logger.debug(
-      `[/files] Files deleted successfully: ${authorizedFiles
-        .filter((f) => f.file_id)
-        .map((f) => f.file_id)
-        .join(', ')}`,
+      `[/files] Files deleted successfully: ${result.deleted.join(', ')}`,
     );
-    res.status(200).json({ message: 'Files deleted successfully' });
+
+    if (result.failed && result.failed.length > 0) {
+      return res.status(207).json({
+        message: 'Some files could not be deleted',
+        deleted: result.deleted,
+        failed: result.failed,
+        totalRequested: result.totalRequested,
+        totalDeleted: result.totalDeleted,
+        totalFailed: result.totalFailed,
+      });
+    }
+
+    res.status(200).json({
+      message: 'Files deleted successfully',
+      count: result.totalDeleted,
+      file_ids: result.deleted,
+    });
   } catch (error) {
     logger.error('[/files] Error deleting files:', error);
     res.status(400).json({ message: 'Error in request', error: error.message });
@@ -303,50 +395,33 @@ router.get('/code/download/:session_id/:fileId', async (req, res) => {
   }
 });
 
-router.get('/download/:userId/:file_id', async (req, res) => {
+router.get('/download/:userId/:file_id', fileAccess, async (req, res) => {
   try {
     const { userId, file_id } = req.params;
     logger.debug(`File download requested by user ${userId}: ${file_id}`);
 
-    if (userId !== req.user.id) {
-      logger.warn(`${errorPrefix} forbidden: ${file_id}`);
-      return res.status(403).send('Forbidden');
-    }
-
-    const [file] = await getFiles({ file_id });
-    const errorPrefix = `File download requested by user ${userId}`;
-
-    if (!file) {
-      logger.warn(`${errorPrefix} not found: ${file_id}`);
-      return res.status(404).send('File not found');
-    }
-
-    if (!file.filepath.includes(userId)) {
-      logger.warn(`${errorPrefix} forbidden: ${file_id}`);
-      return res.status(403).send('Forbidden');
-    }
+    // Access already validated by fileAccess middleware
+    const file = req.fileAccess.file;
 
     if (checkOpenAIStorage(file.source) && !file.model) {
-      logger.warn(`${errorPrefix} has no associated model: ${file_id}`);
+      logger.warn(`File download requested by user ${userId} has no associated model: ${file_id}`);
       return res.status(400).send('The model used when creating this file is not available');
     }
 
     const { getDownloadStream } = getStrategyFunctions(file.source);
     if (!getDownloadStream) {
-      logger.warn(`${errorPrefix} has no stream method implemented: ${file.source}`);
+      logger.warn(
+        `File download requested by user ${userId} has no stream method implemented: ${file.source}`,
+      );
       return res.status(501).send('Not Implemented');
     }
 
     const setHeaders = () => {
-      res.setHeader('Content-Disposition', `attachment; filename="${file.filename}"`);
+      const cleanedFilename = cleanFileName(file.filename);
+      res.setHeader('Content-Disposition', `attachment; filename="${cleanedFilename}"`);
       res.setHeader('Content-Type', 'application/octet-stream');
       res.setHeader('X-File-Metadata', JSON.stringify(file));
     };
-
-    /** @type {{ body: import('stream').PassThrough } | undefined} */
-    let passThrough;
-    /** @type {ReadableStream | undefined} */
-    let fileStream;
 
     if (checkOpenAIStorage(file.source)) {
       req.body = { model: file.model };
@@ -360,22 +435,32 @@ router.get('/download/:userId/:file_id', async (req, res) => {
         overrideEndpoint: endpointMap[file.source],
       });
       logger.debug(`Downloading file ${file_id} from OpenAI`);
-      passThrough = await getDownloadStream(file_id, openai);
+      const passThrough = await getDownloadStream(file_id, openai);
       setHeaders();
       logger.debug(`File ${file_id} downloaded from OpenAI`);
-      passThrough.body.pipe(res);
+
+      // Handle both Node.js and Web streams
+      const stream =
+        passThrough.body && typeof passThrough.body.getReader === 'function'
+          ? Readable.fromWeb(passThrough.body)
+          : passThrough.body;
+
+      stream.pipe(res);
     } else {
-      fileStream = getDownloadStream(file_id);
+      const fileStream = await getDownloadStream(req, file.filepath);
+
+      fileStream.on('error', (streamError) => {
+        logger.error('[DOWNLOAD ROUTE] Stream error:', streamError);
+      });
+
       setHeaders();
       fileStream.pipe(res);
     }
   } catch (error) {
-    logger.error('Error downloading file:', error);
+    logger.error('[DOWNLOAD ROUTE] Error downloading file:', error);
     res.status(500).send('Error downloading file');
   }
 });
-
-
 
 router.post('/', async (req, res) => {
   const metadata = req.body;
@@ -387,38 +472,99 @@ router.post('/', async (req, res) => {
     metadata.temp_file_id = metadata.file_id;
     metadata.file_id = req.file_id;
 
-    // Forward file to external embeddings API only for the custom "Assistant" endpoint
-    // when the user selects the File Search option in the UI
-    try {
-      if (metadata?.endpoint === 'Assistant' && metadata?.tool_resource === 'file_search') {
-        const axios = require('axios');
-        const FormData = require('form-data');
-        const fsSync = require('fs');
+    // Validate workspace if provided
+    if (metadata.workspace) {
+      const Workspace = require('~/models/Workspace');
+      const ws = await Workspace.findOne({
+        workspaceId: metadata.workspace,
+        isActive: true,
+        isArchived: false,
+      });
 
-        const form = new FormData();
-        const originalName = req.file?.originalname || 'upload.bin';
-        form.append('files', fsSync.createReadStream(req.file.path), originalName);
+      if (!ws) {
+        return res.status(404).json({ message: 'Workspace not found' });
+      }
 
-        // Use full user email as namespace (as requested)
-        const namespace = req.user?.email;
-        form.append('namespace', namespace);
+      if (!ws.isMember(req.user.id)) {
+        return res.status(403).json({ message: 'You do not have access to this workspace' });
+      }
 
-        const fastapiUrl = process.env.EMBEDDINGS_API_URL;
-        await axios.post(`${fastapiUrl}/upload/files/`, form, {
-          headers: {
-            ...form.getHeaders(),
-            'X-User-Email': req.user?.email || '',
-          },
-          maxContentLength: Infinity,
-          maxBodyLength: Infinity,
+      // Check if user has permission to upload files in workspace
+      if (!ws.hasPermission(req.user.id, 'member')) {
+        return res.status(403).json({
+          message: 'You need at least member permission to upload files in this workspace',
         });
       }
-    } catch (forwardErr) {
-      logger.warn('[/files] Embeddings forward failed (non-blocking):', forwardErr);
+
+      // Store workspaceId string instead of ObjectId for consistency with schema
+      metadata.workspace = ws.workspaceId;
+      // Auto-set visibility to 'workspace' for workspace files
+      metadata.visibility = 'workspace';
     }
 
+    const isAssistantEndpoint =
+      metadata?.endpoint === 'Assistant' || metadata?.endpoint === EModelEndpoint.assistants;
 
-    if (isAgentsEndpoint(metadata.endpoint)) {
+    const isPersonalSpaceEndpoint = metadata?.endpoint === 'Personal Space';
+
+    // Fallbacks: if upload comes from custom Assistant or Personal Space endpoint but tool_resource wasn't sent,
+    // infer file_search and ensure the file is a message attachment
+    if (!metadata?.tool_resource) {
+      const originalEndpoint = metadata?.original_endpoint;
+      if (
+        metadata?.endpoint === 'Assistant' ||
+        metadata?.endpoint === 'Personal Space' ||
+        originalEndpoint === 'Assistant' ||
+        originalEndpoint === 'Personal Space' ||
+        originalEndpoint === EModelEndpoint.assistants
+      ) {
+        metadata.tool_resource = 'file_search';
+        metadata.message_file = true;
+        logger.debug(
+          '[/files] Inferred tool_resource=file_search for custom Assistant/Personal Space endpoint',
+        );
+      }
+    }
+
+    // Mark Personal Space files as global library
+    if (isPersonalSpaceEndpoint) {
+      metadata.isGlobalLibrary = true;
+      metadata.message_file = true;
+      logger.debug('[/files] Marked file as global library for Personal Space endpoint');
+    }
+
+    // Mark workspace uploads with file_search as message files
+    if (metadata.workspace && metadata.tool_resource === 'file_search') {
+      metadata.message_file = true;
+      logger.info(`[/files] Marked workspace file as message_file for RAG processing - workspace: ${metadata.workspace}`);
+    }
+
+    // Always allow Assistant uploads to be sent without text by attaching as message file
+    if (isAssistantEndpoint && !metadata.message_file) {
+      metadata.message_file = true;
+    }
+
+    // Log upload metadata for debugging
+    logger.debug(
+      `[/files] upload meta: endpoint=${metadata?.endpoint} tool_resource=${metadata?.tool_resource} file_id=${metadata?.file_id} isAssistantEndpoint=${isAssistantEndpoint} isPersonalSpace=${isPersonalSpaceEndpoint} isGlobalLibrary=${metadata?.isGlobalLibrary}`,
+    );
+
+    // Use agent file upload processing for:
+    // 1. Agents endpoint (isAgentsEndpoint)
+    // 2. Custom Assistant endpoints with file_search
+    // 3. Personal Space with file_search
+    // 4. Workspace uploads with file_search (enables RAG)
+    const isWorkspaceFileSearch = metadata.workspace && metadata.tool_resource === 'file_search';
+    logger.info(`[/files] Workspace file_search check - workspace: ${metadata.workspace}, tool_resource: ${metadata.tool_resource}, isWorkspaceFileSearch: ${isWorkspaceFileSearch}`);
+    const shouldUseAgentFileUpload =
+      isAgentsEndpoint(metadata.endpoint) ||
+      (isAssistantEndpoint && metadata.tool_resource === 'file_search') ||
+      (isPersonalSpaceEndpoint && metadata.tool_resource === 'file_search') ||
+      isWorkspaceFileSearch;
+
+    logger.info(`[/files] Routing decision - shouldUseAgentFileUpload: ${shouldUseAgentFileUpload}, will use: ${shouldUseAgentFileUpload ? 'processAgentFileUpload (RAG)' : 'processFileUpload (standard)'}`);
+
+    if (shouldUseAgentFileUpload) {
       return await processAgentFileUpload({ req, res, metadata });
     }
 
@@ -433,12 +579,12 @@ router.post('/', async (req, res) => {
 
     if (
       error.message?.includes('Invalid file format') ||
-      error.message?.includes('No OCR result')
+      error.message?.includes('No OCR result') ||
+      error.message?.includes('exceeds token limit')
     ) {
       message = error.message;
     }
 
-    // TODO: delete remote file if it exists
     try {
       await fs.unlink(req.file.path);
       cleanup = false;
@@ -457,6 +603,80 @@ router.post('/', async (req, res) => {
       logger.debug('[/files] File processing completed without cleanup');
     }
   }
+});
+
+/**
+ * Get shared files in workspace
+ * @route GET /files/workspace/:workspaceId/shared
+ * @param {string} req.params.workspaceId - Workspace identifier
+ * @returns {Array} 200 - List of shared files - application/json
+ */
+router.get('/workspace/:workspaceId/shared', (req, res) => {
+  req.params.resourceType = 'file';
+  return sharingController.getSharedResources(req, res);
+});
+
+/**
+ * Share file with workspace
+ * @route POST /files/:file_id/share
+ * @param {string} req.params.file_id - File identifier
+ * @param {string} req.body.visibility - Visibility setting (private|workspace|shared_with)
+ * @param {Array} [req.body.sharedWith] - User IDs for shared_with visibility
+ * @returns {Object} 200 - Success response - application/json
+ */
+router.post('/:file_id/share', fileAccess, (req, res) => {
+  req.params.resourceType = 'file';
+  req.params.resourceId = req.params.file_id;
+  return sharingController.shareResource(req, res);
+});
+
+/**
+ * Unshare file (set to private)
+ * @route POST /files/:file_id/unshare
+ * @param {string} req.params.file_id - File identifier
+ * @returns {Object} 200 - Success response - application/json
+ */
+router.post('/:file_id/unshare', fileAccess, (req, res) => {
+  req.params.resourceType = 'file';
+  req.params.resourceId = req.params.file_id;
+  return sharingController.unshareResource(req, res);
+});
+
+/**
+ * Update file visibility
+ * @route PATCH /files/:file_id/visibility
+ * @param {string} req.params.file_id - File identifier
+ * @param {string} req.body.visibility - Visibility setting
+ * @returns {Object} 200 - Success response - application/json
+ */
+router.patch('/:file_id/visibility', fileAccess, (req, res) => {
+  req.params.resourceType = 'file';
+  req.params.resourceId = req.params.file_id;
+  return sharingController.updateVisibility(req, res);
+});
+
+/**
+ * Pin file to workspace start page
+ * @route POST /files/:file_id/pin
+ * @param {string} req.params.file_id - File identifier
+ * @returns {Object} 200 - Success response - application/json
+ */
+router.post('/:file_id/pin', (req, res) => {
+  req.params.resourceType = 'file';
+  req.params.resourceId = req.params.file_id;
+  return sharingController.pinResource(req, res);
+});
+
+/**
+ * Unpin file from workspace start page
+ * @route DELETE /files/:file_id/pin
+ * @param {string} req.params.file_id - File identifier
+ * @returns {Object} 200 - Success response - application/json
+ */
+router.delete('/:file_id/pin', (req, res) => {
+  req.params.resourceType = 'file';
+  req.params.resourceId = req.params.file_id;
+  return sharingController.unpinResource(req, res);
 });
 
 module.exports = router;

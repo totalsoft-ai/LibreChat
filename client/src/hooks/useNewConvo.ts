@@ -32,6 +32,8 @@ import { useResetChatBadges } from './useChatBadges';
 import { usePauseGlobalAudio } from './Audio';
 import { logger } from '~/utils';
 import store from '~/store';
+import { useAtomValue } from 'jotai';
+import { currentWorkspaceIdAtom } from '~/store/workspaces';
 
 const useNewConvo = (index = 0) => {
   const navigate = useNavigate();
@@ -45,6 +47,7 @@ const useNewConvo = (index = 0) => {
   const clearAllLatestMessages = store.useClearLatestMessages(`useNewConvo ${index}`);
   const setSubmission = useSetRecoilState<TSubmission | null>(store.submissionByIndex(index));
   const { data: endpointsConfig = {} as TEndpointsConfig } = useGetEndpointsQuery();
+  const currentWorkspaceId = useAtomValue(currentWorkspaceIdAtom);
 
   const modelsQuery = useGetModelsQuery();
   const assistantsListMap = useAssistantListMap();
@@ -179,6 +182,7 @@ const useNewConvo = (index = 0) => {
         }
         setSubmission({} as TSubmission);
         if (!(keepLatestMessage ?? false)) {
+          logger.log('latest_message', 'Clearing all latest messages');
           clearAllLatestMessages();
         }
         if (isCancelled) {
@@ -246,6 +250,7 @@ const useNewConvo = (index = 0) => {
         title: 'New Chat',
         endpoint: null,
         ...template,
+        workspace: currentWorkspaceId,
         createdAt: '',
         updatedAt: '',
       };

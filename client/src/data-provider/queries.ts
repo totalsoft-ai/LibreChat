@@ -45,21 +45,6 @@ export const useGetPresetsQuery = (
   });
 };
 
-export const useGetEndpointsConfigOverride = <TData = unknown | boolean>(
-  config?: UseQueryOptions<unknown | boolean, unknown, TData>,
-): QueryObserverResult<TData> => {
-  return useQuery<unknown | boolean, unknown, TData>(
-    [QueryKeys.endpointsConfigOverride],
-    () => dataService.getEndpointsConfigOverride(),
-    {
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
-      refetchOnMount: false,
-      ...config,
-    },
-  );
-};
-
 export const useGetConvoIdQuery = (
   id: string,
   config?: UseQueryOptions<t.TConversation>,
@@ -95,12 +80,12 @@ export const useConversationsInfiniteQuery = (
   params: ConversationListParams,
   config?: UseInfiniteQueryOptions<ConversationListResponse, unknown>,
 ) => {
-  const { isArchived, sortBy, sortDirection, tags, search } = params;
+  const { isArchived, sortBy, sortDirection, tags, search, workspace } = params;
 
   return useInfiniteQuery<ConversationListResponse>({
     queryKey: [
       isArchived ? QueryKeys.archivedConversations : QueryKeys.allConversations,
-      { isArchived, sortBy, sortDirection, tags, search },
+      { isArchived, sortBy, sortDirection, tags, search, workspace },
     ],
     queryFn: ({ pageParam }) =>
       dataService.listConversations({
@@ -109,6 +94,7 @@ export const useConversationsInfiniteQuery = (
         sortDirection,
         tags,
         search,
+        workspace,
         cursor: pageParam?.toString(),
       }),
     getNextPageParam: (lastPage) => lastPage?.nextCursor ?? undefined,
@@ -193,7 +179,8 @@ export const useConversationTagsQuery = (
  */
 
 /**
- * Hook for getting all available tools for Assistants
+ * Hook for getting available LibreChat tools (excludes MCP tools)
+ * For MCP tools, use `useMCPToolsQuery` from mcp-queries.ts
  */
 export const useAvailableToolsQuery = <TData = t.TPlugin[]>(
   endpoint: t.AssistantsEndpoint | EModelEndpoint.agents,
@@ -415,22 +402,28 @@ export const usePromptGroupsInfiniteQuery = (
   params?: t.TPromptGroupsWithFilterRequest,
   config?: UseInfiniteQueryOptions<t.PromptGroupListResponse, unknown>,
 ) => {
-  const { name, pageSize, category, ...rest } = params || {};
+  const { name, pageSize, category, workspace } = params || {};
   return useInfiniteQuery<t.PromptGroupListResponse, unknown>(
-    [QueryKeys.promptGroups, name, category, pageSize],
-    ({ pageParam = '1' }) =>
-      dataService.getPromptGroups({
-        ...rest,
+    [QueryKeys.promptGroups, name, category, pageSize, workspace],
+    ({ pageParam }) => {
+      const queryParams: t.TPromptGroupsWithFilterRequest = {
         name,
         category: category || '',
-        pageNumber: pageParam?.toString(),
-        pageSize: (pageSize || 10).toString(),
-      }),
+        limit: (pageSize || 10).toString(),
+        workspace,
+      };
+
+      // Only add cursor if it's a valid string
+      if (pageParam && typeof pageParam === 'string') {
+        queryParams.cursor = pageParam;
+      }
+
+      return dataService.getPromptGroups(queryParams);
+    },
     {
       getNextPageParam: (lastPage) => {
-        const currentPageNumber = Number(lastPage.pageNumber);
-        const totalPages = Number(lastPage.pages);
-        return currentPageNumber < totalPages ? currentPageNumber + 1 : undefined;
+        // Use cursor-based pagination - ensure we return a valid cursor or undefined
+        return lastPage.has_more && lastPage.after ? lastPage.after : undefined;
       },
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,

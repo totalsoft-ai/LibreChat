@@ -1,5 +1,14 @@
 ### node etc ###
+create_buckets.py
+mcp_server_configuration*
+rag_configuration*
+nul
 
+
+# SSL Certificates
+*.key
+*.crt
+custom/cert/
 # Logs
 data-node
 meili_data*
@@ -93,6 +102,7 @@ monospace.json
 .idea
 *.iml
 *.pem
+*.key
 config.local.ts
 **/storageState.json
 junit.xml
@@ -138,3 +148,4 @@ helm/**/.values.yaml
 /.openai/
 /.tabnine/
 /.codeium
+*.local.md

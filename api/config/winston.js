@@ -1,6 +1,7 @@
 const path = require('path');
 const winston = require('winston');
 require('winston-daily-rotate-file');
+const PostgresTransport = require('./postgresTransport');
 const { redactFormat, redactMessage, debugTraverse, jsonTruncateFormat } = require('./parsers');
 
 const logDir = path.join(__dirname, '..', 'logs');
@@ -73,6 +74,14 @@ if (useDebugLogging) {
       maxSize: '20m',
       maxFiles: '14d',
       format: winston.format.combine(fileFormat, debugTraverse),
+    }),
+  );
+}
+
+if (process.env.POSTGRES_LOGS_URI) {
+  transports.push(
+    new PostgresTransport({
+      level: 'warn', // Warning-uri și erori merg în PostgreSQL
     }),
   );
 }

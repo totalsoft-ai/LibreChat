@@ -325,6 +325,19 @@ export function addConvoToAllQueries(queryClient: QueryClient, newConvo: TConver
     .findAll([QueryKeys.allConversations], { exact: false });
 
   for (const query of queries) {
+    // Only add to queries with matching workspace
+    const queryParams = query.queryKey[1] as { workspace?: string | null };
+    const queryWorkspace = queryParams?.workspace;
+    const convoWorkspace = newConvo.workspace;
+
+    // Match if both null/undefined OR both equal
+    const workspaceMatches =
+      (queryWorkspace == null && convoWorkspace == null) || queryWorkspace === convoWorkspace;
+
+    if (!workspaceMatches) {
+      continue; // Skip non-matching workspace caches
+    }
+
     queryClient.setQueryData<InfiniteData<ConversationCursorData>>(query.queryKey, (oldData) => {
       if (!oldData) {
         return oldData;

@@ -1,6 +1,7 @@
 import type { AxiosResponse } from 'axios';
 import type * as t from './types';
 import * as endpoints from './api-endpoints';
+import { buildQuery } from './api-endpoints';
 import * as a from './types/assistants';
 import * as ag from './types/agents';
 import * as m from './types/mutations';
@@ -10,6 +11,7 @@ import * as config from './config';
 import request from './request';
 import * as s from './schemas';
 import * as r from './roles';
+import * as permissions from './accessPermissions';
 
 export function revokeUserKey(name: string): Promise<unknown> {
   return request.delete(endpoints.revokeUserKey(name));
@@ -41,8 +43,11 @@ export function getSharedLink(conversationId: string): Promise<t.TSharedLinkGetR
   return request.get(endpoints.getSharedLink(conversationId));
 }
 
-export function createSharedLink(conversationId: string): Promise<t.TSharedLinkResponse> {
-  return request.post(endpoints.createSharedLink(conversationId));
+export function createSharedLink(
+  conversationId: string,
+  targetMessageId?: string,
+): Promise<t.TSharedLinkResponse> {
+  return request.post(endpoints.createSharedLink(conversationId), { targetMessageId });
 }
 
 export function updateSharedLink(shareId: string): Promise<t.TSharedLinkResponse> {
@@ -51,6 +56,31 @@ export function updateSharedLink(shareId: string): Promise<t.TSharedLinkResponse
 
 export function deleteSharedLink(shareId: string): Promise<m.TDeleteSharedLinkResponse> {
   return request.delete(endpoints.shareMessages(shareId));
+}
+
+export async function exportConversationAPI(
+  conversationId: string,
+  format: 'json' | 'markdown' | 'md' | 'html' | 'pdf' = 'json',
+): Promise<Blob> {
+  const response: AxiosResponse<Blob> = await request.get(
+    endpoints.exportConversation(conversationId, format),
+    {
+      responseType: 'blob',
+    },
+  );
+  return response.data;
+}
+
+export function getExportFormats(): Promise<{
+  formats: Array<{
+    format: string;
+    description: string;
+    contentType: string;
+    available: boolean;
+  }>;
+  defaultFormat: string;
+}> {
+  return request.get(endpoints.exportFormats());
 }
 
 export function updateUserKey(payload: t.TUpdateUserKeyRequest) {
@@ -84,6 +114,11 @@ export function getSearchEnabled(): Promise<boolean> {
 
 export function getUser(): Promise<t.TUser> {
   return request.get(endpoints.user());
+}
+
+export function getUsers(search?: string): Promise<{ users: string[]; count: number }> {
+  const params = search ? `?search=${encodeURIComponent(search)}` : '';
+  return request.get(`${endpoints.user()}/list${params}`);
 }
 
 export function getUserBalance(): Promise<t.TBalanceResponse> {
@@ -179,10 +214,6 @@ export const getAIEndpoints = (): Promise<t.TEndpointsConfig> => {
 
 export const getModels = async (): Promise<t.TModelsConfig> => {
   return request.get(endpoints.models());
-};
-
-export const getEndpointsConfigOverride = (): Promise<unknown | boolean> => {
-  return request.get(endpoints.endpointsConfigOverride());
 };
 
 /* Assistants */
@@ -300,6 +331,12 @@ export const getAvailableTools = (
   return request.get(path);
 };
 
+/* MCP Tools - Decoupled from regular tools */
+
+export const getMCPTools = (): Promise<q.MCPServersResponse> => {
+  return request.get(endpoints.mcp.tools);
+};
+
 export const getVerifyAgentToolAuth = (
   params: q.VerifyToolAuthParams,
 ): Promise<q.VerifyToolAuthResponse> => {
@@ -336,8 +373,9 @@ export const getToolCalls = (params: q.GetToolCallParams): Promise<q.ToolCallRes
 
 /* Files */
 
-export const getFiles = (): Promise<f.TFile[]> => {
-  return request.get(endpoints.files());
+export const getFiles = (workspace?: string | null): Promise<f.TFile[]> => {
+  const params = workspace !== undefined ? { workspace } : {};
+  return request.get(endpoints.files() + buildQuery(params));
 };
 
 export const getAgentFiles = (agentId: string): Promise<f.TFile[]> => {
@@ -413,6 +451,14 @@ export const getAgentById = ({ agent_id }: { agent_id: string }): Promise<a.Agen
   );
 };
 
+export const getExpandedAgentById = ({ agent_id }: { agent_id: string }): Promise<a.Agent> => {
+  return request.get(
+    endpoints.agents({
+      path: `${agent_id}/expanded`,
+    }),
+  );
+};
+
 export const updateAgent = ({
   agent_id,
   data,
@@ -461,6 +507,35 @@ export const revertAgentVersion = ({
   agent_id: string;
   version_index: number;
 }): Promise<a.Agent> => request.post(endpoints.revertAgentVersion(agent_id), { version_index });
+
+/* Marketplace */
+
+/**
+ * Get agent categories with counts for marketplace tabs
+ */
+export const getAgentCategories = (): Promise<t.TMarketplaceCategory[]> => {
+  return request.get(endpoints.agents({ path: 'categories' }));
+};
+
+/**
+ * Unified marketplace agents endpoint with query string controls
+ */
+export const getMarketplaceAgents = (params: {
+  requiredPermission: number;
+  category?: string;
+  search?: string;
+  limit?: number;
+  cursor?: string;
+  promoted?: 0 | 1;
+  workspace?: string;
+}): Promise<a.AgentListResponse> => {
+  return request.get(
+    endpoints.agents({
+      // path: 'marketplace',
+      options: params,
+    }),
+  );
+};
 
 /* Tools */
 
@@ -651,7 +726,7 @@ export const editArtifact = async ({
   messageId,
   ...params
 }: m.TEditArtifactRequest): Promise<m.TEditArtifactResponse> => {
-  return request.post(`/api/messages/artifact/${messageId}`, params);
+  return request.post(endpoints.messagesArtifacts(messageId), params);
 };
 
 export function getMessagesByConvoId(conversationId: string): Promise<s.TMessage[]> {
@@ -688,6 +763,13 @@ export function getPromptGroup(id: string): Promise<t.TPromptGroup> {
 
 export function createPrompt(payload: t.TCreatePrompt): Promise<t.TCreatePromptResponse> {
   return request.post(endpoints.postPrompt(), payload);
+}
+
+export function addPromptToGroup(
+  groupId: string,
+  payload: t.TCreatePrompt,
+): Promise<t.TCreatePromptResponse> {
+  return request.post(endpoints.addPromptToGroup(groupId), payload);
 }
 
 export function updatePromptGroup(
@@ -745,6 +827,21 @@ export function updateMemoryPermissions(
   variables: m.UpdateMemoryPermVars,
 ): Promise<m.UpdatePermResponse> {
   return request.put(endpoints.updateMemoryPermissions(variables.roleName), variables.updates);
+}
+
+export function updatePeoplePickerPermissions(
+  variables: m.UpdatePeoplePickerPermVars,
+): Promise<m.UpdatePermResponse> {
+  return request.put(
+    endpoints.updatePeoplePickerPermissions(variables.roleName),
+    variables.updates,
+  );
+}
+
+export function updateMarketplacePermissions(
+  variables: m.UpdateMarketplacePermVars,
+): Promise<m.UpdatePermResponse> {
+  return request.put(endpoints.updateMarketplacePermissions(variables.roleName), variables.updates);
 }
 
 /* Tags */
@@ -858,3 +955,121 @@ export const createMemory = (data: {
 }): Promise<{ created: boolean; memory: q.TUserMemory }> => {
   return request.post(endpoints.memories(), data);
 };
+
+export function searchPrincipals(
+  params: q.PrincipalSearchParams,
+): Promise<q.PrincipalSearchResponse> {
+  return request.get(endpoints.searchPrincipals(params));
+}
+
+export function getAccessRoles(
+  resourceType: permissions.ResourceType,
+): Promise<q.AccessRolesResponse> {
+  return request.get(endpoints.getAccessRoles(resourceType));
+}
+
+export function getResourcePermissions(
+  resourceType: permissions.ResourceType,
+  resourceId: string,
+): Promise<permissions.TGetResourcePermissionsResponse> {
+  return request.get(endpoints.getResourcePermissions(resourceType, resourceId));
+}
+
+export function updateResourcePermissions(
+  resourceType: permissions.ResourceType,
+  resourceId: string,
+  data: permissions.TUpdateResourcePermissionsRequest,
+): Promise<permissions.TUpdateResourcePermissionsResponse> {
+  return request.put(endpoints.updateResourcePermissions(resourceType, resourceId), data);
+}
+
+export function getEffectivePermissions(
+  resourceType: permissions.ResourceType,
+  resourceId: string,
+): Promise<permissions.TEffectivePermissionsResponse> {
+  return request.get(endpoints.getEffectivePermissions(resourceType, resourceId));
+}
+
+// SharePoint Graph API Token
+export function getGraphApiToken(params: q.GraphTokenParams): Promise<q.GraphTokenResponse> {
+  return request.get(endpoints.graphToken(params.scopes));
+}
+
+export function getDomainServerBaseUrl(): string {
+  return `${endpoints.apiBaseUrl()}/api`;
+}
+
+// Documentation
+export interface DocSection {
+  id: string;
+  title: string;
+  subsections?: Array<{ id: string; title: string }>;
+}
+
+export interface DocContent {
+  id: string;
+  title: string;
+  filename: string;
+  content: string;
+  sections: DocSection[];
+}
+
+export interface DocListResponse {
+  sections: Array<{
+    id: string;
+    title: string;
+    order: number;
+    filename: string;
+  }>;
+  default: string;
+}
+
+export function getDocsList(): Promise<DocListResponse> {
+  return request.get(endpoints.docs());
+}
+
+export function getDocContent(docId: string): Promise<DocContent> {
+  return request.get(endpoints.docs(docId));
+}
+
+// Admin Events
+export interface EventsQueryParams {
+  page?: number;
+  pageSize?: number;
+  eventType?: string;
+  user?: string;
+  fromDate?: string;
+  toDate?: string;
+}
+
+export interface EventItem {
+  id: string;
+  timestamp: string;
+  user: string;
+  eventType: string;
+  resourceType?: string | null;
+  resourceName?: string | null;
+  details?: string | null;
+}
+
+export interface EventsResponse {
+  data: EventItem[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export function getEventsAuth(params?: EventsQueryParams): Promise<EventsResponse> {
+  return request.get(endpoints.eventsAuth(params as Record<string, unknown>));
+}
+
+export function getEventsInternal(params?: EventsQueryParams): Promise<EventsResponse> {
+  return request.get(endpoints.eventsInternal(params as Record<string, unknown>));
+}
+
+export function getEventsLogs(params?: EventsQueryParams): Promise<EventsResponse> {
+  return request.get(endpoints.eventsLogs(params as Record<string, unknown>));
+}

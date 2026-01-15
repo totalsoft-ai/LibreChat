@@ -41,10 +41,36 @@ export type EndpointFileConfig = {
   fileSizeLimit?: number;
   totalSizeLimit?: number;
   supportedMimeTypes?: RegExp[];
+  capabilities?: string[]; // Agent capabilities for the endpoint
 };
 
 export type FileConfig = {
   endpoints: {
+    [key: string]: EndpointFileConfig;
+  };
+  fileTokenLimit?: number;
+  serverFileSizeLimit?: number;
+  avatarSizeLimit?: number;
+  clientImageResize?: {
+    enabled?: boolean;
+    maxWidth?: number;
+    maxHeight?: number;
+    quality?: number;
+  };
+  ocr?: {
+    supportedMimeTypes?: RegExp[];
+  };
+  text?: {
+    supportedMimeTypes?: RegExp[];
+  };
+  stt?: {
+    supportedMimeTypes?: RegExp[];
+  };
+  checkType?: (fileType: string, supportedTypes: RegExp[]) => boolean;
+};
+
+export type FileConfigInput = {
+  endpoints?: {
     [key: string]: EndpointFileConfig;
   };
   serverFileSizeLimit?: number;
@@ -54,6 +80,15 @@ export type FileConfig = {
     maxWidth?: number;
     maxHeight?: number;
     quality?: number;
+  };
+  ocr?: {
+    supportedMimeTypes?: string[];
+  };
+  text?: {
+    supportedMimeTypes?: string[];
+  };
+  stt?: {
+    supportedMimeTypes?: string[];
   };
   checkType?: (fileType: string, supportedTypes: RegExp[]) => boolean;
 };
@@ -78,6 +113,7 @@ export type TFile = {
   filterSource?: FileSources;
   width?: number;
   height?: number;
+  workspace?: string | null;
   expiresAt?: string | Date;
   preview?: string;
   metadata?: { fileIdentifier?: string };

@@ -1,18 +1,19 @@
 import { useState, memo } from 'react';
 import { useRecoilState } from 'recoil';
+import { useNavigate } from 'react-router-dom';
 import * as Select from '@ariakit/react/select';
-import { FileText, LogOut } from 'lucide-react';
-import { LinkIcon, GearIcon, DropdownMenuSeparator, UserIcon } from '@librechat/client';
+import { FileText, LogOut, BookOpen, ClipboardList } from 'lucide-react';
+import { LinkIcon, GearIcon, DropdownMenuSeparator, Avatar } from '@librechat/client';
 import { useGetStartupConfig, useGetUserBalance } from '~/data-provider';
 import FilesView from '~/components/Chat/Input/Files/FilesView';
 import { useAuthContext } from '~/hooks/AuthContext';
-import useAvatar from '~/hooks/Messages/useAvatar';
 import { useLocalize } from '~/hooks';
 import Settings from './Settings';
 import store from '~/store';
 
 function AccountSettings() {
   const localize = useLocalize();
+  const navigate = useNavigate();
   const { user, isAuthenticated, logout } = useAuthContext();
   const { data: startupConfig } = useGetStartupConfig();
   const balanceQuery = useGetUserBalance({
@@ -20,9 +21,6 @@ function AccountSettings() {
   });
   const [showSettings, setShowSettings] = useState(false);
   const [showFiles, setShowFiles] = useRecoilState(store.showFiles);
-
-  const avatarSrc = useAvatar(user);
-  const avatarSeed = user?.avatar || user?.name || user?.username || '';
 
   return (
     <Select.SelectProvider>
@@ -33,26 +31,7 @@ function AccountSettings() {
       >
         <div className="-ml-0.9 -mt-0.8 h-8 w-8 flex-shrink-0">
           <div className="relative flex">
-            {avatarSeed.length === 0 ? (
-              <div
-                style={{
-                  backgroundColor: 'rgb(121, 137, 255)',
-                  width: '32px',
-                  height: '32px',
-                  boxShadow: 'rgba(240, 246, 252, 0.1) 0px 0px 0px 1px',
-                }}
-                className="relative flex items-center justify-center rounded-full p-1 text-text-primary"
-                aria-hidden="true"
-              >
-                <UserIcon />
-              </div>
-            ) : (
-              <img
-                className="rounded-full"
-                src={(user?.avatar ?? '') || avatarSrc}
-                alt={`${user?.name || user?.username || user?.email || ''}'s avatar`}
-              />
-            )}
+            <Avatar user={user} size={32} />
           </div>
         </div>
         <div
@@ -94,11 +73,29 @@ function AccountSettings() {
         {startupConfig?.helpAndFaqURL !== '/' && (
           <Select.SelectItem
             value=""
-            onClick={() => window.open(startupConfig?.helpAndFaqURL, '_blank')}
+            onClick={() => {
+              // If helpAndFaqURL is external (starts with http), open in new tab
+              // Otherwise, navigate to internal help page
+              if (startupConfig?.helpAndFaqURL && startupConfig.helpAndFaqURL.startsWith('http')) {
+                window.open(startupConfig.helpAndFaqURL, '_blank');
+              } else {
+                navigate('/help');
+              }
+            }}
             className="select-item text-sm"
           >
-            <LinkIcon aria-hidden="true" />
+            <BookOpen className="icon-md" aria-hidden="true" />
             {localize('com_nav_help_faq')}
+          </Select.SelectItem>
+        )}
+        {user?.role === 'ADMIN' && (
+          <Select.SelectItem
+            value=""
+            onClick={() => navigate('/events')}
+            className="select-item text-sm"
+          >
+            <ClipboardList className="icon-md" aria-hidden="true" />
+            {localize('com_nav_events')}
           </Select.SelectItem>
         )}
         <Select.SelectItem
