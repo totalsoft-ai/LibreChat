@@ -1025,3 +1025,63 @@ export const useGetDocContentQuery = (
     },
   );
 };
+
+/**
+ * Hook for fetching Keycloak authentication events (admin only)
+ */
+export const useGetEventsAuthQuery = (
+  params?: dataService.EventsQueryParams,
+  config?: UseQueryOptions<dataService.EventsResponse>,
+): QueryObserverResult<dataService.EventsResponse> => {
+  return useQuery<dataService.EventsResponse>(
+    [QueryKeys.eventsAuth, params],
+    () => dataService.getEventsAuth(params),
+    {
+      refetchOnWindowFocus: false,
+      refetchOnMount: true,
+      staleTime: 60 * 1000, // 1 minute
+      ...config,
+    },
+  );
+};
+
+/**
+ * Hook for fetching internal application events (admin only)
+ */
+export const useGetEventsInternalQuery = (
+  params?: dataService.EventsQueryParams,
+  config?: UseQueryOptions<dataService.EventsResponse>,
+): QueryObserverResult<dataService.EventsResponse> => {
+  return useQuery<dataService.EventsResponse>(
+    [QueryKeys.eventsInternal, params],
+    () => dataService.getEventsInternal(params),
+    {
+      refetchOnWindowFocus: false,
+      refetchOnMount: true,
+      staleTime: 60 * 1000, // 1 minute
+      ...config,
+    },
+  );
+};
+
+/**
+ * Hook to get error logs from Winston log files
+ * @param {EventsQueryParams} [params] - Query parameters (page, pageSize, level, fromDate, toDate)
+ * @param {UseQueryOptions} [config] - React Query configuration options
+ * @returns {QueryObserverResult<EventsResponse>} Query result with logs data
+ */
+export const useGetEventsLogsQuery = (
+  params?: dataService.EventsQueryParams,
+  config?: UseQueryOptions<dataService.EventsResponse>,
+): QueryObserverResult<dataService.EventsResponse> => {
+  return useQuery<dataService.EventsResponse>(
+    [QueryKeys.eventsLogs, params],
+    () => dataService.getEventsLogs(params),
+    {
+      refetchOnWindowFocus: false,
+      refetchOnMount: true,
+      staleTime: 60 * 1000, // 1 minute
+      ...config,
+    },
+  );
+};

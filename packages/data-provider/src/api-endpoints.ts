@@ -423,3 +423,15 @@ export const workspaceLeave = (id: string) => `${workspacesRoot}/${id}/leave`;
 export const workspaceMembers = (id: string) => `${workspacesRoot}/${id}/members`;
 export const workspaceMember = (workspaceId: string, userId: string) =>
   `${workspacesRoot}/${workspaceId}/members/${userId}`;
+
+// Admin Events
+const eventsRoot = `${BASE_URL}/api/admin/events`;
+
+export const eventsAuth = (params?: Record<string, unknown>) =>
+  `${eventsRoot}/auth${params ? buildQuery(params) : ''}`;
+
+export const eventsInternal = (params?: Record<string, unknown>) =>
+  `${eventsRoot}/internal${params ? buildQuery(params) : ''}`;
+
+export const eventsLogs = (params?: Record<string, unknown>) =>
+  `${eventsRoot}/logs${params ? buildQuery(params) : ''}`;

@@ -1538,6 +1538,10 @@ export enum SettingsTabValues {
    * Tab for Workspaces Management
    */
   WORKSPACES = 'workspaces',
+  /**
+   * Tab for Events (Admin Only)
+   */
+  EVENTS = 'events',
 }
 
 export enum STTProviders {
