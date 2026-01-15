@@ -390,6 +390,44 @@ const maybeUninstallOAuthMCP = async (userId, pluginKey, appConfig) => {
  * Lookup user by email for workspace member addition
  * GET /api/user/lookup?email=user@example.com
  */
+const getUsersListController = async (req, res) => {
+  try {
+    const { search, limit = 50 } = req.query;
+
+    const query = {};
+    if (search && typeof search === 'string' && search.trim()) {
+      // Search in email, username, or name
+      const searchRegex = new RegExp(search.trim(), 'i');
+      query.$or = [
+        { email: searchRegex },
+        { username: searchRegex },
+        { name: searchRegex },
+      ];
+    }
+
+    // Fetch users from MongoDB
+    const users = await User.find(query)
+      .select('email username name')
+      .limit(Math.min(parseInt(limit), 100)) // Max 100 users
+      .sort({ username: 1, email: 1 }) // Sort by username first, then email
+      .lean();
+
+    // Return just the identifiers (prefer username, then email, then name)
+    const userList = users.map((u) => u.username || u.email || u.name).filter((u) => u);
+
+    res.status(200).json({
+      users: userList,
+      count: userList.length,
+    });
+  } catch (error) {
+    logger.error('[getUsersListController] Error:', error);
+    res.status(500).json({
+      message: 'Error fetching users list',
+      error: error.message,
+    });
+  }
+};
+
 const lookupUserController = async (req, res) => {
   try {
     const { email } = req.query;
@@ -438,4 +476,5 @@ module.exports = {
   updateUserPluginsController,
   resendVerificationController,
   lookupUserController,
+  getUsersListController,
 };
