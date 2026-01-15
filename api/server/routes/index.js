@@ -30,8 +30,10 @@ const user = require('./user');
 const mcp = require('./mcp');
 const workspaces = require('./workspaces');
 const docs = require('./docs');
+const adminEvents = require('./admin/events');
 
 module.exports = {
+  adminEvents,
   workspaces,
   mcp,
   docs,
