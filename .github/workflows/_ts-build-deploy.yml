@@ -94,8 +94,8 @@ jobs:
           "ORCHESTRATOR_API_KEY" = "${{ secrets.ORCHESTRATOR_API_KEY }}"
           "MINIO_ACCESS_KEY_ID" = "${{ secrets.MINIO_ACCESS_KEY_ID }}"
           "MINIO_SECRET_ACCESS_KEY" = "${{ secrets.MINIO_SECRET_ACCESS_KEY }}"
-          "KC_CONNECTOR_API_KEY" = "${{ secrets.KC_CONNECTOR_API_KEY }}"
-          "POSTGRES_LOGS_URI" = "${{ secrets.POSTGRES_LOGS_URI }}"
+          "KC_CONNECTOR_API_KEY" = '${{ secrets.KC_CONNECTOR_API_KEY }}'
+          "POSTGRES_LOGS_URI" = '${{ secrets.POSTGRES_LOGS_URI }}'
         }
 
         $envVarsHashtable = @{
@@ -136,7 +136,7 @@ jobs:
           "AWS_REGION" ="${{ vars.AWS_REGION }}"
           "MINIO_BUCKET_NAME" ="${{ vars.MINIO_BUCKET_NAME }}"
           "MINIO_WORKSPACE_BUCKET_NAME" ="${{ vars.MINIO_WORKSPACE_BUCKET_NAME }}"
-          "KC_CONNECTOR_API_URL" ="${{ vars.KC_CONNECTOR_API_URL }"
+          "KC_CONNECTOR_API_URL" ="${{ vars.KC_CONNECTOR_API_URL }}"
           "KEYCLOAK_REALM" ="${{ vars.KEYCLOAK_REALM }}"
         }
 
