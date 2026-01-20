@@ -143,6 +143,8 @@ jobs:
           "MEILI_HOST" ="${{ vars.MEILI_HOST }}"
           "MEILI_SYNC_BATCH_SIZE" ="${{ vars.MEILI_SYNC_BATCH_SIZE }}"
           "MEILI_SYNC_DELAY_MS" ="${{ vars.MEILI_SYNC_DELAY_MS }}"
+          "MEILI_NO_ANALYTICS" ="${{ vars.MEILI_NO_ANALYTICS }}"
+          "MEILI_NO_SYNC" ="${{ vars.MEILI_NO_SYNC }}"
         }
 
         ./custom/scripts/build-and-deploy.ps1 `
