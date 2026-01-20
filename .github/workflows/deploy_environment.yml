@@ -96,6 +96,7 @@ jobs:
           "MINIO_SECRET_ACCESS_KEY" = "${{ secrets.MINIO_SECRET_ACCESS_KEY }}"
           "KC_CONNECTOR_API_KEY" = '${{ secrets.KC_CONNECTOR_API_KEY }}'
           "POSTGRES_LOGS_URI" = '${{ secrets.POSTGRES_LOGS_URI }}'
+          "MEILI_MASTER_KEY" = "${{ secrets.MEILI_MASTER_KEY }}"
         }
 
         $envVarsHashtable = @{
@@ -138,6 +139,10 @@ jobs:
           "MINIO_WORKSPACE_BUCKET_NAME" ="${{ vars.MINIO_WORKSPACE_BUCKET_NAME }}"
           "KC_CONNECTOR_API_URL" ="${{ vars.KC_CONNECTOR_API_URL }}"
           "KEYCLOAK_REALM" ="${{ vars.KEYCLOAK_REALM }}"
+          "SEARCH" ="${{ vars.SEARCH }}"
+          "MEILI_HOST" ="${{ vars.MEILI_HOST }}"
+          "MEILI_SYNC_BATCH_SIZE" ="${{ vars.MEILI_SYNC_BATCH_SIZE }}"
+          "MEILI_SYNC_DELAY_MS" ="${{ vars.MEILI_SYNC_DELAY_MS }}"
         }
 
         ./custom/scripts/build-and-deploy.ps1 `
