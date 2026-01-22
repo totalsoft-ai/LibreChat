@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 require('module-alias')({ base: path.resolve(__dirname, '..') });
 const cors = require('cors');
+const helmet = require('helmet');
 const axios = require('axios');
 const express = require('express');
 const passport = require('passport');
@@ -31,7 +32,8 @@ const noIndex = require('./middleware/noIndex');
 const { seedDatabase } = require('~/models');
 const routes = require('./routes');
 
-const { PORT, HOST, ALLOW_SOCIAL_LOGIN, DISABLE_COMPRESSION, TRUST_PROXY } = process.env ?? {};
+const { PORT, HOST, ALLOW_SOCIAL_LOGIN, DISABLE_COMPRESSION, TRUST_PROXY, DOMAIN_CLIENT } =
+  process.env ?? {};
 
 // Allow PORT=0 to be used for automatic free port assignment
 const port = isNaN(Number(PORT)) ? 3080 : Number(PORT);
@@ -83,7 +85,58 @@ const startServer = async () => {
   app.use(express.json({ limit: '3mb' }));
   app.use(express.urlencoded({ extended: true, limit: '3mb' }));
   app.use(mongoSanitize());
-  app.use(cors());
+
+  // Configure CORS with explicit origin to prevent CSRF attacks
+  const allowedOrigin = DOMAIN_CLIENT || 'http://localhost:3080';
+  app.use(
+    cors({
+      origin: allowedOrigin,
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization'],
+      maxAge: 86400, // 24 hours
+    }),
+  );
+  logger.info(`[CORS] Configured with allowed origin: ${allowedOrigin}`);
+
+  // Configure security headers with helmet
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // unsafe-eval needed for some libraries
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", 'data:', 'https:', 'blob:'],
+          connectSrc: ["'self'"],
+          fontSrc: ["'self'", 'data:'],
+          objectSrc: ["'none'"],
+          mediaSrc: ["'self'"],
+          frameSrc: ["'none'"],
+          upgradeInsecureRequests: [],
+        },
+      },
+      hsts: {
+        maxAge: 31536000, // 1 year
+        includeSubDomains: true,
+        preload: true,
+      },
+      frameguard: {
+        action: 'deny',
+      },
+      noSniff: true,
+      referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+      crossOriginEmbedderPolicy: false, // Disable to allow external resources
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+    }),
+  );
+  logger.info('[Security] Helmet security headers configured');
+
+  // Apply global rate limiter to all API routes
+  const globalLimiter = require('./middleware/limiters/globalLimiter');
+  app.use(globalLimiter);
+  logger.info('[Security] Global rate limiter configured');
+
   app.use(cookieParser());
 
   if (!isEnabled(DISABLE_COMPRESSION)) {

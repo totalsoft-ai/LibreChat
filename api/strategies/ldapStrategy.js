@@ -1,5 +1,6 @@
 const fs = require('fs');
 const LdapStrategy = require('passport-ldapauth');
+const ldapEscape = require('ldap-escape');
 const { logger } = require('@librechat/data-schemas');
 const { SystemRoles, ErrorTypes } = require('librechat-data-provider');
 const { isEnabled, getBalanceConfig, isEmailDomainAllowed } = require('@librechat/api');
@@ -78,6 +79,16 @@ const ldapOptions = {
   },
   usernameField: 'email',
   passwordField: 'password',
+  // Escape username to prevent LDAP injection attacks
+  credentialsLookup: (req, callback) => {
+    const username = req.body.email || req.body.username || '';
+    const password = req.body.password || '';
+
+    // Escape the username for use in LDAP filter
+    const escapedUsername = ldapEscape.filter(username);
+
+    callback(null, escapedUsername, password);
+  },
 };
 
 const ldapLogin = new LdapStrategy(ldapOptions, async (userinfo, done) => {

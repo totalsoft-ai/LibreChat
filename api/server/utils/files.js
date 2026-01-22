@@ -45,21 +45,60 @@ const getBufferMetadata = async (buffer) => {
 };
 
 /**
- * Removes UUID prefix from filename for clean display
+ * Removes UUID prefix from filename and sanitizes it to prevent path traversal attacks
  * Pattern: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx__filename.ext
  * @param {string} fileName - The filename to clean
- * @returns {string} - The cleaned filename without UUID prefix
+ * @returns {string} - The cleaned and sanitized filename without UUID prefix
  */
 const cleanFileName = (fileName) => {
-  if (!fileName) {
-    return fileName;
+  if (!fileName || typeof fileName !== 'string') {
+    return 'file';
   }
 
   // Remove UUID pattern: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx__
-  const cleaned = fileName.replace(
+  let cleaned = fileName.replace(
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}__/i,
     '',
   );
+
+  // Security: Prevent path traversal attacks
+  // Remove path separators (both forward and backward slashes)
+  cleaned = cleaned.replace(/[\/\\]/g, '_');
+
+  // Remove path traversal sequences
+  cleaned = cleaned.replace(/\.\./g, '_');
+
+  // Remove leading dots to prevent hidden files
+  cleaned = cleaned.replace(/^\.+/, '');
+
+  // Whitelist allowed characters: alphanumeric, dots, dashes, underscores, spaces
+  // Replace any other characters with underscores
+  cleaned = cleaned.replace(/[^a-zA-Z0-9._\-\s]/g, '_');
+
+  // Remove multiple consecutive underscores
+  cleaned = cleaned.replace(/_+/g, '_');
+
+  // Remove leading/trailing underscores and spaces
+  cleaned = cleaned.trim().replace(/^_+|_+$/g, '');
+
+  // Ensure filename is not empty after sanitization
+  if (!cleaned || cleaned.length === 0) {
+    cleaned = 'file';
+  }
+
+  // Limit filename length to prevent buffer issues
+  const MAX_FILENAME_LENGTH = 255;
+  if (cleaned.length > MAX_FILENAME_LENGTH) {
+    // Preserve file extension if present
+    const lastDotIndex = cleaned.lastIndexOf('.');
+    if (lastDotIndex > 0) {
+      const extension = cleaned.substring(lastDotIndex);
+      const baseName = cleaned.substring(0, MAX_FILENAME_LENGTH - extension.length);
+      cleaned = baseName + extension;
+    } else {
+      cleaned = cleaned.substring(0, MAX_FILENAME_LENGTH);
+    }
+  }
 
   return cleaned;
 };

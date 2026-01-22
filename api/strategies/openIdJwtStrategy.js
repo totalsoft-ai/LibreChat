@@ -24,11 +24,21 @@ const { updateUser, findUser } = require('~/models');
  * This enables seamless migration for existing users when SharePoint integration is enabled.
  */
 const openIdJwtLogin = (openIdConfig) => {
+  // Parse cache max age safely without eval() to prevent RCE
+  const cacheMaxAge = process.env.OPENID_JWKS_URL_CACHE_TIME
+    ? parseInt(process.env.OPENID_JWKS_URL_CACHE_TIME, 10)
+    : 60000;
+
+  // Validate the parsed value
+  if (process.env.OPENID_JWKS_URL_CACHE_TIME && (isNaN(cacheMaxAge) || cacheMaxAge <= 0)) {
+    logger.warn(
+      `[openIdJwtLogin] Invalid OPENID_JWKS_URL_CACHE_TIME value: ${process.env.OPENID_JWKS_URL_CACHE_TIME}. Using default: 60000ms`,
+    );
+  }
+
   let jwksRsaOptions = {
     cache: isEnabled(process.env.OPENID_JWKS_URL_CACHE_ENABLED) || true,
-    cacheMaxAge: process.env.OPENID_JWKS_URL_CACHE_TIME
-      ? eval(process.env.OPENID_JWKS_URL_CACHE_TIME)
-      : 60000,
+    cacheMaxAge: isNaN(cacheMaxAge) || cacheMaxAge <= 0 ? 60000 : cacheMaxAge,
     jwksUri: openIdConfig.serverMetadata().jwks_uri,
   };
 

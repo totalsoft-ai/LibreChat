@@ -4,6 +4,7 @@ const {
   updateEmbeddingStatus,
   batchUpdateEmbeddingStatus,
 } = require('~/server/services/Files/VectorDB/status');
+const { verifyWebhookSignature } = require('~/server/middleware/verifyWebhookSignature');
 
 const router = express.Router();
 
@@ -26,7 +27,8 @@ const router = express.Router();
  *   ]
  * }
  */
-router.post('/embedding', async (req, res) => {
+// Apply webhook signature verification to protect against unauthorized requests
+router.post('/embedding', verifyWebhookSignature, async (req, res) => {
   try {
     const { file_id, embedded, error, files } = req.body;
 

@@ -9,6 +9,8 @@ const jwtLogin = () =>
     {
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       secretOrKey: process.env.JWT_SECRET,
+      algorithms: ['HS256'], // Explicitly whitelist algorithm to prevent algorithm confusion attacks
+      ignoreExpiration: false, // Ensure expired tokens are rejected
     },
     async (payload, done) => {
       try {
