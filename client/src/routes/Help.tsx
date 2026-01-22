@@ -233,8 +233,8 @@ function HelpContent() {
                 </article>
               </div>
 
-              {/* Table of contents (desktop only) */}
-              {docContent.sections.length > 0 && (
+              {/* Table of contents (desktop only) - DISABLED */}
+              {false && docContent.sections.length > 0 && (
                 <aside
                   className="hidden w-64 flex-shrink-0 overflow-y-auto border-l border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800 lg:block"
                   aria-label="Table of contents"

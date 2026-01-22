@@ -14,7 +14,7 @@ const DOCS_MAP = {
   'files': '05-files.md',
   'export-share': '06-export-share.md',
   'prompts': '07-prompts.md',
-  'workspace': '10-workspace.md',
+  'workspace': '10-workspaces.md',
   'advanced': '08-advanced.md',
   'settings': '09-settings.md',
   'faq': '11-faq.md',
