@@ -1,6 +1,6 @@
 export default function HelpSkeleton() {
   return (
-    <div className="mx-auto max-w-4xl animate-pulse">
+    <div className="mx-auto max-w-5xl animate-pulse">
       {/* Title skeleton */}
       <div className="mb-8">
         <div className="h-10 w-3/4 rounded-md bg-gray-200 dark:bg-gray-700"></div>

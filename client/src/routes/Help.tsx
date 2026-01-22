@@ -211,9 +211,9 @@ function HelpContent() {
             <div className="flex flex-1 overflow-hidden">
               {/* Content */}
               <div className="flex-1 overflow-y-auto" ref={contentRef} tabIndex={-1}>
-                <article className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+                <article className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
                   {/* Markdown content */}
-                  <div className="prose prose-lg max-w-none dark:prose-invert">
+                  <div className="prose max-w-none dark:prose-invert [&>*]:max-w-none">
                     <Markdown content={transformedContent} />
                   </div>
 
