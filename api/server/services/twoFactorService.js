@@ -204,12 +204,27 @@ const getTOTPSecret = async (storedSecret) => {
 
 /**
  * Generates a temporary JWT token for 2FA verification that expires in 5 minutes.
+ * Uses a separate secret (JWT_2FA_SECRET) for security isolation.
+ * If JWT_2FA_SECRET is not set, falls back to JWT_SECRET (not recommended for production).
  * @param {string} userId
  * @returns {string}
  */
 const generate2FATempToken = (userId) => {
   const { sign } = require('jsonwebtoken');
-  return sign({ userId, twoFAPending: true }, process.env.JWT_SECRET, { expiresIn: '5m' });
+  const { logger } = require('@librechat/data-schemas');
+
+  // Use separate secret for 2FA tokens for security isolation
+  const twoFASecret = process.env.JWT_2FA_SECRET || process.env.JWT_SECRET;
+
+  if (!process.env.JWT_2FA_SECRET) {
+    logger.warn(
+      '[generate2FATempToken] JWT_2FA_SECRET not set. Using JWT_SECRET as fallback. Please set JWT_2FA_SECRET for better security.',
+    );
+  }
+
+  return sign({ userId, twoFAPending: true, purpose: '2fa-verification' }, twoFASecret, {
+    expiresIn: '5m',
+  });
 };
 
 module.exports = {

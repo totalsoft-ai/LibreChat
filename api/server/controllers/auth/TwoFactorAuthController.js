@@ -18,9 +18,24 @@ const verify2FAWithTempToken = async (req, res) => {
       return res.status(400).json({ message: 'Missing temporary token' });
     }
 
+    // Use separate secret for 2FA tokens for security isolation
+    const twoFASecret = process.env.JWT_2FA_SECRET || process.env.JWT_SECRET;
+
+    if (!process.env.JWT_2FA_SECRET) {
+      logger.warn(
+        '[verify2FAWithTempToken] JWT_2FA_SECRET not set. Using JWT_SECRET as fallback. Please set JWT_2FA_SECRET for better security.',
+      );
+    }
+
     let payload;
     try {
-      payload = jwt.verify(tempToken, process.env.JWT_SECRET);
+      payload = jwt.verify(tempToken, twoFASecret);
+
+      // Verify that the token has the correct purpose
+      if (payload.purpose !== '2fa-verification') {
+        logger.warn('[verify2FAWithTempToken] Token purpose mismatch');
+        return res.status(401).json({ message: 'Invalid temporary token' });
+      }
     } catch (err) {
       logger.error('Failed to verify temporary token:', err);
       return res.status(401).json({ message: 'Invalid or expired temporary token' });

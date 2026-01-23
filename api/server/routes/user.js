@@ -11,12 +11,14 @@ const {
   getUsersListController,
 } = require('~/server/controllers/UserController');
 const { requireJwtAuth, canDeleteAccount, verifyEmailLimiter } = require('~/server/middleware');
+const userSearchLimiter = require('~/server/middleware/limiters/userSearchLimiter');
 
 const router = express.Router();
 
 router.get('/', requireJwtAuth, getUserController);
-router.get('/list', requireJwtAuth, getUsersListController);
-router.get('/lookup', requireJwtAuth, lookupUserController);
+// Apply rate limiting to search endpoints to prevent user enumeration and ReDoS attacks
+router.get('/list', requireJwtAuth, userSearchLimiter, getUsersListController);
+router.get('/lookup', requireJwtAuth, userSearchLimiter, lookupUserController);
 router.get('/terms', requireJwtAuth, getTermsStatusController);
 router.post('/terms/accept', requireJwtAuth, acceptTermsController);
 router.post('/plugins', requireJwtAuth, updateUserPluginsController);

@@ -396,8 +396,30 @@ const getUsersListController = async (req, res) => {
 
     const query = {};
     if (search && typeof search === 'string' && search.trim()) {
-      // Search in email, username, or name
-      const searchRegex = new RegExp(search.trim(), 'i');
+      const trimmedSearch = search.trim();
+
+      // Security: Validate search input to prevent ReDoS and NoSQL injection
+      const MAX_SEARCH_LENGTH = 50;
+      const SAFE_PATTERN = /^[a-zA-Z0-9@._\-\s]+$/;
+
+      // Check length
+      if (trimmedSearch.length > MAX_SEARCH_LENGTH) {
+        return res.status(400).json({
+          message: `Search query too long. Maximum ${MAX_SEARCH_LENGTH} characters allowed.`,
+        });
+      }
+
+      // Check for safe characters only
+      if (!SAFE_PATTERN.test(trimmedSearch)) {
+        return res.status(400).json({
+          message: 'Search query contains invalid characters. Only alphanumeric, @, ., -, _ and spaces are allowed.',
+        });
+      }
+
+      // Escape regex special characters to prevent ReDoS
+      const escapedSearch = trimmedSearch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const searchRegex = new RegExp(escapedSearch, 'i');
+
       query.$or = [
         { email: searchRegex },
         { username: searchRegex },
@@ -436,9 +458,32 @@ const lookupUserController = async (req, res) => {
       return res.status(400).json({ message: 'Email is required' });
     }
 
+    const trimmedEmail = email.trim();
+
+    // Security: Validate email input to prevent ReDoS and NoSQL injection
+    const MAX_EMAIL_LENGTH = 100;
+    const SAFE_EMAIL_PATTERN = /^[a-zA-Z0-9@._\-+]+$/;
+
+    // Check length
+    if (trimmedEmail.length > MAX_EMAIL_LENGTH) {
+      return res.status(400).json({
+        message: `Email query too long. Maximum ${MAX_EMAIL_LENGTH} characters allowed.`,
+      });
+    }
+
+    // Check for safe characters only
+    if (!SAFE_EMAIL_PATTERN.test(trimmedEmail)) {
+      return res.status(400).json({
+        message: 'Email contains invalid characters.',
+      });
+    }
+
+    // Escape regex special characters to prevent ReDoS
+    const escapedEmail = trimmedEmail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
     // Find users by partial email match (case-insensitive, match anywhere in email)
     const users = await User.find({
-      email: { $regex: new RegExp(email.trim(), 'i') },
+      email: { $regex: new RegExp(escapedEmail, 'i') },
     })
       .select('_id name email avatar username')
       .limit(10)
