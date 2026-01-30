@@ -113,13 +113,44 @@ registration:
   # - "gmail.com"
 
 # Example Balance settings
+# Note: 1,000,000 tokenCredits = $1 USD
 # balance:
 #   enabled: false
-#   startBalance: 20000
-#   autoRefillEnabled: false
+#   startBalance: 20000                      # General token credits (for models without specific limits)
+#   autoRefillEnabled: false                 # Auto-refill for general balance
 #   refillIntervalValue: 30
 #   refillIntervalUnit: 'days'
 #   refillAmount: 10000
+#   # Budget Alert Settings
+#   alertsEnabled: true                      # Enable budget notifications (default: true)
+#   alertThresholds: [80, 95]                # Send alerts when budget consumption reaches these % (default: [80, 95])
+#                                            # Example: At 80% consumed → 1st alert, at 95% → 2nd alert
+#   endpointLimits:                          # Optional: Set limits per endpoint (simpler than per-model)
+#     - endpoint: 'azureOpenAI'              # Endpoint name from librechat.yaml endpoints section
+#       limit: 500000                        # $0.50 total for ALL models under this endpoint
+#       enabled: true                        # Optional: default true
+#       autoRefillEnabled: true              # Optional: default false
+#       refillAmount: 500000                 # +$0.50 per refill
+#       refillIntervalValue: 1               # Every 1 day
+#       refillIntervalUnit: 'days'           # Options: seconds, minutes, hours, days, weeks, months
+#     - endpoint: 'bedrock'                  # AWS Bedrock endpoint
+#       limit: 300000                        # $0.30 total for all Bedrock models
+#       enabled: true
+#     - endpoint: 'Assistant'                # Custom endpoint name
+#       limit: 100000                        # $0.10
+#       enabled: true
+#
+# Budget Alert Behavior:
+# - Alerts trigger when consumption reaches threshold percentages
+# - Each threshold alert is sent only ONCE per refill cycle
+# - Alerts reset automatically after refill (alertsSent array cleared)
+# - Applies to endpoint-specific limits
+# - Logs to server console (TODO: email/in-app notifications)
+#
+# Endpoint Names:
+# - Use exact endpoint names from your endpoints configuration
+# - Examples: azureOpenAI, bedrock, openAI, anthropic, google
+# - For custom endpoints, use the 'name' field value (e.g., "Assistant", "Personal Space")
 
 # Example Transactions settings
 # Controls whether to save transaction records to the database

@@ -775,6 +775,20 @@ export const ocrSchema = z.object({
   strategy: z.nativeEnum(OCRStrategy).default(OCRStrategy.MISTRAL_OCR),
 });
 
+// Schema for endpoint-specific limits in balance config
+export const endpointLimitConfigSchema = z.object({
+  endpoint: z.string(),
+  limit: z.number(),
+  enabled: z.boolean().optional().default(true),
+  autoRefillEnabled: z.boolean().optional().default(false),
+  refillAmount: z.number().optional().default(0),
+  refillIntervalValue: z.number().optional().default(30),
+  refillIntervalUnit: z
+    .enum(['seconds', 'minutes', 'hours', 'days', 'weeks', 'months'])
+    .optional()
+    .default('days'),
+});
+
 export const balanceSchema = z.object({
   enabled: z.boolean().optional().default(false),
   startBalance: z.number().optional().default(20000),
@@ -785,6 +799,10 @@ export const balanceSchema = z.object({
     .optional()
     .default('days'),
   refillAmount: z.number().optional().default(10000),
+  endpointLimits: z.array(endpointLimitConfigSchema).optional().default([]),
+  // Budget alert thresholds (percentage of balance consumed)
+  alertThresholds: z.array(z.number().min(0).max(100)).optional().default([80, 95]),
+  alertsEnabled: z.boolean().optional().default(true),
 });
 
 export const transactionsSchema = z.object({
@@ -1542,6 +1560,10 @@ export enum SettingsTabValues {
    * Tab for Events (Admin Only)
    */
   EVENTS = 'events',
+  /**
+   * Tab for Model Limits Management (Admin Only)
+   */
+  MODEL_LIMITS = 'modelLimits',
 }
 
 export enum STTProviders {

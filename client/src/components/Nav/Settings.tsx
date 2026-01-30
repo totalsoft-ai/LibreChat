@@ -1,7 +1,13 @@
 import React, { useState, useRef } from 'react';
 import * as Tabs from '@radix-ui/react-tabs';
-import { SettingsTabValues } from 'librechat-data-provider';
-import { MessageSquare, Command, DollarSign, Building2 } from 'lucide-react';
+import { SettingsTabValues, SystemRoles } from 'librechat-data-provider';
+import {
+  MessageSquare,
+  Command,
+  DollarSign,
+  Building2,
+  Settings as SettingsIcon,
+} from 'lucide-react';
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from '@headlessui/react';
 import {
   GearIcon,
@@ -24,17 +30,20 @@ import {
   Workspaces,
 } from './SettingsTabs';
 import usePersonalizationAccess from '~/hooks/usePersonalizationAccess';
-import { useLocalize, TranslationKeys } from '~/hooks';
+import { useLocalize, TranslationKeys, useAuthContext } from '~/hooks';
 import { useGetStartupConfig } from '~/data-provider';
 import { cn } from '~/utils';
+import ModelLimitsAdmin from '../Admin/ModelLimitsAdmin';
 
 export default function Settings({ open, onOpenChange }: TDialogProps) {
   const isSmallScreen = useMediaQuery('(max-width: 767px)');
   const { data: startupConfig } = useGetStartupConfig();
+  const { user } = useAuthContext();
   const localize = useLocalize();
   const [activeTab, setActiveTab] = useState(SettingsTabValues.GENERAL);
   const tabRefs = useRef({});
   const { hasAnyPersonalizationFeature, hasMemoryOptOut } = usePersonalizationAccess();
+  const isAdmin = user?.role === SystemRoles.ADMIN;
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
     const tabs: SettingsTabValues[] = [
@@ -47,6 +56,7 @@ export default function Settings({ open, onOpenChange }: TDialogProps) {
       ...(startupConfig?.balance?.enabled ? [SettingsTabValues.BALANCE] : []),
       SettingsTabValues.WORKSPACES,
       SettingsTabValues.ACCOUNT,
+      ...(isAdmin ? [SettingsTabValues.MODEL_LIMITS] : []),
     ];
     const currentIndex = tabs.indexOf(activeTab);
 
@@ -128,6 +138,15 @@ export default function Settings({ open, onOpenChange }: TDialogProps) {
       icon: <UserIcon />,
       label: 'com_nav_setting_account',
     },
+    ...(isAdmin
+      ? [
+          {
+            value: SettingsTabValues.MODEL_LIMITS,
+            icon: <SettingsIcon className="icon-sm" />,
+            label: 'com_nav_setting_model_limits' as TranslationKeys,
+          },
+        ]
+      : ([] as { value: SettingsTabValues; icon: React.JSX.Element; label: TranslationKeys }[])),
   ];
 
   const handleTabChange = (value: string) => {
@@ -261,6 +280,11 @@ export default function Settings({ open, onOpenChange }: TDialogProps) {
                     <Tabs.Content value={SettingsTabValues.ACCOUNT} tabIndex={-1}>
                       <Account />
                     </Tabs.Content>
+                    {isAdmin && (
+                      <Tabs.Content value={SettingsTabValues.MODEL_LIMITS} tabIndex={-1}>
+                        <ModelLimitsAdmin />
+                      </Tabs.Content>
+                    )}
                   </div>
                 </Tabs.Root>
               </div>

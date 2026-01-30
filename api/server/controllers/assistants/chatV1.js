@@ -274,14 +274,33 @@ const chatV1 = async (req, res) => {
       // Count tokens up to the current context window
       promptTokens = Math.min(promptTokens, getModelMaxTokens(model));
 
+      // Estimate completion tokens (conservative: 2x prompt tokens)
+      const maxModelTokens = getModelMaxTokens(model);
+      const estimatedCompletionTokens = Math.min(promptTokens * 2, maxModelTokens);
+
+      // Check balance for prompt tokens
       await checkBalance({
         req,
         res,
         txData: {
           model,
+          endpoint,
           user: req.user.id,
           tokenType: 'prompt',
           amount: promptTokens,
+        },
+      });
+
+      // Check balance for estimated completion tokens
+      await checkBalance({
+        req,
+        res,
+        txData: {
+          model,
+          endpoint,
+          user: req.user.id,
+          tokenType: 'completion',
+          amount: estimatedCompletionTokens,
         },
       });
     };

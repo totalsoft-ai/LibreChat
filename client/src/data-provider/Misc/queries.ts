@@ -43,3 +43,40 @@ export const useGetSearchEnabledQuery = (
     enabled: (config?.enabled ?? true) === true && queriesEnabled,
   });
 };
+
+export const useGetUserEndpointLimits = (
+  config?: UseQueryOptions<t.TEndpointLimitsResponse>,
+): QueryObserverResult<t.TEndpointLimitsResponse> => {
+  const queriesEnabled = useRecoilValue<boolean>(store.queriesEnabled);
+  return useQuery<t.TEndpointLimitsResponse>(
+    [QueryKeys.endpointLimits],
+    () => dataService.getUserEndpointLimits(),
+    {
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
+      refetchOnMount: true,
+      ...config,
+      enabled: (config?.enabled ?? true) === true && queriesEnabled,
+    },
+  );
+};
+
+/**
+ * @deprecated Use useGetUserEndpointLimits instead
+ */
+export const useGetUserModelLimits = (
+  config?: UseQueryOptions<t.TModelLimitsResponse>,
+): QueryObserverResult<t.TModelLimitsResponse> => {
+  const queriesEnabled = useRecoilValue<boolean>(store.queriesEnabled);
+  return useQuery<t.TModelLimitsResponse>(
+    [QueryKeys.modelLimits],
+    () => dataService.getUserModelLimits(),
+    {
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
+      refetchOnMount: true,
+      ...config,
+      enabled: (config?.enabled ?? true) === true && queriesEnabled,
+    },
+  );
+};

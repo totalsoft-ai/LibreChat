@@ -1,140 +1,131 @@
 const { logger } = require('@librechat/data-schemas');
 const { getMultiplier, getCacheMultiplier } = require('./tx');
 const { Transaction, Balance } = require('~/db/models');
+const { resetAlerts } = require('~/server/services/BudgetAlertService');
 
 const cancelRate = 1.15;
 
 /**
- * Updates a user's token balance based on a transaction using optimistic concurrency control
- * without schema changes. Compatible with DocumentDB.
- * @async
- * @function
+ * Generic retry wrapper with exponential backoff and optimistic locking
+ * @param {Function} operation - The operation to retry
+ * @param {string} operationName - Name for logging purposes
+ * @returns {Promise<any>} The result of the operation
+ */
+const withRetry = async (operation, operationName) => {
+  const maxRetries = 10;
+  let delay = 50;
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const result = await operation(attempt);
+      if (result) {
+        return result;
+      }
+      lastError = new Error(`Operation returned null on attempt ${attempt}`);
+    } catch (error) {
+      lastError = error;
+      logger.error(`[${operationName}] Error during attempt ${attempt}:`, error);
+    }
+
+    if (attempt < maxRetries) {
+      const jitter = Math.random() * delay * 0.5;
+      await new Promise((resolve) => setTimeout(resolve, delay + jitter));
+      delay = Math.min(delay * 2, 2000);
+    }
+  }
+
+  logger.error(`[${operationName}] Failed after ${maxRetries} attempts.`);
+  throw lastError;
+};
+
+/**
+ * Updates an endpoint-specific balance with optimistic concurrency control
+ * @param {Object} params - The function parameters.
+ * @param {string|mongoose.Types.ObjectId} params.user - The user ID.
+ * @param {string} params.model - The endpoint name (kept as 'model' for backward compatibility).
+ * @param {number} params.incrementValue - The value to increment the balance by (can be negative).
+ * @param {Object} [params.setValues] - Optional additional fields to set on the endpoint limit.
+ * @returns {Promise<Object>} Returns the updated balance document (lean).
+ */
+const updateModelBalance = ({ user, model, incrementValue, setValues }) =>
+  withRetry(async () => {
+    const currentBalanceDoc = await Balance.findOne({ user }).lean();
+
+    if (!currentBalanceDoc) {
+      throw new Error(`No balance record found for user ${user}`);
+    }
+
+    const endpointLimits = currentBalanceDoc.endpointLimits || [];
+    const endpointLimitIndex = endpointLimits.findIndex((el) => el.endpoint === model);
+
+    if (endpointLimitIndex === -1) {
+      throw new Error(`No endpoint limit configured for endpoint ${model}`);
+    }
+
+    const currentEndpointCredits = endpointLimits[endpointLimitIndex].tokenCredits;
+    const newCredits = Math.max(0, currentEndpointCredits + incrementValue);
+
+    const updatePayload = {
+      $set: {
+        [`endpointLimits.${endpointLimitIndex}.tokenCredits`]: newCredits,
+        [`endpointLimits.${endpointLimitIndex}.lastUsed`]: new Date(),
+        ...(setValues &&
+          Object.fromEntries(
+            Object.entries(setValues).map(([k, v]) => [`endpointLimits.${endpointLimitIndex}.${k}`, v]),
+          )),
+      },
+    };
+
+    return await Balance.findOneAndUpdate(
+      {
+        user,
+        [`endpointLimits.${endpointLimitIndex}.tokenCredits`]: currentEndpointCredits,
+      },
+      updatePayload,
+      { new: true },
+    ).lean();
+  }, `updateEndpointBalance:${user}:${model}`);
+
+/**
+ * Updates a user's token balance with optimistic concurrency control
  * @param {Object} params - The function parameters.
  * @param {string|mongoose.Types.ObjectId} params.user - The user ID.
  * @param {number} params.incrementValue - The value to increment the balance by (can be negative).
  * @param {import('mongoose').UpdateQuery<import('@librechat/data-schemas').IBalance>['$set']} [params.setValues] - Optional additional fields to set.
  * @returns {Promise<Object>} Returns the updated balance document (lean).
- * @throws {Error} Throws an error if the update fails after multiple retries.
  */
-const updateBalance = async ({ user, incrementValue, setValues }) => {
-  let maxRetries = 10; // Number of times to retry on conflict
-  let delay = 50; // Initial retry delay in ms
-  let lastError = null;
+const updateBalance = ({ user, incrementValue, setValues }) =>
+  withRetry(async () => {
+    const currentBalanceDoc = await Balance.findOne({ user }).lean();
+    const currentCredits = currentBalanceDoc ? currentBalanceDoc.tokenCredits : 0;
+    const newCredits = Math.max(0, currentCredits + incrementValue);
 
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    let currentBalanceDoc;
+    const updatePayload = {
+      $set: {
+        tokenCredits: newCredits,
+        ...(setValues || {}),
+      },
+    };
+
+    if (currentBalanceDoc) {
+      return await Balance.findOneAndUpdate({ user, tokenCredits: currentCredits }, updatePayload, {
+        new: true,
+      }).lean();
+    }
+
     try {
-      // 1. Read the current document state
-      currentBalanceDoc = await Balance.findOne({ user }).lean();
-      const currentCredits = currentBalanceDoc ? currentBalanceDoc.tokenCredits : 0;
-
-      // 2. Calculate the desired new state
-      const potentialNewCredits = currentCredits + incrementValue;
-      const newCredits = Math.max(0, potentialNewCredits); // Ensure balance doesn't go below zero
-
-      // 3. Prepare the update payload
-      const updatePayload = {
-        $set: {
-          tokenCredits: newCredits,
-          ...(setValues || {}), // Merge other values to set
-        },
-      };
-
-      // 4. Attempt the conditional update or upsert
-      let updatedBalance = null;
-      if (currentBalanceDoc) {
-        // --- Document Exists: Perform Conditional Update ---
-        // Try to update only if the tokenCredits match the value we read (currentCredits)
-        updatedBalance = await Balance.findOneAndUpdate(
-          {
-            user: user,
-            tokenCredits: currentCredits, // Optimistic lock: condition based on the read value
-          },
-          updatePayload,
-          {
-            new: true, // Return the modified document
-            // lean: true, // .lean() is applied after query execution in Mongoose >= 6
-          },
-        ).lean(); // Use lean() for plain JS object
-
-        if (updatedBalance) {
-          // Success! The update was applied based on the expected current state.
-          return updatedBalance;
-        }
-        // If updatedBalance is null, it means tokenCredits changed between read and write (conflict).
-        lastError = new Error(`Concurrency conflict for user ${user} on attempt ${attempt}.`);
-        // Proceed to retry logic below.
-      } else {
-        // --- Document Does Not Exist: Perform Conditional Upsert ---
-        // Try to insert the document, but only if it still doesn't exist.
-        // Using tokenCredits: {$exists: false} helps prevent race conditions where
-        // another process creates the doc between our findOne and findOneAndUpdate.
-        try {
-          updatedBalance = await Balance.findOneAndUpdate(
-            {
-              user: user,
-              // Attempt to match only if the document doesn't exist OR was just created
-              // without tokenCredits (less likely but possible). A simple { user } filter
-              // might also work, relying on the retry for conflicts.
-              // Let's use a simpler filter and rely on retry for races.
-              // tokenCredits: { $exists: false } // This condition might be too strict if doc exists with 0 credits
-            },
-            updatePayload,
-            {
-              upsert: true, // Create if doesn't exist
-              new: true, // Return the created/updated document
-              // setDefaultsOnInsert: true, // Ensure schema defaults are applied on insert
-              // lean: true,
-            },
-          ).lean();
-
-          if (updatedBalance) {
-            // Upsert succeeded (likely created the document)
-            return updatedBalance;
-          }
-          // If null, potentially a rare race condition during upsert. Retry should handle it.
-          lastError = new Error(
-            `Upsert race condition suspected for user ${user} on attempt ${attempt}.`,
-          );
-        } catch (error) {
-          if (error.code === 11000) {
-            // E11000 duplicate key error on index
-            // This means another process created the document *just* before our upsert.
-            // It's a concurrency conflict during creation. We should retry.
-            lastError = error; // Store the error
-            // Proceed to retry logic below.
-          } else {
-            // Different error, rethrow
-            throw error;
-          }
-        }
-      } // End if/else (document exists?)
+      return await Balance.findOneAndUpdate({ user }, updatePayload, {
+        upsert: true,
+        new: true,
+      }).lean();
     } catch (error) {
-      // Catch errors from findOne or unexpected findOneAndUpdate errors
-      logger.error(`[updateBalance] Error during attempt ${attempt} for user ${user}:`, error);
-      lastError = error; // Store the error
-      // Consider stopping retries for non-transient errors, but for now, we retry.
+      if (error.code === 11000) {
+        return null; // Retry on duplicate key error
+      }
+      throw error;
     }
-
-    // If we reached here, it means the update failed (conflict or error), wait and retry
-    if (attempt < maxRetries) {
-      const jitter = Math.random() * delay * 0.5; // Add jitter to delay
-      await new Promise((resolve) => setTimeout(resolve, delay + jitter));
-      delay = Math.min(delay * 2, 2000); // Exponential backoff with cap
-    }
-  } // End for loop (retries)
-
-  // If loop finishes without success, throw the last encountered error or a generic one
-  logger.error(
-    `[updateBalance] Failed to update balance for user ${user} after ${maxRetries} attempts.`,
-  );
-  throw (
-    lastError ||
-    new Error(
-      `Failed to update balance for user ${user} after maximum retries due to persistent conflicts.`,
-    )
-  );
-};
+  }, `updateBalance:${user}`);
 
 /** Method to calculate and set the tokenValue for a transaction */
 function calculateTokenValue(txn) {
@@ -152,112 +143,144 @@ function calculateTokenValue(txn) {
 }
 
 /**
- * New static method to create an auto-refill transaction that does NOT trigger a balance update.
+ * Generic auto-refill transaction creator
  * @param {object} txData - Transaction data.
- * @param {string} txData.user - The user ID.
- * @param {string} txData.tokenType - The type of token.
- * @param {string} txData.context - The context of the transaction.
- * @param {number} txData.rawAmount - The raw amount of tokens.
- * @returns {Promise<object>} - The created transaction.
+ * @param {string} [txData.model] - The model name (optional, for model-specific refills).
+ * @returns {Promise<object>} - The created transaction with balance info.
  */
 async function createAutoRefillTransaction(txData) {
   if (txData.rawAmount != null && isNaN(txData.rawAmount)) {
     return;
   }
-  const transaction = new Transaction(txData);
+
+  const isModelSpecific = txData.model && txData.model !== 'global';
+  const transaction = new Transaction({
+    ...txData,
+    balanceSource: isModelSpecific ? txData.model : 'global',
+  });
   transaction.endpointTokenConfig = txData.endpointTokenConfig;
   calculateTokenValue(transaction);
   await transaction.save();
 
-  const balanceResponse = await updateBalance({
-    user: transaction.user,
-    incrementValue: txData.rawAmount,
-    setValues: { lastRefill: new Date() },
-  });
+  const balanceResponse = isModelSpecific
+    ? await updateModelBalance({
+        user: transaction.user,
+        model: txData.model,
+        incrementValue: txData.rawAmount,
+        setValues: { lastRefill: new Date() },
+      })
+    : await updateBalance({
+        user: transaction.user,
+        incrementValue: txData.rawAmount,
+        setValues: { lastRefill: new Date() },
+      });
+
+  const balance = isModelSpecific
+    ? balanceResponse.endpointLimits.find((el) => el.endpoint === txData.model)?.tokenCredits || 0
+    : balanceResponse.tokenCredits;
+
   const result = {
     rate: transaction.rate,
     user: transaction.user.toString(),
-    balance: balanceResponse.tokenCredits,
+    balance,
+    transaction,
   };
-  logger.debug('[Balance.check] Auto-refill performed', result);
-  result.transaction = transaction;
+
+  logger.debug(
+    `[Balance.check] ${isModelSpecific ? 'Model' : 'Global'} auto-refill performed`,
+    result,
+  );
+
+  // Reset budget alerts after refill (run asynchronously)
+  setImmediate(() => {
+    resetAlerts({
+      user: transaction.user.toString(),
+      model: isModelSpecific ? txData.model : null,
+    }).catch((error) => {
+      logger.error('[Transaction] Error resetting alerts after refill:', error);
+    });
+  });
+
   return result;
 }
 
+// Alias for backward compatibility
+const createModelAutoRefillTransaction = createAutoRefillTransaction;
+
 /**
- * Static method to create a transaction and update the balance
- * @param {txData} _txData - Transaction data.
+ * Helper function to deduct balance from the appropriate source
+ * @param {Object} params - Parameters
+ * @param {string} params.user - User ID
+ * @param {string} params.balanceSource - Balance source (model name or 'global')
+ * @param {number} params.incrementValue - Amount to increment/decrement
+ * @returns {Promise<number>} The resulting balance
  */
-async function createTransaction(_txData) {
-  const { balance, transactions, ...txData } = _txData;
-  if (txData.rawAmount != null && isNaN(txData.rawAmount)) {
-    return;
+async function deductBalance({ user, balanceSource, incrementValue }) {
+  if (!balanceSource || balanceSource === 'global') {
+    const response = await updateBalance({ user, incrementValue });
+    return response.tokenCredits;
   }
 
-  if (transactions?.enabled === false) {
-    return;
-  }
-
-  const transaction = new Transaction(txData);
-  transaction.endpointTokenConfig = txData.endpointTokenConfig;
-  calculateTokenValue(transaction);
-
-  await transaction.save();
-  if (!balance?.enabled) {
-    return;
-  }
-
-  let incrementValue = transaction.tokenValue;
-  const balanceResponse = await updateBalance({
-    user: transaction.user,
+  const response = await updateModelBalance({
+    user,
+    model: balanceSource,
     incrementValue,
   });
-
-  return {
-    rate: transaction.rate,
-    user: transaction.user.toString(),
-    balance: balanceResponse.tokenCredits,
-    [transaction.tokenType]: incrementValue,
-  };
+  return response.endpointLimits.find((el) => el.endpoint === balanceSource)?.tokenCredits || 0;
 }
 
 /**
- * Static method to create a structured transaction and update the balance
+ * Generic transaction creator with balance deduction
  * @param {txData} _txData - Transaction data.
+ * @param {Function} calculateFn - Function to calculate token value (calculateTokenValue or calculateStructuredTokenValue)
  */
-async function createStructuredTransaction(_txData) {
-  const { balance, transactions, ...txData } = _txData;
-  if (transactions?.enabled === false) {
+async function createTransactionWithBalance(_txData, calculateFn) {
+  const { balance, transactions, balanceSource, ...txData } = _txData;
+
+  if (transactions?.enabled === false || (txData.rawAmount != null && isNaN(txData.rawAmount))) {
     return;
   }
 
   const transaction = new Transaction({
     ...txData,
     endpointTokenConfig: txData.endpointTokenConfig,
+    balanceSource: balanceSource || 'global',
   });
 
-  calculateStructuredTokenValue(transaction);
-
+  calculateFn(transaction);
   await transaction.save();
 
   if (!balance?.enabled) {
     return;
   }
 
-  let incrementValue = transaction.tokenValue;
-
-  const balanceResponse = await updateBalance({
+  const resultBalance = await deductBalance({
     user: transaction.user,
-    incrementValue,
+    balanceSource: balanceSource || 'global',
+    incrementValue: transaction.tokenValue,
   });
 
   return {
     rate: transaction.rate,
     user: transaction.user.toString(),
-    balance: balanceResponse.tokenCredits,
-    [transaction.tokenType]: incrementValue,
+    balance: resultBalance,
+    balanceSource: balanceSource || 'global',
+    [transaction.tokenType]: transaction.tokenValue,
   };
 }
+
+/**
+ * Static method to create a transaction and update the balance
+ * @param {txData} _txData - Transaction data.
+ */
+const createTransaction = (_txData) => createTransactionWithBalance(_txData, calculateTokenValue);
+
+/**
+ * Static method to create a structured transaction and update the balance
+ * @param {txData} _txData - Transaction data.
+ */
+const createStructuredTransaction = (_txData) =>
+  createTransactionWithBalance(_txData, calculateStructuredTokenValue);
 
 /** Method to calculate token value for structured tokens */
 function calculateStructuredTokenValue(txn) {
@@ -342,5 +365,7 @@ module.exports = {
   getTransactions,
   createTransaction,
   createAutoRefillTransaction,
+  createModelAutoRefillTransaction,
   createStructuredTransaction,
+  updateModelBalance,
 };

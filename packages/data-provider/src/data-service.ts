@@ -125,6 +125,68 @@ export function getUserBalance(): Promise<t.TBalanceResponse> {
   return request.get(endpoints.balance());
 }
 
+// Endpoint Limits (new)
+export function getUserEndpointLimits(): Promise<t.TEndpointLimitsResponse> {
+  return request.get(endpoints.userEndpointLimits());
+}
+
+export function getAdminUserEndpointLimits(userId: string): Promise<t.TAdminEndpointLimitsResponse> {
+  return request.get(endpoints.adminUserEndpointLimits(userId));
+}
+
+export function setEndpointLimit(
+  userId: string,
+  endpoint: string,
+  data: t.TEndpointLimitUpdate,
+): Promise<t.TEndpointLimitSetResponse> {
+  return request.put(endpoints.adminEndpointLimit(userId, endpoint), data);
+}
+
+export function deleteEndpointLimit(userId: string, endpoint: string): Promise<void> {
+  return request.delete(endpoints.adminEndpointLimit(userId, endpoint));
+}
+
+export function bulkSetEndpointLimits(
+  data: t.TBulkEndpointLimitsUpdate,
+): Promise<t.TBulkEndpointLimitsResponse> {
+  return request.post(endpoints.adminEndpointLimitsBulk(), data);
+}
+
+export function getUsersWithEndpointLimits(params: {
+  page?: number;
+  pageSize?: number;
+  endpoint?: string;
+}): Promise<t.TUsersWithEndpointLimitsResponse> {
+  return request.get(endpoints.adminUsersWithEndpointLimits(params));
+}
+
+// Backwards compatibility - deprecated functions
+/** @deprecated Use getUserEndpointLimits instead */
+export const getUserModelLimits = getUserEndpointLimits;
+
+/** @deprecated Use getAdminUserEndpointLimits instead */
+export const getAdminUserModelLimits = getAdminUserEndpointLimits;
+
+/** @deprecated Use setEndpointLimit instead */
+export function setModelLimit(
+  userId: string,
+  model: string,
+  data: t.TModelLimitUpdate,
+): Promise<t.TModelLimitSetResponse> {
+  return request.put(endpoints.adminModelLimit(userId, model), data);
+}
+
+/** @deprecated Use deleteEndpointLimit instead */
+export function deleteModelLimit(userId: string, model: string): Promise<void> {
+  return request.delete(endpoints.adminModelLimit(userId, model));
+}
+
+/** @deprecated Use bulkSetEndpointLimits instead */
+export const bulkSetModelLimits = bulkSetEndpointLimits;
+
+/** @deprecated Use getUsersWithEndpointLimits instead */
+export const getUsersWithModelLimits = getUsersWithEndpointLimits;
+
 export const updateTokenCount = (text: string) => {
   return request.post(endpoints.tokenizer(), { arg: text });
 };

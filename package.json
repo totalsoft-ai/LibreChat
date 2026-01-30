@@ -82,7 +82,9 @@
     "migrate:agent-permissions:batch": "node config/migrate-agent-permissions.js --batch-size=50",
     "migrate:prompt-permissions:dry-run": "node config/migrate-prompt-permissions.js --dry-run",
     "migrate:prompt-permissions": "node config/migrate-prompt-permissions.js",
-    "migrate:prompt-permissions:batch": "node config/migrate-prompt-permissions.js --batch-size=50"
+    "migrate:prompt-permissions:batch": "node config/migrate-prompt-permissions.js --batch-size=50",
+    "migrate:model-limits": "node config/migrate-model-limits.js",
+    "create-balance": "node config/create-balance-record.js"
   },
   "repository": {
     "type": "git",
@@ -160,6 +162,7 @@
     "@librechat/client": "^0.3.1",
     "@smithy/eventstream-codec": "^4.0.5",
     "@smithy/signature-v4": "^5.1.3",
+    "node-cron": "^4.2.1",
     "pg": "^8.16.3"
   }
 }

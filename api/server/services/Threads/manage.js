@@ -568,6 +568,7 @@ const recordUsage = async ({
   user,
   conversationId,
   context = 'message',
+  balanceSource,
 }) => {
   await spendTokens(
     {
@@ -575,6 +576,7 @@ const recordUsage = async ({
       model,
       context,
       conversationId,
+      balanceSource,
     },
     { promptTokens: prompt_tokens, completionTokens: completion_tokens },
   );

@@ -150,6 +150,7 @@ const createAbortController = (req, res, getAbortData, getReqData) => {
     endpoint: endpointOption.endpoint,
     iconURL: endpointOption.iconURL,
     model: endpointOption.modelOptions?.model || endpointOption.model_parameters?.model,
+    balanceSource: req.balanceSource,
   });
 
   // Replace the direct function reference with a wrapper that uses WeakMap
@@ -264,7 +265,7 @@ const createAbortController = (req, res, getAbortData, getReqData) => {
     };
 
     await spendTokens(
-      { ...responseMessage, context: 'incomplete', user },
+      { ...responseMessage, context: 'incomplete', user, balanceSource: ctrlData.balanceSource },
       { promptTokens, completionTokens },
     );
 

@@ -52,6 +52,37 @@ export const user = () => `${BASE_URL}/api/user`;
 
 export const balance = () => `${BASE_URL}/api/balance`;
 
+// Endpoint Limits endpoints (new)
+export const userEndpointLimits = () => `${BASE_URL}/api/balance/endpoint-limits`;
+export const adminUserEndpointLimits = (userId: string) =>
+  `${BASE_URL}/api/admin/users/${userId}/endpoint-limits`;
+export const adminEndpointLimit = (userId: string, endpoint: string) =>
+  `${BASE_URL}/api/admin/users/${userId}/endpoint-limits/${encodeURIComponent(endpoint)}`;
+export const adminEndpointLimitsBulk = () => `${BASE_URL}/api/admin/endpoint-limits/bulk`;
+export const adminUsersWithEndpointLimits = (params: {
+  page?: number;
+  pageSize?: number;
+  endpoint?: string;
+}) => `${BASE_URL}/api/admin/endpoint-limits/users${buildQuery(params)}`;
+
+// Backwards compatibility - deprecated endpoints
+/** @deprecated Use userEndpointLimits instead */
+export const userModelLimits = () => `${BASE_URL}/api/balance/model-limits`;
+/** @deprecated Use adminUserEndpointLimits instead */
+export const adminUserModelLimits = (userId: string) =>
+  `${BASE_URL}/api/admin/users/${userId}/model-limits`;
+/** @deprecated Use adminEndpointLimit instead */
+export const adminModelLimit = (userId: string, model: string) =>
+  `${BASE_URL}/api/admin/users/${userId}/model-limits/${encodeURIComponent(model)}`;
+/** @deprecated Use adminEndpointLimitsBulk instead */
+export const adminModelLimitsBulk = () => `${BASE_URL}/api/admin/model-limits/bulk`;
+/** @deprecated Use adminUsersWithEndpointLimits instead */
+export const adminUsersWithModelLimits = (params: {
+  page?: number;
+  pageSize?: number;
+  model?: string;
+}) => `${BASE_URL}/api/admin/model-limits/users${buildQuery(params)}`;
+
 export const userPlugins = () => `${BASE_URL}/api/user/plugins`;
 
 export const deleteUser = () => `${BASE_URL}/api/user/delete`;
@@ -232,12 +263,15 @@ export const agents = ({ path = '', options }: { path?: string; options?: object
 
   if (options && Object.keys(options).length > 0) {
     // Filter out undefined values to avoid "workspace=undefined" in URL
-    const filteredOptions = Object.entries(options).reduce((acc, [key, value]) => {
-      if (value !== undefined && value !== null && value !== '') {
-        acc[key] = String(value);
-      }
-      return acc;
-    }, {} as Record<string, string>);
+    const filteredOptions = Object.entries(options).reduce(
+      (acc, [key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          acc[key] = String(value);
+        }
+        return acc;
+      },
+      {} as Record<string, string>,
+    );
 
     if (Object.keys(filteredOptions).length > 0) {
       const queryParams = new URLSearchParams(filteredOptions).toString();

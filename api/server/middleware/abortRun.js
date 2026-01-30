@@ -66,6 +66,7 @@ async function abortRun(req, res) {
       model: run.model,
       user: req.user.id,
       conversationId,
+      balanceSource: req.balanceSource,
     });
   } catch (error) {
     logger.error('[abortRun] Error fetching or processing run', error);

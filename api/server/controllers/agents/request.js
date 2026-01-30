@@ -1,4 +1,4 @@
-const { sendEvent } = require('@librechat/api');
+const { sendEvent, getModelMaxTokens } = require('@librechat/api');
 const { logger } = require('@librechat/data-schemas');
 const { Constants } = require('librechat-data-provider');
 const {
@@ -7,6 +7,8 @@ const {
   cleanupAbortController,
 } = require('~/server/middleware');
 const { disposeClient, clientRegistry, requestDataMap } = require('~/server/cleanup');
+const { checkBalance } = require('~/models/balanceMethods');
+const { countTokens } = require('~/server/utils');
 const { saveMessage } = require('~/models');
 
 function createCloseHandler(abortController) {
@@ -188,6 +190,65 @@ const AgentController = async (req, res, next, initializeClient, addTitle) => {
       }
     });
 
+    // Check balance before sending message
+    const endpoint = endpointOption.endpoint;
+    const model = endpointOption?.agent?.model_parameters?.model || 'gpt-3.5-turbo';
+
+    // Estimate token count for the prompt
+    let estimatedPromptTokens = 0;
+    try {
+      estimatedPromptTokens = await countTokens(text || '', model);
+      // Add buffer for system prompts and agent instructions
+      estimatedPromptTokens = estimatedPromptTokens + 500;
+
+      // Cap at model's max tokens
+      const maxTokens = getModelMaxTokens(model);
+      if (maxTokens && maxTokens > 0) {
+        estimatedPromptTokens = Math.min(estimatedPromptTokens, maxTokens);
+      }
+    } catch (error) {
+      logger.error('[AgentController] Error counting tokens', error);
+      // Use conservative estimate if token counting fails
+      estimatedPromptTokens = 2000;
+    }
+
+    // Ensure we have a valid number
+    if (!estimatedPromptTokens || isNaN(estimatedPromptTokens) || estimatedPromptTokens <= 0) {
+      estimatedPromptTokens = 1000; // Fallback value
+    }
+
+    // Estimate completion tokens (conservative: 3x prompt tokens or config value)
+    const completionMultiplier = endpointOption?.completionMultiplier || 3;
+    const estimatedCompletionTokens = Math.min(
+      estimatedPromptTokens * completionMultiplier,
+      getModelMaxTokens(model) || 4096,
+    );
+
+    // Check balance for BOTH prompt and completion tokens
+    await checkBalance({
+      req,
+      res,
+      txData: {
+        model,
+        endpoint,
+        user: userId,
+        tokenType: 'prompt',
+        amount: estimatedPromptTokens,
+      },
+    });
+
+    await checkBalance({
+      req,
+      res,
+      txData: {
+        model,
+        endpoint,
+        user: userId,
+        tokenType: 'completion',
+        amount: estimatedCompletionTokens,
+      },
+    });
+
     const messageOptions = {
       user: userId,
       onStart,
@@ -211,7 +272,7 @@ const AgentController = async (req, res, next, initializeClient, addTitle) => {
 
     // Extract what we need and immediately break reference
     const messageId = response.messageId;
-    const endpoint = endpointOption.endpoint;
+    // endpoint already declared above for balance check
     response.endpoint = endpoint;
 
     // Store database promise locally

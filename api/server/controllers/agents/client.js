@@ -656,6 +656,7 @@ class AgentClient extends BaseClient {
         user: this.user ?? this.options.req.user?.id,
         endpointTokenConfig: this.options.endpointTokenConfig,
         model: usage.model ?? model ?? this.model ?? this.options.agent.model_parameters.model,
+        balanceSource: this.options.req?.balanceSource,
       };
 
       if (i > 0) {
@@ -1304,6 +1305,7 @@ class AgentClient extends BaseClient {
           conversationId: this.conversationId,
           user: this.user ?? this.options.req.user?.id,
           endpointTokenConfig: this.options.endpointTokenConfig,
+          balanceSource: this.options.req?.balanceSource,
         },
         { promptTokens, completionTokens },
       );
@@ -1322,6 +1324,7 @@ class AgentClient extends BaseClient {
             conversationId: this.conversationId,
             user: this.user ?? this.options.req.user?.id,
             endpointTokenConfig: this.options.endpointTokenConfig,
+            balanceSource: this.options.req?.balanceSource,
           },
           { completionTokens: usage.reasoning_tokens },
         );

@@ -60,6 +60,21 @@ export function createUserMethods(mongoose: typeof import('mongoose')) {
           refillIntervalUnit: string;
           refillAmount: number;
         };
+        $setOnInsert?: {
+          endpointLimits: Array<{
+            endpoint: string;
+            tokenCredits: number;
+            enabled: boolean;
+            autoRefillEnabled: boolean;
+            refillAmount: number;
+            refillIntervalValue: number;
+            refillIntervalUnit: string;
+            lastUsed: Date;
+            lastRefill: Date;
+            alertsSent: number[];
+            lastAlertReset: Date;
+          }>;
+        };
       } = {
         $inc: { tokenCredits: balanceConfig.startBalance },
       };
@@ -75,6 +90,26 @@ export function createUserMethods(mongoose: typeof import('mongoose')) {
           refillIntervalValue: balanceConfig.refillIntervalValue,
           refillIntervalUnit: balanceConfig.refillIntervalUnit,
           refillAmount: balanceConfig.refillAmount,
+        };
+      }
+
+      // Add endpoint-specific limits if configured
+      if (balanceConfig.endpointLimits && Array.isArray(balanceConfig.endpointLimits) && balanceConfig.endpointLimits.length > 0) {
+        const now = new Date();
+        update.$setOnInsert = {
+          endpointLimits: balanceConfig.endpointLimits.map((limitConfig: any) => ({
+            endpoint: limitConfig.endpoint,
+            tokenCredits: limitConfig.limit,
+            enabled: limitConfig.enabled ?? true,
+            autoRefillEnabled: limitConfig.autoRefillEnabled ?? false,
+            refillAmount: limitConfig.refillAmount ?? 0,
+            refillIntervalValue: limitConfig.refillIntervalValue ?? 30,
+            refillIntervalUnit: limitConfig.refillIntervalUnit ?? 'days',
+            lastUsed: now,
+            lastRefill: now,
+            alertsSent: [],
+            lastAlertReset: now,
+          })),
         };
       }
 

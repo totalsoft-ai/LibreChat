@@ -655,3 +655,142 @@ export type TBalanceResponse = {
   lastRefill?: Date;
   refillAmount?: number;
 };
+
+// Endpoint Limits Types (new structure)
+export type TEndpointLimit = {
+  endpoint: string;
+  tokenCredits: number;
+  enabled: boolean;
+  lastUsed: Date;
+  autoRefillEnabled?: boolean;
+  refillAmount?: number;
+  refillIntervalValue?: number;
+  refillIntervalUnit?: 'seconds' | 'minutes' | 'hours' | 'days' | 'weeks' | 'months';
+  lastRefill?: Date;
+  alertsSent?: number[];
+  lastAlertReset?: Date;
+};
+
+export type TEndpointLimitsResponse = {
+  endpointLimits: TEndpointLimit[];
+};
+
+export type TAdminEndpointLimitsResponse = {
+  userId: string;
+  endpointLimits: TEndpointLimit[];
+};
+
+export type TEndpointLimitUpdate = {
+  tokenCredits: number;
+  enabled?: boolean;
+  autoRefillEnabled?: boolean;
+  refillAmount?: number;
+  refillIntervalValue?: number;
+  refillIntervalUnit?: 'seconds' | 'minutes' | 'hours' | 'days' | 'weeks' | 'months';
+};
+
+export type TEndpointLimitSetResponse = {
+  message: string;
+  endpointLimit: TEndpointLimit;
+};
+
+export type TBulkEndpointLimitsUpdate = {
+  userIds: string[];
+  endpoint: string;
+  tokenCredits: number;
+  enabled?: boolean;
+  autoRefillEnabled?: boolean;
+  refillAmount?: number;
+  refillIntervalValue?: number;
+  refillIntervalUnit?: 'seconds' | 'minutes' | 'hours' | 'days' | 'weeks' | 'months';
+};
+
+export type TBulkEndpointLimitsResponse = {
+  message: string;
+  results: {
+    success: string[];
+    failed: Array<{ userId: string; error: string }>;
+  };
+};
+
+export type TUsersWithEndpointLimitsResponse = {
+  users: Array<{
+    userId: string;
+    email: string;
+    name?: string;
+    username?: string;
+    endpointLimits: TEndpointLimit[];
+  }>;
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+    pages: number;
+  };
+};
+
+// Backwards compatibility - deprecated types (alias to new types)
+/** @deprecated Use TEndpointLimit instead */
+export type TModelLimit = TEndpointLimit & { model: string };
+
+/** @deprecated Use TEndpointLimitsResponse instead */
+export type TModelLimitsResponse = {
+  globalBalance: number;
+  modelLimits: TEndpointLimit[];
+};
+
+/** @deprecated Use TAdminEndpointLimitsResponse instead */
+export type TAdminModelLimitsResponse = {
+  userId: string;
+  globalBalance: {
+    tokenCredits: number;
+    autoRefillEnabled: boolean;
+    refillAmount?: number;
+    refillIntervalValue?: number;
+    refillIntervalUnit?: string;
+    lastRefill?: Date;
+  };
+  modelLimits: TEndpointLimit[];
+};
+
+/** @deprecated Use TEndpointLimitUpdate instead */
+export type TModelLimitUpdate = TEndpointLimitUpdate;
+
+/** @deprecated Use TEndpointLimitSetResponse instead */
+export type TModelLimitSetResponse = {
+  message: string;
+  modelLimit: TEndpointLimit;
+};
+
+/** @deprecated Use TBulkEndpointLimitsUpdate instead */
+export type TBulkModelLimitsUpdate = {
+  userIds: string[];
+  model: string;
+  tokenCredits: number;
+  enabled?: boolean;
+  autoRefillEnabled?: boolean;
+  refillAmount?: number;
+  refillIntervalValue?: number;
+  refillIntervalUnit?: 'seconds' | 'minutes' | 'hours' | 'days' | 'weeks' | 'months';
+};
+
+/** @deprecated Use TBulkEndpointLimitsResponse instead */
+export type TBulkModelLimitsResponse = TBulkEndpointLimitsResponse;
+
+/** @deprecated Use TUsersWithEndpointLimitsResponse instead */
+export type TUsersWithModelLimitsResponse = {
+  users: Array<{
+    userId: string;
+    email: string;
+    name?: string;
+    username?: string;
+    globalBalance: number;
+    modelLimits: TEndpointLimit[];
+  }>;
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+    pages: number;
+  };
+};

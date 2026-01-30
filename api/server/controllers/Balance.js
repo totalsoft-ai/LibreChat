@@ -21,4 +21,34 @@ async function balanceController(req, res) {
   res.status(200).json(balanceData);
 }
 
-module.exports = balanceController;
+/**
+ * Get user's endpoint-specific limits (readonly for user)
+ * GET /api/balance/endpoint-limits
+ */
+async function getEndpointLimits(req, res) {
+  const balanceData = await Balance.findOne(
+    { user: req.user.id },
+    '-_id endpointLimits',
+  ).lean();
+
+  if (!balanceData) {
+    return res.status(404).json({ error: 'Balance not found' });
+  }
+
+  res.status(200).json({
+    endpointLimits: balanceData.endpointLimits || [],
+  });
+}
+
+/**
+ * Backwards compatibility alias
+ * GET /api/balance/model-limits
+ * @deprecated Use getEndpointLimits instead
+ */
+const getModelLimits = getEndpointLimits;
+
+module.exports = {
+  getBalance: balanceController,
+  getModelLimits,      // Backwards compatibility
+  getEndpointLimits,   // New endpoint
+};

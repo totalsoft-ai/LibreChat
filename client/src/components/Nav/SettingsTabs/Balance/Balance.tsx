@@ -1,58 +1,43 @@
 import React from 'react';
-import { useGetStartupConfig, useGetUserBalance } from '~/data-provider';
+import { useGetStartupConfig, useGetUserEndpointLimits } from '~/data-provider';
 import { useAuthContext, useLocalize } from '~/hooks';
-import TokenCreditsItem from './TokenCreditsItem';
-import AutoRefillSettings from './AutoRefillSettings';
+import EndpointLimitDisplay from './EndpointLimitDisplay';
 
 function Balance() {
   const localize = useLocalize();
   const { isAuthenticated } = useAuthContext();
   const { data: startupConfig } = useGetStartupConfig();
 
-  const balanceQuery = useGetUserBalance({
-    enabled: !!isAuthenticated && !!startupConfig?.balance?.enabled,
-  });
-  const balanceData = balanceQuery.data;
+  const isBalanceEnabled = !!isAuthenticated && !!startupConfig?.balance?.enabled;
 
-  // Pull out all the fields we need, with safe defaults
-  const {
-    tokenCredits = 0,
-    autoRefillEnabled = false,
-    lastRefill,
-    refillAmount,
-    refillIntervalUnit,
-    refillIntervalValue,
-  } = balanceData ?? {};
+  const endpointLimitsQuery = useGetUserEndpointLimits({ enabled: isBalanceEnabled });
 
-  // Check that all auto-refill props are present
-  const hasValidRefillSettings =
-    lastRefill !== undefined &&
-    refillAmount !== undefined &&
-    refillIntervalUnit !== undefined &&
-    refillIntervalValue !== undefined;
+  const enabledEndpointLimits =
+    endpointLimitsQuery.data?.endpointLimits?.filter((limit) => limit.enabled) ?? [];
 
   return (
     <div className="flex flex-col gap-4 p-4 text-sm text-text-primary">
-      {/* Token credits display */}
-      <TokenCreditsItem tokenCredits={tokenCredits} />
-
-      {/* Auto-refill display */}
-      {autoRefillEnabled ? (
-        hasValidRefillSettings ? (
-          <AutoRefillSettings
-            lastRefill={lastRefill}
-            refillAmount={refillAmount}
-            refillIntervalUnit={refillIntervalUnit}
-            refillIntervalValue={refillIntervalValue}
-          />
-        ) : (
-          <div className="text-sm text-red-600">
-            {localize('com_nav_balance_auto_refill_error')}
+      {/* Endpoint-Specific Limits Section */}
+      {enabledEndpointLimits.length > 0 && (
+        <div>
+          <h3 className="mb-3 text-base font-semibold text-text-primary">
+            {localize('com_nav_endpoint_limits_title')}
+          </h3>
+          <p className="mb-3 text-xs text-text-secondary">
+            {localize('com_nav_endpoint_limits_description')}
+          </p>
+          <div className="flex flex-col gap-3">
+            {enabledEndpointLimits.map((limit) => (
+              <EndpointLimitDisplay key={limit.endpoint} limit={limit} />
+            ))}
           </div>
-        )
-      ) : (
-        <div className="text-sm text-gray-600">
-          {localize('com_nav_balance_auto_refill_disabled')}
+        </div>
+      )}
+
+      {/* Loading state for endpoint limits */}
+      {endpointLimitsQuery.isLoading && (
+        <div className="text-sm text-text-secondary">
+          {localize('com_nav_endpoint_limits_loading')}
         </div>
       )}
     </div>

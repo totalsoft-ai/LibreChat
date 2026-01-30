@@ -24,6 +24,7 @@ const { jwtLogin, ldapLogin, passportLogin } = require('~/strategies');
 const { updateInterfacePermissions } = require('~/models/interface');
 const { checkMigrations } = require('./services/start/migration');
 const initializeMCPs = require('./services/initializeMCPs');
+const { startAutoRefillScheduler } = require('./services/AutoRefillScheduler');
 const configureSocialLogins = require('./socialLogins');
 const { getAppConfig } = require('./services/Config');
 const staticCache = require('./utils/staticCache');
@@ -149,6 +150,7 @@ const startServer = async () => {
   app.use('/api/workspaces', routes.workspaces);
   app.use('/api/docs', routes.docs);
   app.use('/api/admin/events', routes.adminEvents);
+  app.use('/api/admin', routes.modelLimits);
 
   app.use(ErrorController);
 
@@ -189,6 +191,21 @@ const startServer = async () => {
     await initializeMCPs();
     await initializeOAuthReconnectManager();
     await checkMigrations();
+
+    // Initialize Auto-Refill Scheduler (runs every minute)
+    if (process.env.ENABLE_AUTO_REFILL_SCHEDULER !== 'false') {
+      try {
+        startAutoRefillScheduler({
+          cronExpression: process.env.AUTO_REFILL_CRON || '* * * * *', // Every minute by default
+          runImmediately: process.env.AUTO_REFILL_RUN_IMMEDIATELY === 'true',
+        });
+        logger.info('[AutoRefill] Scheduler initialized successfully');
+      } catch (error) {
+        logger.error('[AutoRefill] Failed to initialize scheduler:', error);
+      }
+    } else {
+      logger.info('[AutoRefill] Scheduler disabled (ENABLE_AUTO_REFILL_SCHEDULER=false)');
+    }
 
     // Initialize PostgreSQL logs database
     if (process.env.POSTGRES_LOGS_URI) {

@@ -14,6 +14,7 @@ export interface ITransaction extends Document {
   inputTokens?: number;
   writeTokens?: number;
   readTokens?: number;
+  balanceSource?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -51,10 +52,17 @@ const transactionSchema: Schema<ITransaction> = new Schema(
     inputTokens: { type: Number },
     writeTokens: { type: Number },
     readTokens: { type: Number },
+    balanceSource: {
+      type: String,
+      default: 'global',
+    },
   },
   {
     timestamps: true,
   },
 );
+
+// Index for analytics on balance source
+transactionSchema.index({ user: 1, balanceSource: 1, createdAt: -1 });
 
 export default transactionSchema;

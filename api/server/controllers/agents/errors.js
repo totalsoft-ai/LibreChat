@@ -118,6 +118,7 @@ const createErrorHandler = ({ req, res, getContext, originPath = '/assistants/ch
         model: run.model,
         user: req.user.id,
         conversationId,
+        balanceSource: req.balanceSource,
       });
     } catch (error) {
       logger.error(`[${originPath}] Error fetching or processing run`, error);

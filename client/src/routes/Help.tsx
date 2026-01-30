@@ -53,7 +53,7 @@ function HelpContent() {
         // Convert filename to doc ID (e.g., "01-getting-started" -> "getting-started")
         const docId = filename.replace(/^\d+-/, '');
         return `[${text}](#${docId})`;
-      }
+      },
     );
   }, [docContent?.content]);
 
@@ -164,14 +164,9 @@ function HelpContent() {
         {/* Sidebar with tabs - Desktop only */}
         <aside className="hidden w-64 flex-shrink-0 overflow-y-auto border-r border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800 lg:block">
           <div className="sticky top-0 z-10 bg-gray-50 p-4 dark:bg-gray-800">
-            <h1 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">
-              TESSA Help
-            </h1>
+            <h1 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">TESSA Help</h1>
             {/* Search */}
-            <HelpSearch
-              sections={docsList?.sections || []}
-              onSelectResult={handleSectionChange}
-            />
+            <HelpSearch sections={docsList?.sections || []} onSelectResult={handleSectionChange} />
           </div>
 
           <nav className="space-y-1 p-2" role="navigation" aria-label="Documentation sections">
@@ -213,13 +208,16 @@ function HelpContent() {
               <div className="flex-1 overflow-y-auto" ref={contentRef} tabIndex={-1}>
                 <article className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
                   {/* Markdown content */}
-                  <div className="prose max-w-none dark:prose-invert [&>*]:max-w-none">
+                  <div className="prose dark:prose-invert max-w-none [&>*]:max-w-none">
                     <Markdown content={transformedContent} />
                   </div>
 
                   {/* Feedback widget */}
                   <div className="mt-12">
-                    <HelpFeedback sectionId={currentSection} sectionTitle={currentSectionTitle || ''} />
+                    <HelpFeedback
+                      sectionId={currentSection}
+                      sectionTitle={currentSectionTitle || ''}
+                    />
                   </div>
 
                   {/* Navigation */}
@@ -270,7 +268,9 @@ function HelpContent() {
                                       ? 'font-medium text-green-600 dark:text-green-400'
                                       : 'text-gray-500 hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-300',
                                   )}
-                                  aria-current={activeSubsection === subsection.id ? 'location' : undefined}
+                                  aria-current={
+                                    activeSubsection === subsection.id ? 'location' : undefined
+                                  }
                                 >
                                   {subsection.title}
                                 </button>
@@ -287,9 +287,7 @@ function HelpContent() {
           ) : (
             <div className="flex flex-1 items-center justify-center">
               <div className="text-center">
-                <p className="text-lg text-gray-600 dark:text-gray-400">
-                  Documentation not found
-                </p>
+                <p className="text-lg text-gray-600 dark:text-gray-400">Documentation not found</p>
               </div>
             </div>
           )}

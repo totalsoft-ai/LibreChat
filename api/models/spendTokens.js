@@ -5,7 +5,7 @@ const { createTransaction, createStructuredTransaction } = require('./Transactio
  *
  * @function
  * @async
- * @param {txData} txData - Transaction data.
+ * @param {txData} txData - Transaction data (should include balanceSource if available).
  * @param {Object} tokenUsage - The number of tokens used.
  * @param {Number} tokenUsage.promptTokens - The number of prompt tokens used.
  * @param {Number} tokenUsage.completionTokens - The number of completion tokens used.
@@ -21,6 +21,7 @@ const spendTokens = async (txData, tokenUsage) => {
     {
       promptTokens,
       completionTokens,
+      balanceSource: txData.balanceSource,
     },
   );
   let prompt, completion;
@@ -49,6 +50,7 @@ const spendTokens = async (txData, tokenUsage) => {
         completion: completion?.completion,
         completionRate: completion?.rate,
         balance: completion?.balance ?? prompt?.balance,
+        balanceSource: prompt?.balanceSource ?? completion?.balanceSource,
       });
     } else {
       logger.debug('[spendTokens] No transactions incurred against balance');
