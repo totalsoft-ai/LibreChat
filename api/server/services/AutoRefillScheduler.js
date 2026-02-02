@@ -3,6 +3,11 @@ const { logger } = require('@librechat/data-schemas');
 const { Balance } = require('~/db/models');
 const { createModelAutoRefillTransaction } = require('~/models/Transaction');
 
+// Mutex flag to prevent overlapping executions
+let isRunning = false;
+let lastRunStartTime = null;
+let lastRunEndTime = null;
+
 /**
  * Adds interval to a date
  * @param {Date} date - Starting date
@@ -85,6 +90,20 @@ async function processEndpointRefill({ userId, endpoint, endpointLimit }) {
  * Checks all users and processes auto-refills where needed
  */
 async function checkAndRefillAll() {
+  // Check if already running (mutex lock)
+  if (isRunning) {
+    const runningFor = lastRunStartTime ? Math.round((Date.now() - lastRunStartTime) / 1000) : 0;
+    logger.warn('[AutoRefillScheduler] Previous job still running, skipping this execution', {
+      runningForSeconds: runningFor,
+      lastRunStartTime: lastRunStartTime?.toISOString(),
+    });
+    return;
+  }
+
+  // Acquire lock
+  isRunning = true;
+  lastRunStartTime = new Date();
+
   try {
     logger.debug('[AutoRefillScheduler] Starting scheduled refill check');
 
@@ -149,6 +168,15 @@ async function checkAndRefillAll() {
     }
   } catch (error) {
     logger.error('[AutoRefillScheduler] Error during scheduled refill check', error);
+  } finally {
+    // Release lock
+    isRunning = false;
+    lastRunEndTime = new Date();
+    const duration = lastRunEndTime - lastRunStartTime;
+    logger.debug('[AutoRefillScheduler] Job completed', {
+      durationMs: duration,
+      durationSeconds: Math.round(duration / 1000),
+    });
   }
 }
 
@@ -191,6 +219,14 @@ function startAutoRefillScheduler(options = {}) {
       task.stop();
     },
     checkNow: () => checkAndRefillAll(),
+    getStatus: () => ({
+      isRunning,
+      lastRunStartTime,
+      lastRunEndTime,
+      lastRunDuration: lastRunStartTime && lastRunEndTime
+        ? lastRunEndTime - lastRunStartTime
+        : null,
+    }),
   };
 }
 

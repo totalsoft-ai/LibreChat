@@ -1,5 +1,5 @@
 const { logger } = require('@librechat/data-schemas');
-const { Balance, User } = require('~/db/models');
+const { Balance, User, Notification } = require('~/db/models');
 const { getBalanceConfig } = require('@librechat/api');
 
 /**
@@ -61,31 +61,61 @@ function getAlertConfig(appConfig) {
 async function sendBudgetAlert({ userId, email, endpoint, threshold, consumed, remainingCredits, initialLimit }) {
   const remainingDollars = (remainingCredits / 1000000).toFixed(2);
   const initialDollars = (initialLimit / 1000000).toFixed(2);
+  const consumedFormatted = consumed.toFixed(1);
 
-  const alertMessage = {
-    type: 'BUDGET_ALERT',
-    userId,
-    email,
-    endpoint,
-    threshold,
-    consumed: consumed.toFixed(1),
-    remainingCredits,
-    remainingDollars,
-    initialLimit,
-    initialDollars,
-    timestamp: new Date(),
-  };
+  // Determine severity based on threshold
+  let severity = 'warning';
+  if (threshold >= 95) {
+    severity = 'error';
+  } else if (threshold >= 80) {
+    severity = 'warning';
+  }
 
-  // TODO: Implement actual notification mechanism (email, in-app, etc.)
-  logger.warn('[BudgetAlertService] Budget alert triggered:', alertMessage);
+  // Create notification title and message
+  const endpointDisplay = endpoint === 'global' ? 'your account' : `endpoint "${endpoint}"`;
+  const title = `Budget Alert: ${threshold}% Used`;
+  const message = `You have consumed ${consumedFormatted}% of ${endpointDisplay} budget. Only $${remainingDollars} ($${initialDollars} initial) remaining.`;
 
-  // For now, just log. In the future, integrate with:
-  // - Email service (SendGrid, AWS SES, etc.)
-  // - In-app notifications
-  // - Webhook to external system
-  // - Slack/Teams integration
+  try {
+    // Create in-app notification
+    const notification = await Notification.create({
+      user: userId,
+      type: 'BUDGET_ALERT',
+      title,
+      message,
+      severity,
+      read: false,
+      data: {
+        endpoint,
+        threshold,
+        consumed: parseFloat(consumedFormatted),
+        remainingCredits,
+        remainingDollars,
+        initialLimit,
+        initialDollars,
+      },
+    });
 
-  return alertMessage;
+    logger.warn('[BudgetAlertService] Budget alert created', {
+      userId,
+      endpoint,
+      threshold,
+      consumed: consumedFormatted,
+      notificationId: notification._id,
+    });
+
+    // TODO: Optional email notification (if email service is configured)
+    // await sendBudgetAlertEmail({ email, title, message, data: notification.data });
+
+    // TODO: Optional webhook notification (if configured)
+    // await triggerWebhook('budget_alert', notification);
+
+    return notification;
+  } catch (error) {
+    logger.error('[BudgetAlertService] Failed to create notification:', error);
+    // Don't throw - we don't want to break the main flow if notification fails
+    return null;
+  }
 }
 
 /**

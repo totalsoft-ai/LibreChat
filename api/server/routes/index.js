@@ -31,10 +31,12 @@ const mcp = require('./mcp');
 const workspaces = require('./workspaces');
 const docs = require('./docs');
 const adminEvents = require('./admin/events');
-const modelLimits = require('./admin/modelLimits');
+const endpointLimits = require('./admin/endpointLimits');
+const notifications = require('./notifications');
 
 module.exports = {
-  modelLimits,
+  notifications,
+  endpointLimits,
   adminEvents,
   workspaces,
   mcp,

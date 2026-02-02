@@ -60,23 +60,3 @@ export const useGetUserEndpointLimits = (
     },
   );
 };
-
-/**
- * @deprecated Use useGetUserEndpointLimits instead
- */
-export const useGetUserModelLimits = (
-  config?: UseQueryOptions<t.TModelLimitsResponse>,
-): QueryObserverResult<t.TModelLimitsResponse> => {
-  const queriesEnabled = useRecoilValue<boolean>(store.queriesEnabled);
-  return useQuery<t.TModelLimitsResponse>(
-    [QueryKeys.modelLimits],
-    () => dataService.getUserModelLimits(),
-    {
-      refetchOnWindowFocus: true,
-      refetchOnReconnect: true,
-      refetchOnMount: true,
-      ...config,
-      enabled: (config?.enabled ?? true) === true && queriesEnabled,
-    },
-  );
-};

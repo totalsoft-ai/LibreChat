@@ -97,6 +97,9 @@ jobs:
           "KC_CONNECTOR_API_KEY" = '${{ secrets.KC_CONNECTOR_API_KEY }}'
           "POSTGRES_LOGS_URI" = '${{ secrets.POSTGRES_LOGS_URI }}'
           "MEILI_MASTER_KEY" = "${{ secrets.MEILI_MASTER_KEY }}"
+          "BALANCE_ENABLED" ="${{ vars.BALANCE_ENABLED }}"
+          "ENABLE_AUTO_REFILL_SCHEDULER" ="${{ vars.ENABLE_AUTO_REFILL_SCHEDULER }}"
+          "AUTO_REFILL_CRON" ="${{ vars.AUTO_REFILL_CRON }}"
         }
 
         $envVarsHashtable = @{

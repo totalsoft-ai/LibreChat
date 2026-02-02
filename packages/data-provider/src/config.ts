@@ -1561,7 +1561,7 @@ export enum SettingsTabValues {
    */
   EVENTS = 'events',
   /**
-   * Tab for Model Limits Management (Admin Only)
+   * Tab for Endpoint Limits Management (Admin Only)
    */
   MODEL_LIMITS = 'modelLimits',
 }

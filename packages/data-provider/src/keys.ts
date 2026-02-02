@@ -11,7 +11,6 @@ export enum QueryKeys {
   name = 'name', // user key name
   models = 'models',
   balance = 'balance',
-  modelLimits = 'modelLimits', // @deprecated Use endpointLimits instead
   endpointLimits = 'endpointLimits',
   endpoints = 'endpoints',
   presets = 'presets',

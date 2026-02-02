@@ -1,3 +1,15 @@
+/**
+ * LEGACY MIGRATION SCRIPT - DEPRECATED
+ *
+ * This script is kept for reference but should not be used.
+ * The field name was changed from 'modelLimits' to 'endpointLimits' in 2025-01-30.
+ *
+ * Use migrate-endpoint-limits.js instead.
+ *
+ * Historical note: This script was used to add empty modelLimits arrays to balance
+ * records before the naming refactoring to endpointLimits.
+ */
+
 const path = require('path');
 const mongoose = require('mongoose');
 require('module-alias')({ base: path.resolve(__dirname, '..', 'api') });
@@ -6,7 +18,7 @@ const { askQuestion, silentExit } = require('./helpers');
 const connect = require('./connect');
 
 (async () => {
-  console.log('\x1b[35m%s\x1b[0m', 'Model Limits Migration Script');
+  console.log('\x1b[35m%s\x1b[0m', 'Model Limits Migration Script (LEGACY - USE migrate-endpoint-limits.js INSTEAD)');
   console.log(
     "This script will add an empty modelLimits array to all balance records that don't have it.",
   );

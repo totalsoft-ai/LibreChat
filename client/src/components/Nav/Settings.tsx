@@ -33,7 +33,7 @@ import usePersonalizationAccess from '~/hooks/usePersonalizationAccess';
 import { useLocalize, TranslationKeys, useAuthContext } from '~/hooks';
 import { useGetStartupConfig } from '~/data-provider';
 import { cn } from '~/utils';
-import ModelLimitsAdmin from '../Admin/ModelLimitsAdmin';
+import EndpointLimitsAdmin from '../Admin/EndpointLimitsAdmin';
 
 export default function Settings({ open, onOpenChange }: TDialogProps) {
   const isSmallScreen = useMediaQuery('(max-width: 767px)');
@@ -282,7 +282,7 @@ export default function Settings({ open, onOpenChange }: TDialogProps) {
                     </Tabs.Content>
                     {isAdmin && (
                       <Tabs.Content value={SettingsTabValues.MODEL_LIMITS} tabIndex={-1}>
-                        <ModelLimitsAdmin />
+                        <EndpointLimitsAdmin />
                       </Tabs.Content>
                     )}
                   </div>

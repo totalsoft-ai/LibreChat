@@ -1,19 +1,19 @@
 import React, { useState } from 'react';
 import { useLocalize } from '~/hooks';
 import {
-  useGetAdminUserModelLimits,
-  useSetModelLimitMutation,
-  useDeleteModelLimitMutation,
+  useGetAdminUserEndpointLimits,
+  useSetEndpointLimitMutation,
+  useDeleteEndpointLimitMutation,
 } from '~/data-provider/Admin/queries';
 
-function ModelLimitsAdmin() {
+function EndpointLimitsAdmin() {
   const localize = useLocalize();
   const [userEmail, setUserEmail] = useState('');
   const [userId, setUserId] = useState('');
   const [showLimits, setShowLimits] = useState(false);
 
   // Form state
-  const [model, setModel] = useState('');
+  const [endpoint, setEndpoint] = useState('');
   const [tokenCredits, setTokenCredits] = useState('10000');
   const [enabled, setEnabled] = useState(true);
   const [autoRefillEnabled, setAutoRefillEnabled] = useState(false);
@@ -23,12 +23,12 @@ function ModelLimitsAdmin() {
     'seconds' | 'minutes' | 'hours' | 'days' | 'weeks' | 'months'
   >('days');
 
-  const { data, isLoading, refetch } = useGetAdminUserModelLimits(userId, {
+  const { data, isLoading, refetch } = useGetAdminUserEndpointLimits(userId, {
     enabled: !!userId && showLimits,
   });
 
-  const setLimitMutation = useSetModelLimitMutation();
-  const deleteLimitMutation = useDeleteModelLimitMutation();
+  const setLimitMutation = useSetEndpointLimitMutation();
+  const deleteLimitMutation = useDeleteEndpointLimitMutation();
 
   const handleLoadUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,14 +44,14 @@ function ModelLimitsAdmin() {
 
   const handleSetLimit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userId || !model.trim()) {
+    if (!userId || !endpoint.trim()) {
       return;
     }
 
     try {
       await setLimitMutation.mutateAsync({
         userId,
-        model: model.trim(),
+        endpoint: endpoint.trim(),
         tokenCredits: parseInt(tokenCredits),
         enabled,
         autoRefillEnabled,
@@ -61,27 +61,27 @@ function ModelLimitsAdmin() {
       });
 
       // Reset form
-      setModel('');
+      setEndpoint('');
       setTokenCredits('10000');
       setEnabled(true);
       setAutoRefillEnabled(false);
       refetch();
     } catch (error) {
-      console.error('Failed to set model limit:', error);
+      console.error('Failed to set endpoint limit:', error);
     }
   };
 
-  const handleDelete = async (modelName: string) => {
+  const handleDelete = async (endpointName: string) => {
     if (!userId) {
       return;
     }
 
-    if (window.confirm(`Delete limit for ${modelName}?`)) {
+    if (window.confirm(`Delete limit for ${endpointName}?`)) {
       try {
-        await deleteLimitMutation.mutateAsync({ userId, model: modelName });
+        await deleteLimitMutation.mutateAsync({ userId, endpoint: endpointName });
         refetch();
       } catch (error) {
-        console.error('Failed to delete model limit:', error);
+        console.error('Failed to delete endpoint limit:', error);
       }
     }
   };
@@ -89,7 +89,7 @@ function ModelLimitsAdmin() {
   return (
     <div className="max-w-4xl p-6">
       <h2 className="mb-6 text-2xl font-bold text-text-primary">
-        {localize('com_admin_model_limits_title')}
+        {localize('com_admin_endpoint_limits_title')}
       </h2>
 
       {/* User Search */}
@@ -99,14 +99,14 @@ function ModelLimitsAdmin() {
             type="text"
             value={userEmail}
             onChange={(e) => setUserEmail(e.target.value)}
-            placeholder={localize('com_admin_model_limits_user_email')}
+            placeholder={localize('com_admin_endpoint_limits_user_email')}
             className="flex-1 rounded border border-border-medium bg-surface-primary px-3 py-2 text-text-primary placeholder-text-secondary focus:border-border-heavy focus:outline-none"
           />
           <button
             type="submit"
             className="rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700"
           >
-            {localize('com_admin_model_limits_load_user')}
+            {localize('com_admin_endpoint_limits_load_user')}
           </button>
         </div>
       </form>
@@ -133,24 +133,24 @@ function ModelLimitsAdmin() {
             )}
           </div>
 
-          {/* Existing Model Limits */}
+          {/* Existing Endpoint Limits */}
           <div>
             <h3 className="mb-3 text-lg font-semibold text-text-primary">
-              {localize('com_nav_model_limits_title')}
+              {localize('com_nav_endpoint_limits_title')}
             </h3>
 
-            {data.modelLimits.length === 0 ? (
-              <p className="text-text-secondary">{localize('com_admin_model_limits_none')}</p>
+            {data.endpointLimits.length === 0 ? (
+              <p className="text-text-secondary">{localize('com_admin_endpoint_limits_none')}</p>
             ) : (
               <div className="space-y-2">
-                {data.modelLimits.map((limit) => (
+                {data.endpointLimits.map((limit) => (
                   <div
-                    key={limit.model}
+                    key={limit.endpoint}
                     className="flex items-center justify-between rounded border border-border-medium bg-surface-primary p-3"
                   >
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-text-primary">{limit.model}</span>
+                        <span className="font-semibold text-text-primary">{limit.endpoint}</span>
                         {!limit.enabled && (
                           <span className="rounded bg-surface-tertiary px-2 py-0.5 text-xs text-text-secondary">
                             Disabled
@@ -164,7 +164,7 @@ function ModelLimitsAdmin() {
                       </p>
                     </div>
                     <button
-                      onClick={() => handleDelete(limit.model)}
+                      onClick={() => handleDelete(limit.endpoint)}
                       className="rounded bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700"
                       disabled={deleteLimitMutation.isLoading}
                     >
@@ -179,19 +179,19 @@ function ModelLimitsAdmin() {
           {/* Add/Edit Form */}
           <div className="rounded-lg border border-border-medium bg-surface-primary-alt p-4">
             <h3 className="mb-4 text-lg font-semibold text-text-primary">
-              {localize('com_admin_model_limits_add')}
+              {localize('com_admin_endpoint_limits_add')}
             </h3>
 
             <form onSubmit={handleSetLimit} className="space-y-4">
-              {/* Model Name */}
+              {/* Endpoint Name */}
               <div>
                 <label className="mb-1 block text-sm font-medium text-text-primary">
-                  {localize('com_admin_model_limits_model_name')} *
+                  {localize('com_admin_endpoint_limits_endpoint_name')} *
                 </label>
                 <input
                   type="text"
-                  value={model}
-                  onChange={(e) => setModel(e.target.value)}
+                  value={endpoint}
+                  onChange={(e) => setEndpoint(e.target.value)}
                   placeholder="gpt-4, claude-3-opus, etc."
                   className="w-full rounded border border-border-medium bg-surface-primary px-3 py-2 text-text-primary placeholder-text-secondary focus:border-border-heavy focus:outline-none"
                   required
@@ -201,7 +201,7 @@ function ModelLimitsAdmin() {
               {/* Token Credits */}
               <div>
                 <label className="mb-1 block text-sm font-medium text-text-primary">
-                  {localize('com_admin_model_limits_token_credits')} *
+                  {localize('com_admin_endpoint_limits_token_credits')} *
                 </label>
                 <input
                   type="number"
@@ -223,7 +223,7 @@ function ModelLimitsAdmin() {
                   className="h-4 w-4"
                 />
                 <label htmlFor="enabled" className="text-sm text-text-primary">
-                  {localize('com_admin_model_limits_enabled')}
+                  {localize('com_admin_endpoint_limits_enabled')}
                 </label>
               </div>
 
@@ -238,7 +238,7 @@ function ModelLimitsAdmin() {
                     className="h-4 w-4"
                   />
                   <label htmlFor="autoRefill" className="text-sm font-medium text-text-primary">
-                    {localize('com_admin_model_limits_auto_refill')}
+                    {localize('com_admin_endpoint_limits_auto_refill')}
                   </label>
                 </div>
 
@@ -307,11 +307,11 @@ function ModelLimitsAdmin() {
               >
                 {setLimitMutation.isLoading
                   ? localize('com_ui_loading')
-                  : localize('com_admin_model_limits_set_limit')}
+                  : localize('com_admin_endpoint_limits_set_limit')}
               </button>
 
               {setLimitMutation.isError && (
-                <p className="text-sm text-red-600">{localize('com_admin_model_limits_error')}</p>
+                <p className="text-sm text-red-600">{localize('com_admin_endpoint_limits_error')}</p>
               )}
             </form>
           </div>
@@ -321,4 +321,4 @@ function ModelLimitsAdmin() {
   );
 }
 
-export default ModelLimitsAdmin;
+export default EndpointLimitsAdmin;

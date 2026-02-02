@@ -3,14 +3,14 @@ import { QueryKeys, dataService } from 'librechat-data-provider';
 import type { QueryObserverResult, UseQueryOptions } from '@tanstack/react-query';
 import type * as t from 'librechat-data-provider';
 
-// Get admin user model limits
-export const useGetAdminUserModelLimits = (
+// Get admin user endpoint limits
+export const useGetAdminUserEndpointLimits = (
   userId: string,
-  config?: UseQueryOptions<t.TAdminModelLimitsResponse>,
-): QueryObserverResult<t.TAdminModelLimitsResponse> => {
-  return useQuery<t.TAdminModelLimitsResponse>(
-    ['adminUserModelLimits', userId],
-    () => dataService.getAdminUserModelLimits(userId),
+  config?: UseQueryOptions<t.TAdminEndpointLimitsResponse>,
+): QueryObserverResult<t.TAdminEndpointLimitsResponse> => {
+  return useQuery<t.TAdminEndpointLimitsResponse>(
+    ['adminUserEndpointLimits', userId],
+    () => dataService.getAdminUserEndpointLimits(userId),
     {
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
@@ -21,59 +21,59 @@ export const useGetAdminUserModelLimits = (
   );
 };
 
-// Set model limit mutation
-export const useSetModelLimitMutation = () => {
+// Set endpoint limit mutation
+export const useSetEndpointLimitMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({
       userId,
-      model,
+      endpoint,
       ...data
     }: {
       userId: string;
-      model: string;
-    } & t.TModelLimitUpdate) => dataService.setModelLimit(userId, model, data),
+      endpoint: string;
+    } & t.TEndpointLimitUpdate) => dataService.setEndpointLimit(userId, endpoint, data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries(['adminUserModelLimits', variables.userId]);
-      queryClient.invalidateQueries([QueryKeys.modelLimits]);
+      queryClient.invalidateQueries(['adminUserEndpointLimits', variables.userId]);
+      queryClient.invalidateQueries([QueryKeys.endpointLimits]);
     },
   });
 };
 
-// Delete model limit mutation
-export const useDeleteModelLimitMutation = () => {
+// Delete endpoint limit mutation
+export const useDeleteEndpointLimitMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ userId, model }: { userId: string; model: string }) =>
-      dataService.deleteModelLimit(userId, model),
+    mutationFn: ({ userId, endpoint }: { userId: string; endpoint: string }) =>
+      dataService.deleteEndpointLimit(userId, endpoint),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries(['adminUserModelLimits', variables.userId]);
-      queryClient.invalidateQueries([QueryKeys.modelLimits]);
+      queryClient.invalidateQueries(['adminUserEndpointLimits', variables.userId]);
+      queryClient.invalidateQueries([QueryKeys.endpointLimits]);
     },
   });
 };
 
-// Bulk set model limits mutation
-export const useBulkSetModelLimitsMutation = () => {
+// Bulk set endpoint limits mutation
+export const useBulkSetEndpointLimitsMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: t.TBulkModelLimitsUpdate) => dataService.bulkSetModelLimits(data),
+    mutationFn: (data: t.TBulkEndpointLimitsUpdate) => dataService.bulkSetEndpointLimits(data),
     onSuccess: () => {
-      queryClient.invalidateQueries(['adminUserModelLimits']);
-      queryClient.invalidateQueries([QueryKeys.modelLimits]);
+      queryClient.invalidateQueries(['adminUserEndpointLimits']);
+      queryClient.invalidateQueries([QueryKeys.endpointLimits]);
     },
   });
 };
 
-// Get users with model limits
-export const useGetUsersWithModelLimits = (params: {
+// Get users with endpoint limits
+export const useGetUsersWithEndpointLimits = (params: {
   page?: number;
   pageSize?: number;
-  model?: string;
+  endpoint?: string;
 }) => {
-  return useQuery<t.TUsersWithModelLimitsResponse>(
-    ['usersWithModelLimits', params],
-    () => dataService.getUsersWithModelLimits(params),
+  return useQuery<t.TUsersWithEndpointLimitsResponse>(
+    ['usersWithEndpointLimits', params],
+    () => dataService.getUsersWithEndpointLimits(params),
     {
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
