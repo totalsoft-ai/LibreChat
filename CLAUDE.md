@@ -1,8 +1,65 @@
 # CLAUDE.md
 
+# Claude Code Instructions (Token Optimized)
+
+You are an expert software engineer working inside this repository.
+
+## Primary Goals
+- Minimize token usage
+- Be concise and direct
+- Output only what is necessary
+- Prefer code over explanations
+
+---
+
+## Response Style Rules
+- Do NOT provide long explanations
+- Do NOT repeat the user's request
+- Do NOT summarize unless explicitly asked
+- Keep answers short and actionable
+
+---
+
+## Code Output Rules
+When editing code:
+- Return ONLY the relevant change
+- Prefer git diff format whenever possible
+- Do NOT rewrite entire files unless required
+
+Example output:
+
+```diff
+- old line
++ new line
+
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Recent Updates
+
+### 2025-01-30: Naming Consistency - modelLimits → endpointLimits Refactoring
+
+**Complete API and Frontend Refactoring:**
+- **Problem**: Database schema used `endpointLimits` (correct) but API layer and frontend used `modelLimits` (incorrect/legacy)
+- **Solution**: Single-release clean break with comprehensive renaming across entire stack
+- **Backend Changes**:
+  - Renamed `ModelLimitsController.js` → `EndpointLimitsController.js` with all functions updated
+  - Updated API routes: `/api/admin/users/:userId/model-limits` → `/api/admin/users/:userId/endpoint-limits`
+  - Updated all controller functions: `getUserModelLimits()` → `getUserEndpointLimits()`, etc.
+- **Data Provider Cleanup**:
+  - Removed all deprecated function aliases and type definitions
+  - Cleaned up `data-service.ts`, `api-endpoints.ts`, `types.ts`, `keys.ts`
+  - Deleted deprecated `TModelLimit`, `TModelLimitsResponse`, etc. types
+- **Frontend Updates**:
+  - Renamed `ModelLimitsAdmin.tsx` → `EndpointLimitsAdmin.tsx`
+  - Renamed `ModelLimitDisplay.tsx` → `EndpointLimitDisplay.tsx`
+  - Updated all React Query hooks: `useGetAdminUserModelLimits` → `useGetAdminUserEndpointLimits`, etc.
+  - Updated query keys to use `endpointLimits` consistently
+- **Configuration**:
+  - Created `config/migrate-endpoint-limits.js` migration script
+  - Marked old `config/migrate-model-limits.js` as legacy
+- **Impact**: No database schema changes needed - schema already used correct `endpointLimits` field
+- **Files Modified**: ~28 files across backend, frontend, data-provider, and config
 
 ### 2025-10-28: Conversation Export & Database Optimization
 

@@ -196,7 +196,7 @@ const startServer = async () => {
     // Initialize Auto-Refill Scheduler (runs every minute)
     if (process.env.ENABLE_AUTO_REFILL_SCHEDULER !== 'false') {
       try {
-        startAutoRefillScheduler({
+        const scheduler =startAutoRefillScheduler({
           cronExpression: process.env.AUTO_REFILL_CRON || '* * * * *', // Every minute by default
           runImmediately: process.env.AUTO_REFILL_RUN_IMMEDIATELY === 'true',
         });
@@ -207,6 +207,16 @@ const startServer = async () => {
     } else {
       logger.info('[AutoRefill] Scheduler disabled (ENABLE_AUTO_REFILL_SCHEDULER=false)');
     }
+
+    process.on('SIGTERM', () => {
+      logger.info('[AutoRefill] SIGTERM received, stopping scheduler...');
+      scheduler?.stop();
+    });
+
+    process.on('SIGINT', () => {
+      logger.info('[AutoRefill] SIGINT received, stopping scheduler...');
+      scheduler?.stop();
+    });
 
     // Initialize PostgreSQL logs database
     if (process.env.POSTGRES_LOGS_URI) {
