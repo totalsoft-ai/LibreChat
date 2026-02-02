@@ -3,6 +3,15 @@ const { Balance, User, AuditLog } = require('~/db/models');
 const mongoose = require('mongoose');
 
 /**
+ * Enum for standardized error types
+ */
+const ERROR_TYPES = {
+  VALIDATION: 'VALIDATION_ERROR',
+  NOT_FOUND: 'NOT_FOUND',
+  DB: 'DATABASE_ERROR',
+};
+
+/**
  * Creates an audit log entry for admin actions
  * @param {Object} params - Audit log parameters
  * @param {string} params.action - Action type (CREATE, UPDATE, DELETE, BULK_UPDATE)
@@ -29,10 +38,7 @@ async function createAuditLog({
 
     if (oldValue || newValue) {
       // Record changes for each field
-      const fields = new Set([
-        ...Object.keys(oldValue || {}),
-        ...Object.keys(newValue || {}),
-      ]);
+      const fields = new Set([...Object.keys(oldValue || {}), ...Object.keys(newValue || {})]);
 
       fields.forEach((field) => {
         const old = oldValue?.[field];
@@ -119,12 +125,16 @@ function createEndpointLimitObject({
 
 /**
  * Upsert endpoint limit for a user (create balance if needed, update existing limit)
+ * Accepts optional session for transactions
  * @param {string} userId - User ID
  * @param {Object} limitParams - Endpoint limit parameters
+ * @param {Object} options - Optional options { session }
  * @returns {Promise<Object>} - Updated balance document
  */
-async function upsertEndpointLimitForUser(userId, limitParams) {
-  let balance = await Balance.findOne({ user: userId });
+async function upsertEndpointLimitForUser(userId, limitParams, options = {}) {
+  const { session } = options;
+
+  let balance = await Balance.findOne({ user: userId }).session(session);
 
   if (!balance) {
     balance = new Balance({
@@ -133,7 +143,9 @@ async function upsertEndpointLimitForUser(userId, limitParams) {
       endpointLimits: [createEndpointLimitObject({ ...limitParams, preserveDates: null })],
     });
   } else {
-    const existingIndex = balance.endpointLimits.findIndex((el) => el.endpoint === limitParams.endpoint);
+    const existingIndex = balance.endpointLimits.findIndex(
+      (el) => el.endpoint === limitParams.endpoint,
+    );
     const existingLimit = balance.endpointLimits[existingIndex];
 
     if (existingIndex >= 0) {
@@ -142,37 +154,31 @@ async function upsertEndpointLimitForUser(userId, limitParams) {
         preserveDates: { lastUsed: existingLimit.lastUsed, lastRefill: existingLimit.lastRefill },
       });
     } else {
-      balance.endpointLimits.push(createEndpointLimitObject({ ...limitParams, preserveDates: null }));
+      balance.endpointLimits.push(
+        createEndpointLimitObject({ ...limitParams, preserveDates: null }),
+      );
     }
   }
 
-  await balance.save();
+  await balance.save({ session });
   return balance;
 }
 
 /**
  * Get all endpoint limits for a user
- * GET /api/admin/users/:userId/endpoint-limits
- * Accepts either User ID (ObjectId) or email address
  */
 const getUserEndpointLimits = async (req, res) => {
   try {
     const { userId: userIdOrEmail } = req.params;
-
-    // Find actual user ID
     const userId = await findUserId(userIdOrEmail);
-    if (!userId) {
-      return res.status(404).json({ error: 'Resource not found' });
-    }
+    if (!userId) return res.status(404).json({ error: 'Resource not found' });
 
     const balanceData = await Balance.findOne(
       { user: userId },
       'tokenCredits endpointLimits autoRefillEnabled refillAmount refillIntervalValue refillIntervalUnit lastRefill',
     ).lean();
 
-    if (!balanceData) {
-      return res.status(404).json({ error: 'Balance not found for user' });
-    }
+    if (!balanceData) return res.status(404).json({ error: 'Balance not found for user' });
 
     res.status(200).json({
       userId,
@@ -194,9 +200,6 @@ const getUserEndpointLimits = async (req, res) => {
 
 /**
  * Set or update an endpoint limit for a user
- * PUT /api/admin/users/:userId/endpoint-limits/:endpointName
- * Body: { tokenCredits, enabled, autoRefillEnabled?, refillAmount?, refillIntervalValue?, refillIntervalUnit? }
- * Accepts either User ID (ObjectId) or email address
  */
 const setEndpointLimit = async (req, res) => {
   try {
@@ -210,37 +213,27 @@ const setEndpointLimit = async (req, res) => {
       refillIntervalUnit = 'days',
     } = req.body;
 
-    // ✅ VALIDATION: refillIntervalUnit must be valid enum
     const allowedUnits = ['seconds', 'minutes', 'hours', 'days', 'weeks', 'months'];
-
-    if (!allowedUnits.includes(refillIntervalUnit)) {
-      return res.status(400).json({
-        error: `refillIntervalUnit must be one of: ${allowedUnits.join(', ')}`,
-      });
-    }
-
-    // ✅ VALIDATION: refillIntervalValue must be positive integer
-    if (!Number.isInteger(refillIntervalValue) || refillIntervalValue <= 0) {
-      return res.status(400).json({
-        error: 'refillIntervalValue must be a positive integer',
-      });
-    }
-    if (tokenCredits === undefined || typeof tokenCredits !== 'number') {
+    if (!allowedUnits.includes(refillIntervalUnit))
+      return res
+        .status(400)
+        .json({ error: `refillIntervalUnit must be one of: ${allowedUnits.join(', ')}` });
+    if (!Number.isInteger(refillIntervalValue) || refillIntervalValue <= 0)
+      return res.status(400).json({ error: 'refillIntervalValue must be a positive integer' });
+    if (tokenCredits === undefined || typeof tokenCredits !== 'number')
       return res.status(400).json({ error: 'tokenCredits is required and must be a number' });
-    }
-
-    if (!endpointName || typeof endpointName !== 'string') {
-      return res.status(400).json({ error: 'endpointName parameter is required and must be a string' });
-    }
+    if (!endpointName || typeof endpointName !== 'string')
+      return res
+        .status(400)
+        .json({ error: 'endpointName parameter is required and must be a string' });
 
     const userId = await findUserId(userIdOrEmail);
-    if (!userId) {
-      return res.status(404).json({ error: 'Resource not found' });
-    }
+    if (!userId) return res.status(404).json({ error: 'Resource not found' });
 
-    // Get existing limit for audit trail
     const existingBalance = await Balance.findOne({ user: userId });
-    const existingLimit = existingBalance?.endpointLimits?.find((el) => el.endpoint === endpointName);
+    const existingLimit = existingBalance?.endpointLimits?.find(
+      (el) => el.endpoint === endpointName,
+    );
     const isUpdate = !!existingLimit;
 
     const balance = await upsertEndpointLimitForUser(userId, {
@@ -255,7 +248,6 @@ const setEndpointLimit = async (req, res) => {
 
     const newLimit = balance.endpointLimits.find((el) => el.endpoint === endpointName);
 
-    // Audit log
     await createAuditLog({
       action: isUpdate ? 'UPDATE' : 'CREATE',
       adminUserId: req.user.id,
@@ -266,10 +258,7 @@ const setEndpointLimit = async (req, res) => {
       req,
     });
 
-    res.status(200).json({
-      message: 'Endpoint limit set successfully',
-      endpointLimit: newLimit,
-    });
+    res.status(200).json({ message: 'Endpoint limit set successfully', endpointLimit: newLimit });
   } catch (error) {
     logger.error('[EndpointLimitsController] Error setting endpoint limit:', error);
     res.status(500).json({ error: 'Failed to set endpoint limit' });
@@ -277,39 +266,25 @@ const setEndpointLimit = async (req, res) => {
 };
 
 /**
- * Delete an endpoint limit for a user (revert to global balance)
- * DELETE /api/admin/users/:userId/endpoint-limits/:endpointName
- * Accepts either User ID (ObjectId) or email address
+ * Delete an endpoint limit for a user
  */
 const deleteEndpointLimit = async (req, res) => {
   try {
     const { userId: userIdOrEmail, endpointName } = req.params;
-
-    // Find actual user ID
     const userId = await findUserId(userIdOrEmail);
-    if (!userId) {
-      return res.status(404).json({ error: 'Resource not found' });
-    }
+    if (!userId) return res.status(404).json({ error: 'Resource not found' });
 
     const balance = await Balance.findOne({ user: userId });
+    if (!balance) return res.status(404).json({ error: 'Balance not found for user' });
 
-    if (!balance) {
-      return res.status(404).json({ error: 'Balance not found for user' });
-    }
-
-    // Get the limit being deleted for audit trail
     const deletedLimit = balance.endpointLimits.find((el) => el.endpoint === endpointName);
-
     const initialLength = balance.endpointLimits.length;
     balance.endpointLimits = balance.endpointLimits.filter((el) => el.endpoint !== endpointName);
-
-    if (balance.endpointLimits.length === initialLength) {
+    if (balance.endpointLimits.length === initialLength)
       return res.status(404).json({ error: 'Endpoint limit not found' });
-    }
 
     await balance.save();
 
-    // Audit log
     await createAuditLog({
       action: 'DELETE',
       adminUserId: req.user.id,
@@ -332,10 +307,11 @@ const deleteEndpointLimit = async (req, res) => {
 
 /**
  * Bulk set endpoint limits for multiple users
- * POST /api/admin/endpoint-limits/bulk
- * Body: { userIds: ["id1", "id2"], endpointName: "gpt-4", tokenCredits: 5000, enabled: true, ... }
  */
 const bulkSetEndpointLimits = async (req, res) => {
+  const session = await mongoose.startSession(); // Start MongoDB session
+  session.startTransaction(); // Start transaction
+
   try {
     const {
       userIds,
@@ -348,30 +324,19 @@ const bulkSetEndpointLimits = async (req, res) => {
       refillIntervalUnit = 'days',
     } = req.body;
 
-    // ✅ VALIDATION: refillIntervalUnit must be valid enum
     const allowedUnits = ['seconds', 'minutes', 'hours', 'days', 'weeks', 'months'];
-
-    if (!allowedUnits.includes(refillIntervalUnit)) {
-      return res.status(400).json({
-        error: `refillIntervalUnit must be one of: ${allowedUnits.join(', ')}`,
-      });
-    }
-    if (!Number.isInteger(refillIntervalValue) || refillIntervalValue <= 0) {
-      return res.status(400).json({
-        error: 'refillIntervalValue must be a positive integer',
-      });
-    }
-    if (!Array.isArray(userIds) || userIds.length === 0) {
+    if (!allowedUnits.includes(refillIntervalUnit))
+      return res
+        .status(400)
+        .json({ error: `refillIntervalUnit must be one of: ${allowedUnits.join(', ')}` });
+    if (!Number.isInteger(refillIntervalValue) || refillIntervalValue <= 0)
+      return res.status(400).json({ error: 'refillIntervalValue must be a positive integer' });
+    if (!Array.isArray(userIds) || userIds.length === 0)
       return res.status(400).json({ error: 'userIds must be a non-empty array' });
-    }
-
-    if (!endpointName || typeof endpointName !== 'string') {
+    if (!endpointName || typeof endpointName !== 'string')
       return res.status(400).json({ error: 'endpointName is required and must be a string' });
-    }
-
-    if (tokenCredits === undefined || typeof tokenCredits !== 'number') {
+    if (tokenCredits === undefined || typeof tokenCredits !== 'number')
       return res.status(400).json({ error: 'tokenCredits is required and must be a number' });
-    }
 
     const results = { success: [], failed: [] };
     const limitParams = {
@@ -388,49 +353,57 @@ const bulkSetEndpointLimits = async (req, res) => {
       try {
         const userId = await findUserId(userIdOrEmail);
         if (!userId) {
-          results.failed.push({ userId: userIdOrEmail, error: 'User not found' });
+          results.failed.push({
+            userId: userIdOrEmail,
+            error: 'User not found',
+            type: ERROR_TYPES.NOT_FOUND,
+          });
           continue;
         }
 
-        await upsertEndpointLimitForUser(userId, limitParams);
-        results.success.push(userIdOrEmail);
+        // Upsert with session
+        await upsertEndpointLimitForUser(userId, limitParams, { session });
 
-        // Audit log for each successful operation
         await createAuditLog({
           action: 'BULK_UPDATE',
           adminUserId: req.user.id,
           targetUserId: userId,
           endpointName,
-          oldValue: null, // Not tracked in bulk operations for performance
+          oldValue: null,
           newValue: limitParams,
           req,
-          metadata: {
-            bulkOperation: true,
-            totalUsers: userIds.length,
-          },
+          metadata: { bulkOperation: true, totalUsers: userIds.length },
         });
-      } catch (error) {
-        logger.error(
-          `[EndpointLimitsController] Error setting limit for user ${userIdOrEmail}:`,
-          error,
-        );
-        results.failed.push({ userId: userIdOrEmail, error: error.message });
+
+        results.success.push(userIdOrEmail);
+      } catch (userError) {
+        results.failed.push({
+          userId: userIdOrEmail,
+          error: userError.message,
+          type: ERROR_TYPES.DB,
+        });
       }
     }
 
-    res.status(200).json({
-      message: 'Bulk operation completed',
-      results,
+    await session.commitTransaction(); // Commit if all OK
+    res.status(200).json({ message: 'Bulk operation completed', results });
+  } catch (transactionError) {
+    await session.abortTransaction(); // Rollback if critical error
+    logger.error(
+      '[EndpointLimitsController] Bulk operation failed, transaction aborted:',
+      transactionError,
+    );
+    res.status(500).json({
+      error: 'Bulk operation failed, no changes were applied',
+      details: transactionError.message,
     });
-  } catch (error) {
-    logger.error('[EndpointLimitsController] Error in bulk set endpoint limits:', error);
-    res.status(500).json({ error: 'Failed to perform bulk operation' });
+  } finally {
+    session.endSession();
   }
 };
 
 /**
  * Get all users with endpoint-specific limits
- * GET /api/admin/endpoint-limits/users?page=1&pageSize=20&endpoint=gpt-4
  */
 const getUsersWithEndpointLimits = async (req, res) => {
   try {
@@ -439,11 +412,8 @@ const getUsersWithEndpointLimits = async (req, res) => {
     const endpoint = req.query.endpoint;
     const skip = (page - 1) * pageSize;
 
-    // Build query
     const query = { 'endpointLimits.0': { $exists: true } };
-    if (endpoint) {
-      query['endpointLimits.endpoint'] = endpoint;
-    }
+    if (endpoint) query['endpointLimits.endpoint'] = endpoint;
 
     const [users, total] = await Promise.all([
       Balance.find(query)
@@ -462,14 +432,11 @@ const getUsersWithEndpointLimits = async (req, res) => {
         name: u.user.name,
         username: u.user.username,
         globalBalance: u.tokenCredits,
-        endpointLimits: endpoint ? u.endpointLimits.filter((el) => el.endpoint === endpoint) : u.endpointLimits,
+        endpointLimits: endpoint
+          ? u.endpointLimits.filter((el) => el.endpoint === endpoint)
+          : u.endpointLimits,
       })),
-      pagination: {
-        page,
-        pageSize,
-        total,
-        pages: Math.ceil(total / pageSize),
-      },
+      pagination: { page, pageSize, total, pages: Math.ceil(total / pageSize) },
     });
   } catch (error) {
     logger.error('[EndpointLimitsController] Error getting users with endpoint limits:', error);
@@ -479,7 +446,6 @@ const getUsersWithEndpointLimits = async (req, res) => {
 
 /**
  * Get audit logs for endpoint limit changes
- * GET /api/admin/endpoint-limits/audit?userId=xxx&page=1&pageSize=20&startDate=xxx&endDate=xxx
  */
 const getEndpointLimitsAuditLog = async (req, res) => {
   try {
@@ -493,31 +459,17 @@ const getEndpointLimitsAuditLog = async (req, res) => {
       page = 1,
       pageSize = 20,
     } = req.query;
-
     const query = { resource: 'ENDPOINT_LIMIT' };
     const skip = (parseInt(page) - 1) * parseInt(pageSize);
 
-    // Build filter query
-    if (userId) {
-      query.targetUser = userId;
-    }
-    if (adminUserId) {
-      query.adminUser = adminUserId;
-    }
-    if (action) {
-      query.action = action;
-    }
-    if (endpoint) {
-      query['metadata.endpoint'] = endpoint;
-    }
+    if (userId) query.targetUser = userId;
+    if (adminUserId) query.adminUser = adminUserId;
+    if (action) query.action = action;
+    if (endpoint) query['metadata.endpoint'] = endpoint;
     if (startDate || endDate) {
       query.timestamp = {};
-      if (startDate) {
-        query.timestamp.$gte = new Date(startDate);
-      }
-      if (endDate) {
-        query.timestamp.$lte = new Date(endDate);
-      }
+      if (startDate) query.timestamp.$gte = new Date(startDate);
+      if (endDate) query.timestamp.$lte = new Date(endDate);
     }
 
     const [logs, total] = await Promise.all([
