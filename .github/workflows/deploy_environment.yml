@@ -145,6 +145,11 @@ jobs:
           "MEILI_SYNC_DELAY_MS" ="${{ vars.MEILI_SYNC_DELAY_MS }}"
           "MEILI_NO_ANALYTICS" ="${{ vars.MEILI_NO_ANALYTICS }}"
           "MEILI_NO_SYNC" ="${{ vars.MEILI_NO_SYNC }}"
+          "BALANCE_ENABLED" ="${{ vars.BALANCE_ENABLED }}"
+          "CHECK_BALANCE" ="${{ vars.CHECK_BALANCE }}"
+          "AUTO_REFILL_ENABLED" ="${{ vars.AUTO_REFILL_ENABLED }}"
+          "AUTO_REFILL_TIMEZONE" ="${{ vars.AUTO_REFILL_TIMEZONE }}"
+          "AUTO_REFILL_CRON" ="${{ vars.AUTO_REFILL_CRON }}"
         }
 
         ./custom/scripts/build-and-deploy.ps1 `

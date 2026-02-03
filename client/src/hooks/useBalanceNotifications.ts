@@ -70,7 +70,7 @@ export const useBalanceNotifications = (
 
     // Reset shown thresholds if balance increased significantly
     // (e.g., after manual refill or auto-refill)
-    if (previousBalance !== null && balance > previousBalance + 10000) {
+    if (previousBalance !== null && balance > previousBalance + 20000) {
       shownThresholdsRef.current.clear();
     }
 
