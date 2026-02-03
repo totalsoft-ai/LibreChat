@@ -161,16 +161,20 @@ endpoints:
           completion: 0
 
 
-memory:
-  disabled: false
-  personalize: true
-  tokenLimit: 3000
-  messageWindowSize: 8
-  agent:
-    provider: "Local Models"
-    model: "phi4-mini:latest"
-    instructions: |
-      You are a memory assistant. Store only user-approved, useful facts and preferences.
-    model_parameters:
-      temperature: 0.2
-      max_tokens: 1000
+#memory:
+#  disabled: false
+#  personalize: true
+#  tokenLimit: 3000
+#  messageWindowSize: 8
+#  agent:
+#    provider: "Local Models"
+#    model: "phi4-mini:latest"
+#    instructions: |
+#      You are a memory assistant. Store only user-approved, useful facts and preferences.
+#    model_parameters:
+#      temperature: 0.2
+#      max_tokens: 1000
+#  tokenConfig:
+#        "phi4-mini:latest":
+#          prompt: 0
+#          completion: 0
