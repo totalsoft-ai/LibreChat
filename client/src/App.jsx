@@ -16,9 +16,10 @@ import { router } from './routes';
 /**
  * Balance Notifications Component
  * Polls balance every 30 seconds and shows toast notifications
+ * Automatically detects authentication state internally
  */
 const BalanceNotifications = () => {
-  useBalanceNotifications(true, 30000); // enabled, poll every 30 seconds
+  useBalanceNotifications(30000); // Auto-detects authentication
   return null;
 };
 
