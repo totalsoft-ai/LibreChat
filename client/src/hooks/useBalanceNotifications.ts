@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
+import { useRecoilValue } from 'recoil';
 import { useToastContext } from '@librechat/client';
 import { useGetBalanceQuery } from 'librechat-data-provider';
+import store from '~/store';
 
 /**
  * Balance notification thresholds configuration
@@ -12,12 +14,12 @@ const THRESHOLDS = [
     type: 'warning' as const,
   },
   {
-    threshold: 2000, 
+    threshold: 2000,
     message: '⚠️ You have only a few tokens left',
     type: 'warning' as const,
   },
   {
-    threshold: 100, 
+    threshold: 100,
     message: '❌ You are close to reaching the limit',
     type: 'error' as const,
   },
@@ -26,30 +28,35 @@ const THRESHOLDS = [
 /**
  * Custom hook for balance polling and toast notifications
  *
- * Polls the /api/balance endpoint every 30 seconds and shows
- * toast notifications when balance drops below configured thresholds.
+ * Polls the /api/balance endpoint and shows toast notifications when
+ * balance drops below configured thresholds.
  *
  * Features:
- * - Automatic polling every 30 seconds
+ * - Automatic authentication detection (only polls when user is logged in)
  * - Shows notifications only once per threshold
  * - Resets shown notifications when balance increases
  * - Handles authentication errors gracefully
+ * - Uses Recoil state to avoid unnecessary API calls
  *
- * @param enabled - Whether to enable polling (default: true)
  * @param pollingInterval - Polling interval in milliseconds (default: 30000)
  */
 export const useBalanceNotifications = (
-  enabled = true,
-  pollingInterval = 5000,
+  pollingInterval = 30000,
 ) => {
   const { showToast } = useToastContext();
   const shownThresholdsRef = useRef(new Set<number>());
   const previousBalanceRef = useRef<number | null>(null);
 
+  // Check if user is authenticated using Recoil state (no API call)
+  const user = useRecoilValue(store.user);
+
+  // Only enable balance polling if user is authenticated
+  const isAuthenticated = !!user;
+
   // Query balance with refetch interval
   const { data: balanceData, isError, error } = useGetBalanceQuery({
-    enabled,
-    refetchInterval: enabled ? pollingInterval : false,
+    enabled: isAuthenticated,
+    refetchInterval: isAuthenticated ? pollingInterval : false,
     refetchIntervalInBackground: true,
     retry: 1, // Retry only once on failure
     onError: (err: any) => {
@@ -61,7 +68,7 @@ export const useBalanceNotifications = (
   });
 
   useEffect(() => {
-    if (!enabled || !balanceData?.tokenCredits) {
+    if (!isAuthenticated || !balanceData?.tokenCredits) {
       return;
     }
 
@@ -105,7 +112,7 @@ export const useBalanceNotifications = (
         break;
       }
     }
-  }, [balanceData?.tokenCredits, enabled, showToast]);
+  }, [balanceData?.tokenCredits, isAuthenticated, showToast]);
 
   // Return balance data for optional display in UI
   return {
