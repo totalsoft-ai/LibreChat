@@ -195,6 +195,21 @@ export const useGetModelsQuery = (
   });
 };
 
+export const useGetBalanceQuery = (
+  config?: UseQueryOptions<t.TBalanceResponse>,
+): QueryObserverResult<t.TBalanceResponse> => {
+  return useQuery<t.TBalanceResponse>(
+    [QueryKeys.balance],
+    () => dataService.getUserBalance(),
+    {
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      refetchOnMount: false,
+      ...config,
+    },
+  );
+};
+
 export const useCreatePresetMutation = (): UseMutationResult<
   s.TPreset,
   unknown,

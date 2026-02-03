@@ -11,6 +11,15 @@ cache: false
 # fileStrategy: "s3"
 fileStrategy: "s3"
 
+balance:
+  enabled: true
+  startBalance: 20000
+  autoRefillEnabled: true
+  refillIntervalValue: 1
+  refillIntervalUnit: 'days'
+  refillAmount: 20000 
+  alertsEnabled: true
+
 # Custom interface configuration
 interface:
   customWelcome: "Hello {{user.name}}!"
@@ -100,9 +109,31 @@ endpoints:
       baseURL: "${LOCAL_MODELS_BASEURL}"
       apiKey: "dummy"
       models:
-        default: ["Test_Gemma_Retrained:latest"]
-        fetch: true
+        default: ["Test_Gemma_Retrained:latest", "orieg/gemma3-tools:4b-it-qat", "qwen3:8b", "phi4-mini:latest", "gemma3:4b", "gemma3:27b", "deepseek-r1:8b", "qwen2.5-coder:14b"]
       streamRate: 35
+      tokenConfig:
+        "orieg/gemma3-tools:4b-it-qat":
+          prompt: 0
+          completion: 0
+        "qwen3:8b":
+          prompt: 0
+          completion: 0
+        "phi4-mini:latest":
+          prompt: 0
+          completion: 0
+        "gemma3:4b":
+          prompt: 0
+          completion: 0
+        "gemma3:27b":
+          prompt: 0
+          completion: 0
+        "deepseek-r1:8b":
+          prompt: 0
+          completion: 0
+        "qwen2.5-coder:14b":
+          prompt: 0
+          completion: 0
+
     - name: "Assistant"
       baseURL: "${ORCHESTRATOR_URL}"
       apiKey: "$ORCHESTRATOR_API_KEY}"
@@ -118,6 +149,16 @@ endpoints:
       headers:
         X-User-Email: "{{LIBRECHAT_USER_EMAIL}}"
         X-User-Id: "{{LIBRECHAT_USER_ID}}"
+      tokenConfig:
+        "orieg/gemma3-tools:4b-it-qat":
+          prompt: 0
+          completion: 0
+        "qwen3:8b":
+          prompt: 0
+          completion: 0
+        "phi4-mini:latest":
+          prompt: 0
+          completion: 0
 
 
 memory:

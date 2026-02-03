@@ -7,11 +7,20 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { Toast, ThemeProvider, ToastProvider } from '@librechat/client';
 import { QueryClient, QueryClientProvider, QueryCache } from '@tanstack/react-query';
-import { ScreenshotProvider, useApiErrorBoundary } from './hooks';
+import { ScreenshotProvider, useApiErrorBoundary, useBalanceNotifications } from './hooks';
 import { getThemeFromEnv } from './utils/getThemeFromEnv';
 import { initializeFontSize } from '~/store/fontSize';
 import { LiveAnnouncer } from '~/a11y';
 import { router } from './routes';
+
+/**
+ * Balance Notifications Component
+ * Polls balance every 30 seconds and shows toast notifications
+ */
+const BalanceNotifications = () => {
+  useBalanceNotifications(true, 30000); // enabled, poll every 30 seconds
+  return null;
+};
 
 const App = () => {
   const { setError } = useApiErrorBoundary();
@@ -49,6 +58,7 @@ const App = () => {
                 4. Fall back to default theme colors if nothing is stored */}
             <RadixToast.Provider>
               <ToastProvider>
+                <BalanceNotifications />
                 <DndProvider backend={HTML5Backend}>
                   <RouterProvider router={router} />
                   <ReactQueryDevtools initialIsOpen={false} position="top-right" />
