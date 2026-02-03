@@ -23,6 +23,7 @@ const createValidateImageRequest = require('./middleware/validateImageRequest');
 const { jwtLogin, ldapLogin, passportLogin } = require('~/strategies');
 const { updateInterfacePermissions } = require('~/models/interface');
 const { checkMigrations } = require('./services/start/migration');
+const { startAutoRefillCron } = require('./services/AutoRefillCron');
 const initializeMCPs = require('./services/initializeMCPs');
 const configureSocialLogins = require('./socialLogins');
 const { getAppConfig } = require('./services/Config');
@@ -189,6 +190,11 @@ const startServer = async () => {
     await initializeMCPs();
     await initializeOAuthReconnectManager();
     await checkMigrations();
+
+    // Initialize auto-refill cron job
+    if (isEnabled(process.env.CHECK_BALANCE) && isEnabled(process.env.AUTO_REFILL_ENABLED)) {
+      startAutoRefillCron();
+    }
 
     // Initialize PostgreSQL logs database
     if (process.env.POSTGRES_LOGS_URI) {

@@ -11,6 +11,9 @@
     "update": "node config/update.js",
     "add-balance": "node config/add-balance.js",
     "set-balance": "node config/set-balance.js",
+    "setup-balance": "node config/setup-balance.js",
+    "quick-balance": "node config/quick-balance-presets.js",
+    "test-auto-refill": "node config/test-auto-refill.js",
     "list-balances": "node config/list-balances.js",
     "user-stats": "node config/user-stats.js",
     "rebuild:package-lock": "node config/packages",
@@ -160,6 +163,7 @@
     "@librechat/client": "^0.3.1",
     "@smithy/eventstream-codec": "^4.0.5",
     "@smithy/signature-v4": "^5.1.3",
+    "node-cron": "^4.2.1",
     "pg": "^8.16.3"
   }
 }
