@@ -85,20 +85,37 @@ function startAutoRefillCron() {
             tokenCredits,
           } = balance;
 
-          // Calculate next refill date
-          const nextRefillDate = calculateNextRefillDate(
-            new Date(lastRefill),
-            refillIntervalValue,
-            refillIntervalUnit,
-          );
+          // For daily refills, check if the day has changed (not just 24 hours)
+          let shouldRefill = false;
+          if (refillIntervalUnit === 'days') {
+            const lastRefillDate = new Date(lastRefill);
+            const lastRefillDay = lastRefillDate.toISOString().split('T')[0]; // YYYY-MM-DD
+            const todayDay = now.toISOString().split('T')[0]; // YYYY-MM-DD
 
-          // Check if it's time to refill
-          if (now < nextRefillDate) {
-            logger.debug(
-              `[AutoRefill] Skipping user ${user}: next refill at ${nextRefillDate.toISOString()}`,
+            shouldRefill = lastRefillDay !== todayDay;
+
+            if (!shouldRefill) {
+              logger.debug(
+                `[AutoRefill] Skipping user ${user}: already refilled today (last refill: ${lastRefillDay})`,
+              );
+              skippedCount++;
+              continue;
+            }
+          } else {
+            // For other intervals (hours, minutes, etc.), use the existing logic
+            const nextRefillDate = calculateNextRefillDate(
+              new Date(lastRefill),
+              refillIntervalValue,
+              refillIntervalUnit,
             );
-            skippedCount++;
-            continue;
+
+            if (now < nextRefillDate) {
+              logger.debug(
+                `[AutoRefill] Skipping user ${user}: next refill at ${nextRefillDate.toISOString()}`,
+              );
+              skippedCount++;
+              continue;
+            }
           }
 
           // Perform auto-refill

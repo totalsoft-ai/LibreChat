@@ -25,6 +25,7 @@ type TTokenBalance = {
   violation_count: number;
   date: Date;
   generations?: unknown[];
+  resetInHours?: number;
 };
 
 type TExpiredKey = {
@@ -98,8 +99,8 @@ const errorMessages = {
     }.`;
   },
   token_balance: (json: TTokenBalance) => {
-    const { balance, tokenCost, promptTokens, generations } = json;
-    const message = `Insufficient Funds! Balance: ${balance}. Prompt tokens: ${promptTokens}. Cost: ${tokenCost}.`;
+    const { generations, resetInHours } = json;
+    const message = `You've reached your limit. It will reset in ${resetInHours} hours.`;
     return (
       <>
         {message}

@@ -10,6 +10,18 @@ function isInvalidDate(date) {
 }
 
 /**
+ * Calculates the number of hours until midnight (00:00).
+ * @returns {number} Hours until midnight, rounded up.
+ */
+function getHoursUntilMidnight() {
+  const now = new Date();
+  const midnight = new Date(now);
+  midnight.setHours(0, 0, 0, 0); // Next midnight
+  const diffMs = midnight - now;
+  return Math.ceil(diffMs / (1000 * 60 * 60));
+}
+
+/**
  * Simple check method that calculates token cost and returns balance info.
  * The auto-refill logic has been moved to balanceMethods.js to prevent circular dependencies.
  */
@@ -142,6 +154,14 @@ const checkBalance = async ({ req, res, txData }) => {
     tokenCost,
     promptTokens: txData.amount,
   };
+
+  // Calculate when the limit will reset (daily at midnight)
+  try {
+    errorMessage.resetInHours = getHoursUntilMidnight();
+  } catch (error) {
+    logger.error('[Balance.checkBalance] Failed to calculate resetInHours', error);
+    // Continue without resetInHours if calculation fails
+  }
 
   if (txData.generations && txData.generations.length > 0) {
     errorMessage.generations = txData.generations;
