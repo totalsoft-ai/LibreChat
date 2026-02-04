@@ -10,15 +10,23 @@ function isInvalidDate(date) {
 }
 
 /**
- * Calculates the number of hours until the next midnight (00:00).
+ * Calculates the number of hours until the next midnight (00:00) in the configured timezone.
  * @returns {number} Hours until next midnight, rounded up.
  */
 function getHoursUntilMidnight() {
+  const timezone = process.env.AUTO_REFILL_TIMEZONE || 'UTC';
   const now = new Date();
-  const midnight = new Date(now);
-  midnight.setDate(midnight.getDate() + 1); // Move to tomorrow
-  midnight.setHours(0, 0, 0, 0); // Set to midnight
-  const diffMs = midnight - now;
+
+  // Get current time in the target timezone
+  const nowInTz = new Date(now.toLocaleString('en-US', { timeZone: timezone }));
+
+  // Create midnight of tomorrow in the target timezone
+  const tomorrowMidnight = new Date(nowInTz);
+  tomorrowMidnight.setDate(tomorrowMidnight.getDate() + 1);
+  tomorrowMidnight.setHours(0, 0, 0, 0);
+
+  // Calculate difference
+  const diffMs = tomorrowMidnight - nowInTz;
   return Math.ceil(diffMs / (1000 * 60 * 60));
 }
 
