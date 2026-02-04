@@ -98,7 +98,7 @@ const tokenValues = Object.assign(
     'claude-': { prompt: 0.8, completion: 2.4 },
     deepseek: { prompt: 0.28, completion: 0.42 },
     command: { prompt: 0.38, completion: 0.38 },
-    gemma: { prompt: 0.02, completion: 0.04 }, // Base pattern (using gemma-3n-e4b pricing)
+    gemma: { prompt: 0.00, completion: 0.00 }, // Base pattern (using gemma-3n-e4b pricing)
     gemini: { prompt: 0.5, completion: 1.5 },
     'gpt-oss': { prompt: 0.05, completion: 0.2 },
     // Specific model variants (check FIRST - more specific patterns at end)
@@ -142,10 +142,15 @@ const tokenValues = Object.assign(
     'command-text': { prompt: 1.5, completion: 2.0 },
     'deepseek-reasoner': { prompt: 0.28, completion: 0.42 },
     'deepseek-r1': { prompt: 0.4, completion: 2.0 },
+    'deepseek-r1:8b': { prompt: 0.00, completion: 0.00 },
     'deepseek-v3': { prompt: 0.2, completion: 0.8 },
-    'gemma-2': { prompt: 0.01, completion: 0.03 }, // Base pattern (using gemma-2-9b pricing)
-    'gemma-3': { prompt: 0.02, completion: 0.04 }, // Base pattern (using gemma-3n-e4b pricing)
+    'gemma-2': { prompt: 0.00, completion: 0.00 }, // Base pattern (using gemma-2-9b pricing)
+    'gemma-3': { prompt: 0.00, completion: 0.00 }, // Base pattern (using gemma-3n-e4b pricing)
     'gemma-3-27b': { prompt: 0.09, completion: 0.16 },
+    'gemma3:27b': { prompt: 0.00, completion: 0.00 },
+    'gemma3:4b': { prompt: 0.00, completion: 0.00 },
+    'orieg/gemma3-tools:4b-it-qat': { prompt: 0.00, completion: 0.00 },
+    'embeddinggemma:latest': { prompt: 0.00, completion: 0.00 },
     'gemini-1.5': { prompt: 2.5, completion: 10 },
     'gemini-1.5-flash': { prompt: 0.15, completion: 0.6 },
     'gemini-1.5-flash-8b': { prompt: 0.075, completion: 0.3 },
@@ -196,12 +201,14 @@ const tokenValues = Object.assign(
     // Qwen models
     qwen: { prompt: 0.08, completion: 0.33 }, // Qwen base pattern (using qwen2.5-72b pricing)
     'qwen2.5': { prompt: 0.08, completion: 0.33 }, // Qwen 2.5 base pattern
+    'qwen2.5-coder:14b': { prompt: 0.00, completion: 0.00 },
     'qwen-turbo': { prompt: 0.05, completion: 0.2 },
     'qwen-plus': { prompt: 0.4, completion: 1.2 },
     'qwen-max': { prompt: 1.6, completion: 6.4 },
     'qwq-32b': { prompt: 0.15, completion: 0.4 },
     // Qwen3 models
     qwen3: { prompt: 0.035, completion: 0.138 }, // Qwen3 base pattern (using qwen3-4b pricing)
+    'qwen3:8b': { prompt: 0.00, completion: 0.00 },
     'qwen3-8b': { prompt: 0.035, completion: 0.138 },
     'qwen3-14b': { prompt: 0.05, completion: 0.22 },
     'qwen3-30b-a3b': { prompt: 0.06, completion: 0.22 },
@@ -219,6 +226,10 @@ const tokenValues = Object.assign(
     'qwen3-coder-plus': { prompt: 1, completion: 5 },
     'qwen3-coder-flash': { prompt: 0.3, completion: 1.5 },
     'qwen3-next-80b-a3b': { prompt: 0.1, completion: 0.8 },
+    // Other Local Models
+    'sqlcoder:15b': { prompt: 0.00, completion: 0.00 },
+    'Test_Gemma_Retrained:latest': { prompt: 0.00, completion: 0.00 },
+    'phi4-mini:latest': { prompt: 0.00, completion: 0.00 },
   },
   bedrockValues,
 );
