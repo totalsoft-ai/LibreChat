@@ -10,13 +10,14 @@ function isInvalidDate(date) {
 }
 
 /**
- * Calculates the number of hours until midnight (00:00).
- * @returns {number} Hours until midnight, rounded up.
+ * Calculates the number of hours until the next midnight (00:00).
+ * @returns {number} Hours until next midnight, rounded up.
  */
 function getHoursUntilMidnight() {
   const now = new Date();
   const midnight = new Date(now);
-  midnight.setHours(0, 0, 0, 0); // Next midnight
+  midnight.setDate(midnight.getDate() + 1); // Move to tomorrow
+  midnight.setHours(0, 0, 0, 0); // Set to midnight
   const diffMs = midnight - now;
   return Math.ceil(diffMs / (1000 * 60 * 60));
 }
