@@ -2,23 +2,11 @@
 
 Build a library of reusable prompt templates with variables and commands for consistent, efficient AI interactions.
 
-## What You'll Learn
-
-- Creating prompt templates
-- Using variables in prompts
-- Command shortcuts for quick access
-- Organizing prompts in groups
-- Version control for prompts
-- Sharing prompts with others
-- Using prompts in chat with @mentions
-
 ## What Are Prompts?
-
-### Definition
 
 **Prompts** are reusable templates for AI instructions that you can save and use across conversations.
 
-**Key features:**
+**Key Features:**
 - Save frequently used instructions
 - Include dynamic variables
 - Quick access via commands
@@ -26,100 +14,54 @@ Build a library of reusable prompt templates with variables and commands for con
 - Version control
 - Share with team members
 
-### Why Use Prompts?
+**Benefits:** Consistency, efficiency, collaboration, quality refinement, organization, customization with variables
 
-**Benefits:**
-- **Consistency:** Same prompt every time
-- **Efficiency:** No retyping common instructions
-- **Collaboration:** Share proven prompts with team
-- **Quality:** Refine and perfect over time
-- **Organization:** Categorize by use case
-- **Variables:** Customize for different contexts
-
-**Use cases:**
-- Email response templates
-- Code review instructions
-- Content creation frameworks
-- Analysis templates
-- Meeting summaries
-- Report structures
+**Use Cases:** Email response templates, code review instructions, content creation frameworks, analysis templates, meeting summaries, report structures
 
 ## Creating Prompts
 
-### Step-by-Step Guide
+**Create a Prompt:**
 
-**Step 1: Access Prompts**
+1. **Access Prompts:**
+   Click **Prompts** in navigation bar or use shortcut → Prompts library opens
 
-1. Click **Prompts** in the navigation bar
-2. Or press the prompts shortcut (if configured)
-3. The prompts library opens
+2. **Create New:**
+   Click **+ New Prompt** → Prompt editor opens
 
-**Step 2: Create New Prompt**
+3. **Name Your Prompt:**
+   Enter descriptive name (e.g., "Email Response - Professional")
 
-1. Click **+ New Prompt** or **Create Prompt**
-2. The prompt editor opens
+4. **Write the Prompt:**
+   Enter prompt text with variables using `{{variable_name}}` syntax
 
-**Step 3: Name Your Prompt**
-
-1. Enter a descriptive name
-2. This appears in your prompts list
-3. Example: "Email Response - Professional"
-
-**Step 4: Write the Prompt**
-
-Enter your prompt text:
-
+Example:
 ```
 Please review the following email and draft a professional response:
 
 Email: {{email_content}}
 
 Response tone: {{tone}}
-Key points to address:
-{{key_points}}
+Key points to address: {{key_points}}
 ```
 
-**Step 5: Add Description (Optional)**
+5. **Add Description (Optional):**
+   Explain what prompt does, include usage tips, note required variables
 
-- Explain what the prompt does
-- Include usage tips
-- Note required variables
+6. **Configure Settings:**
+   - **Command Shortcut**: Create quick access command starting with `/` (e.g., `/email`)
+   - **Category/Group**: Select or create category (Email, Code, Writing, Analysis)
+   - **Variables**: Automatically detected from `{{variable_name}}`, define defaults/descriptions
+   - **Auto-send**: Enable to auto-send, disable to allow editing
 
-**Step 6: Configure Settings**
-
-**Command Shortcut:**
-- Create a quick access command
-- Start with `/` (e.g., `/email`)
-- Use in chat to insert this prompt
-
-**Category/Group:**
-- Select or create a category
-- Examples: "Email", "Code", "Writing", "Analysis"
-- Helps organize prompts
-
-**Variables:**
-- Automatically detected from `{{variable_name}}` syntax
-- Define defaults if desired
-- Add descriptions for each variable
-
-**Auto-send:**
-- Enable to automatically send the prompt
-- Disable to allow editing before sending
-- Useful for simple prompts
-
-**Step 7: Save**
-
-1. Click **Save** or **Create**
-2. Prompt appears in your library
-3. Ready to use
+7. **Save:**
+   Click **Save** or **Create** → Prompt appears in library
 
 ## Using Variables
 
-### Variable Syntax
+**Variable Syntax:**
+Use double curly braces: `{{variable_name}}`
 
-Variables use double curly braces: `{{variable_name}}`
-
-**Example:**
+Example:
 ```
 Analyze this {{document_type}} and provide:
 1. Summary of {{aspect_1}}
@@ -127,47 +69,12 @@ Analyze this {{document_type}} and provide:
 3. Recommendations for {{aspect_3}}
 ```
 
-### Variable Types
+**Using Prompts with Variables:**
+- **Manual Fill**: Insert prompt → Fill variable fields → Click Use Prompt or Send
+- **Pre-filled**: Type values before inserting, system may auto-fill
+- **Default Values**: Set defaults when creating prompt, edit before sending if needed
 
-**Simple text:**
-```
-Hello {{name}}, welcome to {{company}}!
-```
-
-**Lists:**
-```
-Review these items:
-{{item_list}}
-```
-
-**Long content:**
-```
-Document to analyze:
-{{document_content}}
-```
-
-### Using Prompts with Variables
-
-**Method 1: Manual Fill**
-
-1. Insert prompt (via command or UI)
-2. Prompt appears with placeholder boxes for variables
-3. Fill in each variable field
-4. Click **Use Prompt** or **Send**
-
-**Method 2: Pre-filled**
-
-1. Type values before inserting prompt
-2. Some systems detect and auto-fill
-3. Confirm and send
-
-**Method 3: Default Values**
-
-1. Set defaults when creating prompt
-2. Variables use defaults if not specified
-3. Edit before sending if needed
-
-### Example Prompts with Variables
+**Example Prompts:**
 
 **Code Review:**
 ```
@@ -177,428 +84,111 @@ Review this {{language}} code for:
 - Security issues
 - {{additional_focus}}
 
-Code:
-{{code_content}}
+Code: {{code_content}}
 ```
 
 **Email Response:**
 ```
 Draft a {{tone}} email response to:
-
 From: {{sender_name}}
 Subject: {{subject}}
-Original email:
-{{email_body}}
-
-Key points to address:
-{{key_points}}
+Original email: {{email_body}}
+Key points to address: {{key_points}}
 ```
-
-**Content Analysis:**
-```
-Analyze this {{content_type}} for:
-
-Audience: {{target_audience}}
-Goal: {{content_goal}}
-
-Content:
-{{content}}
-
-Provide:
-1. Strengths
-2. Weaknesses
-3. Suggestions for improvement
-```
-
-## Command Shortcuts
-
-### Creating Commands
-
-Commands provide instant access to prompts:
-
-1. When creating/editing a prompt
-2. Find **Command** field
-3. Enter command starting with `/`
-4. Example: `/review`, `/email`, `/summarize`
-5. Save prompt
-
-### Using Commands
-
-**In chat:**
-
-1. Type your command: `/email`
-2. If prompt has variables, fill them in
-3. Press Enter to use prompt
-
-**Command list:**
-
-1. Type `/` in chat
-2. See list of available commands
-3. Click or arrow keys to select
-4. Press Enter to use
-
-**Quick reference:**
-
-- `/email` - Email response template
-- `/review` - Code review prompt
-- `/summarize` - Summarization template
-- `/analyze` - Analysis framework
-- Your custom commands
-
-### Best Practices for Commands
-
-1. **Short and memorable:** `/email` not `/email-response-professional`
-2. **Consistent naming:** Use patterns (e.g., all `/code-*` for coding prompts)
-3. **Avoid conflicts:** Don't overlap with system commands
-4. **Document:** Add descriptions to remember what they do
-
-## Organizing Prompts
-
-### Using Groups/Categories
-
-**Create categories:**
-
-1. In prompts library, create new category
-2. Name it: "Email", "Coding", "Analysis", etc.
-3. Assign prompts to categories
-
-**Benefits:**
-- Quick filtering
-- Better discovery
-- Team organization
-- Logical structure
-
-**Example structure:**
-```
-📁 Email
-  - Professional Response
-  - Follow-up
-  - Meeting Request
-
-📁 Coding
-  - Code Review
-  - Debug Help
-  - Documentation
-
-📁 Analysis
-  - Data Analysis
-  - Document Review
-  - Competitor Analysis
-```
-
-### Filtering and Search
-
-**Filter by category:**
-1. Click category in sidebar
-2. Only prompts in that category show
-
-**Search prompts:**
-1. Use search bar in prompts library
-2. Search by name, description, or content
-3. Results appear instantly
-
-**Sort prompts:**
-- By name (A-Z)
-- By date (newest/oldest)
-- By usage frequency
-- By category
-
-## Version Control
-
-### Why Version Control?
-
-- Track changes over time
-- Revert if new version doesn't work well
-- Compare versions
-- Document improvements
-
-### Creating Versions
-
-Versions are created when you edit and save:
-
-1. Open existing prompt
-2. Make changes
-3. Save
-4. New version is created
-5. Previous version is preserved
-
-**Version metadata:**
-- Version number (v1, v2, v3...)
-- Date created
-- What changed (if you add notes)
-
-### Viewing Version History
-
-1. Open a prompt
-2. Click **Versions** or **History**
-3. See list of all versions
-4. Click version to view details
-
-### Reverting to Previous Version
-
-1. View version history
-2. Find the version you want
-3. Click **Use This Version** or **Revert**
-4. Confirm
-5. Creates new version with old content
-
-## Sharing Prompts
-
-### Making Prompts Public
-
-Share with all users:
-
-1. Open prompt settings
-2. Set visibility to **Public**
-3. Save
-4. Appears in public prompts library
-
-### Sharing with Specific People
-
-1. Open prompt settings
-2. Go to **Sharing**
-3. Add users by email/username
-4. Set permissions:
-   - **View:** Can use but not edit
-   - **Edit:** Can modify
-5. Save
-
-### Team Prompt Libraries
-
-If your organization has teams:
-
-1. Create prompts in team space
-2. All team members can access
-3. Collaborate on improvements
-4. Share best practices
 
 ## Using Prompts in Chat
 
-### Method 1: Commands
+**Method 1: Command Shortcuts**
+- Type `/` in chat
+- List of available commands appears
+- Type command name (e.g., `/email`)
+- Prompt inserts with variable fields
+- Fill variables → Send
 
-1. Type `/command` in chat
-2. Fill variables if needed
-3. Send
+**Method 2: Prompts Button**
+- Click **Prompts** button in chat
+- Browse prompts library
+- Click prompt to insert
+- Fill variables → Send
 
-### Method 2: @Mentions
 
-1. Type `@` in chat
-2. See list of prompts
-3. Select prompt
-4. Fill variables
-5. Send
+**View History:**
+Open prompt → **Version History** → See all versions with dates and changes
 
-### Method 3: Prompts Panel
+**Create New Version:**
+Edit prompt → Make changes → Save → New version created automatically
 
-1. Open prompts panel (side or modal)
-2. Browse or search prompts
-3. Click to use
-4. Fill variables
-5. Send
+**Revert to Previous:**
+Version History → Find version → **Revert** → Confirm
 
-### Method 4: Keyboard Shortcuts
+Best practice: Add description of changes when saving.
 
-Some systems support:
-- `Ctrl/Cmd + P` - Open prompts
-- Arrow keys to select
-- Enter to use
+## Sharing Prompts
 
-## Prompt Library Examples
+**Share with Team:**
+Open prompt → **Share** → Add users (email, username, groups) → Set permissions (View/Use, Edit, Admin) → Save
 
-### Professional Email Response
+**Make Public:**
+Open prompt → **Sharing** → Select **Public** → Save
 
-**Name:** Professional Email Response
-**Command:** `/email-pro`
-**Category:** Email
+Prompt now available to all users in organization.
 
-```
-Please draft a professional email response to the following:
+**Share via Link:**
+Open prompt → **Generate Link** → Set permissions and expiration → Copy link → Share
 
-From: {{sender}}
-Subject: {{subject}}
+**Permission Levels:**
+- **View/Use**: Can use the prompt
+- **Edit**: Can modify the prompt
+- **Admin**: Can manage sharing and delete
 
-{{original_email}}
+## Managing Prompts
 
-Response should:
-- Maintain {{tone}} tone
-- Address: {{key_points}}
-- {{additional_instructions}}
-```
+**Edit Prompts:**
+Find prompt → Click to open → Edit → Save
 
-### Code Review Template
+**Duplicate Prompts:**
+Find prompt → **Duplicate** → Modify copy as needed
 
-**Name:** Code Review
-**Command:** `/codereview`
-**Category:** Development
+**Delete Prompts:**
+Find prompt → **Delete** → Confirm (permanent action)
 
-```
-Please review this {{language}} code:
+**Search Prompts:**
+Use search bar in prompts library → Type keywords → Results filter instantly
 
-{{code}}
-
-Focus on:
-1. Code quality and best practices
-2. Potential bugs
-3. Security concerns
-4. Performance optimizations
-5. {{additional_focus}}
-
-Provide specific suggestions with examples.
-```
-
-### Content Summarization
-
-**Name:** Summarize Content
-**Command:** `/summarize`
-**Category:** Analysis
-
-```
-Summarize the following {{content_type}}:
-
-{{content}}
-
-Summary should:
-- Be {{length}} in length
-- Focus on {{key_aspects}}
-- Target {{audience}} audience
-- Format: {{format}}
-```
-
-### Meeting Notes
-
-**Name:** Meeting Notes
-**Command:** `/notes`
-**Category:** Productivity
-
-```
-Organize these meeting notes:
-
-Meeting: {{meeting_title}}
-Date: {{date}}
-Attendees: {{attendees}}
-
-Raw notes:
-{{raw_notes}}
-
-Create structured notes with:
-1. Key Discussion Points
-2. Decisions Made
-3. Action Items (with owners)
-4. Next Steps
-```
+**Filter Prompts:**
+Use category/group filters → Select category → View prompts in that category only
 
 ## Best Practices
 
-### Prompt Writing
+**Creating Effective Prompts:**
+- Be specific and clear
+- Use descriptive names
+- Include usage instructions in description
+- Test prompts before sharing
+- Use variables for flexibility
+- Organize with appropriate categories
 
-1. **Be specific:** Clear instructions get better results
-2. **Use structure:** Numbered lists, sections
-3. **Define output format:** Specify how you want the response
-4. **Include examples:** Show what you want
-5. **Set constraints:** Word counts, tone, style
+**Variable Design:**
+- Use clear variable names ({{user_name}} not {{x}})
+- Provide default values when appropriate
+- Add descriptions for complex variables
+- Limit number of variables for simplicity
 
-### Variable Design
 
-1. **Descriptive names:** `{{client_name}}` not `{{x}}`
-2. **Consistent naming:** Use same style across prompts
-3. **Logical grouping:** Related variables together
-4. **Defaults when useful:** Common values as defaults
-5. **Clear descriptions:** Explain what each variable is for
-
-### Organization
-
-1. **Categorize logically:** Group related prompts
-2. **Consistent naming:** Follow patterns
-3. **Good descriptions:** Help others (and future you) understand
-4. **Regular cleanup:** Archive or delete unused prompts
-5. **Version notes:** Document why you changed things
-
-### Sharing
-
-1. **Test before sharing:** Ensure prompt works well
-2. **Add documentation:** Include usage examples
-3. **Set appropriate permissions:** View vs. Edit
-4. **Gather feedback:** Improve based on usage
-5. **Keep updated:** Maintain shared prompts
+**Naming Conventions:**
+Good: "Email Response - Customer Support", "Code Review - Python"
+Avoid: "Prompt1", "Test", "My Prompt"
 
 ## Troubleshooting
 
-### Prompt Not Working as Expected
+**Prompt Not Appearing:**
+Check category filter, search for prompt name, ensure not deleted, refresh prompts library
 
-**Solutions:**
-- Review and refine instructions
-- Add more specific details
-- Include examples of desired output
-- Test with different models
-- Check variable values
+**Variables Not Working:**
+Check syntax (must be `{{variable_name}}`), ensure no spaces in variable names, verify variables defined in prompt settings
 
-### Variables Not Filling
+**Command Not Working:**
+Verify command starts with `/`, check command not already in use, ensure prompt saved with command, try different command name
 
-**Solutions:**
-- Check syntax: `{{variable}}` not `{variable}`
-- Ensure no spaces: `{{name}}` not `{{ name }}`
-- Verify variable names match
-- Try editing and re-saving prompt
-
-### Command Not Showing
-
-**Solutions:**
-- Ensure command starts with `/`
-- Check for conflicts with other commands
-- Verify prompt is saved
-- Refresh the page
-- Check permissions
-
-### Can't Share Prompt
-
-**Solutions:**
-- Verify your account permissions
-- Check if prompt is fully saved
-- Ensure you're the owner
-- Contact administrator if blocked
-
-## Common Scenarios
-
-### Scenario 1: Creating a Support Response Library
-
-**Goal:** Build consistent customer support responses
-
-**Steps:**
-1. Create category "Support"
-2. Create prompts for common issues:
-   - `/refund` - Refund requests
-   - `/technical` - Technical issues
-   - `/shipping` - Shipping questions
-3. Include variables for personalization:
-   - `{{customer_name}}`
-   - `{{order_number}}`
-   - `{{issue_details}}`
-4. Share with support team
-5. Update based on feedback
-
-### Scenario 2: Developer Workflow Prompts
-
-**Goal:** Streamline code-related tasks
-
-**Steps:**
-1. Create category "Development"
-2. Create prompts:
-   - `/review` - Code review
-   - `/debug` - Debug assistance
-   - `/doc` - Documentation generation
-   - `/test` - Test case creation
-3. Include code language variable
-4. Version control as you refine
-5. Share with development team
-
-## Next Steps
-
-Explore related features:
-
-- **[Agents Marketplace](./04-agents.md)**: Combine prompts with agents
-- **[Conversations Management](./02-conversations.md)**: Use prompts across conversations
-- **[Settings & Personalization](./10-settings.md)**: Configure prompt-related settings
-
----
-
-**Build a powerful prompt library** to streamline your AI workflows!
+**Can't Share Prompt:**
+Check account permissions, verify administrator allows sharing, ensure prompt fully configured, check if you're prompt owner

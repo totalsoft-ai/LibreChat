@@ -10,6 +10,27 @@ function isInvalidDate(date) {
 }
 
 /**
+ * Calculates the number of hours until the next midnight (00:00) in the configured timezone.
+ * @returns {number} Hours until next midnight, rounded up.
+ */
+function getHoursUntilMidnight() {
+  const timezone = process.env.AUTO_REFILL_TIMEZONE || 'UTC';
+  const now = new Date();
+
+  // Get current time in the target timezone
+  const nowInTz = new Date(now.toLocaleString('en-US', { timeZone: timezone }));
+
+  // Create midnight of tomorrow in the target timezone
+  const tomorrowMidnight = new Date(nowInTz);
+  tomorrowMidnight.setDate(tomorrowMidnight.getDate() + 1);
+  tomorrowMidnight.setHours(0, 0, 0, 0);
+
+  // Calculate difference
+  const diffMs = tomorrowMidnight - nowInTz;
+  return Math.ceil(diffMs / (1000 * 60 * 60));
+}
+
+/**
  * Simple check method that calculates token cost and returns balance info.
  * The auto-refill logic has been moved to balanceMethods.js to prevent circular dependencies.
  */
@@ -142,6 +163,14 @@ const checkBalance = async ({ req, res, txData }) => {
     tokenCost,
     promptTokens: txData.amount,
   };
+
+  // Calculate when the limit will reset (daily at midnight)
+  try {
+    errorMessage.resetInHours = getHoursUntilMidnight();
+  } catch (error) {
+    logger.error('[Balance.checkBalance] Failed to calculate resetInHours', error);
+    // Continue without resetInHours if calculation fails
+  }
 
   if (txData.generations && txData.generations.length > 0) {
     errorMessage.generations = txData.generations;

@@ -8,6 +8,7 @@ interface DocSection {
   title: string;
   order: number;
   filename: string;
+  keywords?: string;
 }
 
 interface SearchResult {
@@ -72,11 +73,22 @@ export default function HelpSearch({ sections, onSelectResult }: HelpSearchProps
     }
 
     const searchResults: SearchResult[] = sections
-      .map((section) => ({
-        id: section.id,
-        title: section.title,
-        score: fuzzySearch(debouncedSearch, section.title),
-      }))
+      .map((section) => {
+        // Search in both title and keywords
+        const titleScore = fuzzySearch(debouncedSearch, section.title);
+        const keywordsScore = section.keywords
+          ? fuzzySearch(debouncedSearch, section.keywords)
+          : 0;
+
+        // Use the higher score (prioritize title matches slightly by multiplying by 1.2)
+        const score = Math.max(titleScore * 1.2, keywordsScore);
+
+        return {
+          id: section.id,
+          title: section.title,
+          score,
+        };
+      })
       .filter((result) => result.score > 0)
       .sort((a, b) => b.score - a.score)
       .slice(0, 5); // Limit to top 5 results

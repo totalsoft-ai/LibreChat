@@ -11,6 +11,15 @@ cache: false
 # fileStrategy: "s3"
 fileStrategy: "s3"
 
+balance:
+  enabled: true
+  startBalance: 20000
+  autoRefillEnabled: true
+  refillIntervalValue: 1
+  refillIntervalUnit: 'days'
+  refillAmount: 20000 
+  alertsEnabled: true
+
 # Custom interface configuration
 interface:
   customWelcome: "Hello {{user.name}}!"
@@ -32,19 +41,7 @@ actions:
     - "google.com"
 
 
-mcpServers:
-  charisma-reports-informator:
-        startup: false
-        requiresOAuth: true
-        type: streamable-http
-        url: ${CHARISMA_REPORTS_INFORMATOR}/mcp
-        oauth:
-          authorization_url: https://erp-reports.totalsoft.local/oauth/authorize
-          token_url: https://erp-reports.totalsoft.local/oauth/token
-          client_id: ${KEYCLOAK_CLIENT_ID}
-          client_secret: ${KEYCLOAK_CLIENT_SECRET}
-          redirect_uri: https://librechat-dev.totalsoft.local/oauth/callback
-          scope: "read execute"
+#mcpServers:
 
 # Definition of custom endpoints
 endpoints:
@@ -100,9 +97,31 @@ endpoints:
       baseURL: "${LOCAL_MODELS_BASEURL}"
       apiKey: "dummy"
       models:
-        default: ["Test_Gemma_Retrained:latest"]
-        fetch: true
+        default: ["Test_Gemma_Retrained:latest", "orieg/gemma3-tools:4b-it-qat", "qwen3:8b", "phi4-mini:latest", "gemma3:4b", "gemma3:27b", "deepseek-r1:8b", "qwen2.5-coder:14b"]
       streamRate: 35
+      tokenConfig:
+        "orieg/gemma3-tools:4b-it-qat":
+          prompt: 0
+          completion: 0
+        "qwen3:8b":
+          prompt: 0
+          completion: 0
+        "phi4-mini:latest":
+          prompt: 0
+          completion: 0
+        "gemma3:4b":
+          prompt: 0
+          completion: 0
+        "gemma3:27b":
+          prompt: 0
+          completion: 0
+        "deepseek-r1:8b":
+          prompt: 0
+          completion: 0
+        "qwen2.5-coder:14b":
+          prompt: 0
+          completion: 0
+
     - name: "Assistant"
       baseURL: "${ORCHESTRATOR_URL}"
       apiKey: "$ORCHESTRATOR_API_KEY}"
@@ -118,18 +137,32 @@ endpoints:
       headers:
         X-User-Email: "{{LIBRECHAT_USER_EMAIL}}"
         X-User-Id: "{{LIBRECHAT_USER_ID}}"
+      tokenConfig:
+        "orieg/gemma3-tools:4b-it-qat":
+          prompt: 0
+          completion: 0
+        "qwen3:8b":
+          prompt: 0
+          completion: 0
+        "phi4-mini:latest":
+          prompt: 0
+          completion: 0
 
 
-memory:
-  disabled: false
-  personalize: true
-  tokenLimit: 3000
-  messageWindowSize: 8
-  agent:
-    provider: "Local Models"
-    model: "phi4-mini:latest"
-    instructions: |
-      You are a memory assistant. Store only user-approved, useful facts and preferences.
-    model_parameters:
-      temperature: 0.2
-      max_tokens: 1000
+#memory:
+#  disabled: false
+#  personalize: true
+#  tokenLimit: 3000
+#  messageWindowSize: 8
+#  agent:
+#    provider: "Local Models"
+#    model: "phi4-mini:latest"
+#    instructions: |
+#      You are a memory assistant. Store only user-approved, useful facts and preferences.
+#    model_parameters:
+#      temperature: 0.2
+#      max_tokens: 1000
+#  tokenConfig:
+#        "phi4-mini:latest":
+#          prompt: 0
+#          completion: 0

@@ -14,26 +14,26 @@ const DOCS_MAP = {
   'files': '05-files.md',
   'export-share': '06-export-share.md',
   'prompts': '07-prompts.md',
-  'speech': '08-speech.md',
-  'advanced': '09-advanced.md',
-  'settings': '10-settings.md',
+  'workspace': '10-workspaces.md',
+  'advanced': '08-advanced.md',
+  'settings': '09-settings.md',
   'faq': '11-faq.md',
 };
 
 // Documentation metadata
 const DOCS_METADATA = {
-  'index': { title: 'TESSA User Guide', order: 0 },
-  'getting-started': { title: 'Getting Started', order: 1 },
-  'conversations': { title: 'Conversations', order: 2 },
-  'models': { title: 'Models & Configuration', order: 3 },
-  'agents': { title: 'Agents Marketplace', order: 4 },
-  'files': { title: 'File Management', order: 5 },
-  'export-share': { title: 'Export & Sharing', order: 6 },
-  'prompts': { title: 'Prompts Library', order: 7 },
-  'speech': { title: 'Speech & Audio', order: 8 },
-  'advanced': { title: 'Advanced Features', order: 9 },
-  'settings': { title: 'Settings & Personalization', order: 10 },
-  'faq': { title: 'FAQ & Troubleshooting', order: 11 },
+  'index': { title: 'TESSA User Guide', order: 0, keywords: 'welcome introduction overview tessa guide documentation help' },
+  'getting-started': { title: 'Getting Started', order: 1, keywords: 'start begin setup initial first login account create register' },
+  'conversations': { title: 'Conversations', order: 2, keywords: 'chat message talk conversation history search fork archive delete tag' },
+  'models': { title: 'Models & Configuration', order: 3, keywords: 'model gpt claude openai anthropic configure settings parameters temperature' },
+  'agents': { title: 'Agents Marketplace', order: 4, keywords: 'agent marketplace custom tool function action workflow automation' },
+  'files': { title: 'File Management', order: 5, keywords: 'file upload download attach document image pdf excel word' },
+  'export-share': { title: 'Export & Sharing', order: 6, keywords: 'export share download pdf json markdown html link public private' },
+  'prompts': { title: 'Prompts Library', order: 7, keywords: 'prompt template library save reuse custom variable system message' },
+  'workspace': { title: 'Workspace', order: 8, keywords: 'workspace team collaborate member invite share permission role' },
+  'advanced': { title: 'Advanced Features', order: 9, keywords: 'advanced feature code interpreter sandbox mcp protocol plugin extension' },
+  'settings': { title: 'Settings & Personalization', order: 10, keywords: 'settings preferences theme dark light language customize profile password' },
+  'faq': { title: 'FAQ & Troubleshooting', order: 11, keywords: 'faq question answer help problem issue error troubleshoot fix solution' },
 };
 
 // Get docs directory path
@@ -57,6 +57,7 @@ router.get('/', async (req, res) => {
       title: DOCS_METADATA[id].title,
       order: DOCS_METADATA[id].order,
       filename: DOCS_MAP[id],
+      keywords: DOCS_METADATA[id].keywords || '',
     }));
 
     // Sort by order

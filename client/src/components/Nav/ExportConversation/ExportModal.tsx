@@ -15,10 +15,6 @@ import { useLocalize, useExportConversation } from '~/hooks';
 const TYPE_OPTIONS = [
   { value: 'screenshot', label: 'screenshot (.png)' },
   { value: 'text', label: 'text (.txt)' },
-  { value: 'markdown', label: 'markdown (.md)' },
-  { value: 'json', label: 'json (.json)' },
-  { value: 'pdf', label: 'PDF (.pdf)' },
-  { value: 'csv', label: 'csv (.csv)' },
 ];
 
 export default function ExportModal({

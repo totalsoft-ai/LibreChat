@@ -45,6 +45,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Dependencies**: Updated Vite to v6.4.1, @playwright/test to v1.56.1, @librechat/agents to v2.4.86
 - **Configuration**: Configurable Vite dev server domain and port
 
+### 2025-11-19: Meilisearch Integration & Search Features
+
+**Backend Search:**
+- **Meilisearch Integration**: Full-text search for conversations and messages with mongoMeili plugin
+- **Automatic Indexing**: Real-time document indexing on save/update/delete with batch processing
+- **Search API**: `/api/search/enable` endpoint for search availability check
+- **Sync Service**: Intelligent sync with resume capability, orphaned document cleanup
+- **Configuration**: Environment-based control for batch size, delays, and sync thresholds
+- **Files**: `packages/data-schemas/src/models/plugins/mongoMeili.ts`, `api/db/indexSync.js`, `api/server/routes/search.js`
+
+**Frontend Search:**
+- **Search State**: Migrated from Recoil to Jotai (2025-10-28) for atomic state management
+- **SearchBar Component**: Real-time debounced search with 500ms delay
+- **User-Scoped Results**: Filters search results by authenticated user
+- **Accessibility**: Full ARIA support for screen readers
+- **Testing**: 16 comprehensive test cases covering all search scenarios
+- **Files**: `client/src/store/search.ts`, `client/src/components/Nav/SearchBar.tsx`, `client/src/hooks/Conversations/useSearchEnabled.ts`
+
 ## Project Overview
 
 LibreChat is an all-in-one AI conversation platform that integrates multiple AI models (OpenAI, Anthropic, Google, Azure, etc.) with a ChatGPT-inspired interface. It's a full-stack application with advanced features including:
@@ -289,6 +307,7 @@ Components are feature-based:
 - Storage configuration (S3, Firebase, local)
 - Redis configuration for caching
 - **Query Profiling**: `ENABLE_QUERY_PROFILER`, `SLOW_QUERY_THRESHOLD`, `LOG_ALL_QUERIES`
+- **Meilisearch**: `MEILI_HOST`, `MEILI_MASTER_KEY`, `SEARCH`, `MEILI_NO_SYNC`, `MEILI_SYNC_BATCH_SIZE`, `MEILI_SYNC_DELAY_MS`, `MEILI_SYNC_THRESHOLD`
 
 ## Key Development Workflows
 
@@ -443,3 +462,4 @@ npm run update:docker          # Update Docker deployment
 - **Testing**: Comprehensive test suite with focus on accessibility and integration
 - **Database Optimization**: Strategic indexing and query optimization for 8-10x performance improvement
 - **Query Profiling**: Development tool for identifying slow queries and optimization opportunities
+- **Meilisearch**: Full-text search enabled via SEARCH=true; supports automatic indexing with configurable batch processing
