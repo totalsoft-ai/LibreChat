@@ -74,9 +74,9 @@ export const useFileStatusPolling = (
 
         // Refetch files to check for updated status
         console.log('[useFileStatusPolling] Refetching files to check embedding status');
-        await queryClient.refetchQueries({
+        await queryClient.invalidateQueries({
           queryKey: [QueryKeys.files],
-          type: 'active',
+          refetchType: 'active',
         });
       }, pollInterval);
     }
