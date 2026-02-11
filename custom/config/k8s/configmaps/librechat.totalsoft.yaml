@@ -42,6 +42,12 @@ actions:
 
 
 #mcpServers:
+mcpServers:
+  ppm-timesheet:
+    type: streamable-http
+    url: "${URL_PPM}" #http://localhost:8000/sse
+    headers:
+      Authorization: "{{LIBRECHAT_USER_ACCESS_TOKEN}}"
 
 # Definition of custom endpoints
 endpoints:
