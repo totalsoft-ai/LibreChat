@@ -150,6 +150,7 @@ jobs:
           "AUTO_REFILL_ENABLED" ="${{ vars.AUTO_REFILL_ENABLED }}"
           "AUTO_REFILL_TIMEZONE" ="${{ vars.AUTO_REFILL_TIMEZONE }}"
           "AUTO_REFILL_CRON" ="${{ vars.AUTO_REFILL_CRON }}"
+          "URL_PPM" = "${{ vars.URL_PPM }}"
         }
 
         ./custom/scripts/build-and-deploy.ps1 `
