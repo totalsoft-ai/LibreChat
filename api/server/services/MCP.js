@@ -1,4 +1,7 @@
 const { z } = require('zod');
+const cookies = require('cookie');
+const jwtDecode = require('jsonwebtoken/decode');
+const openIdClient = require('openid-client');
 const { tool } = require('@langchain/core/tools');
 const { logger } = require('@librechat/data-schemas');
 const {
@@ -8,6 +11,7 @@ const {
   Constants: AgentConstants,
 } = require('@librechat/agents');
 const {
+  isEnabled,
   sendEvent,
   MCPOAuthHandler,
   normalizeServerName,
@@ -25,6 +29,68 @@ const { findToken, createToken, updateToken } = require('~/models');
 const { reinitMCPServer } = require('./Tools/mcp');
 const { getAppConfig } = require('./Config');
 const { getLogStores } = require('~/cache');
+
+/**
+ * Returns a valid Keycloak Bearer token for MCP calls.
+ * If OPENID_REUSE_TOKENS is enabled and the current token is expired or
+ * about to expire (within 30s), it silently refreshes via the stored
+ * Keycloak refresh_token cookie before the MCP tool is invoked.
+ * Headers are NOT modified on the response (they may already be sent in a
+ * streaming context); the refreshed token is used only for this call.
+ *
+ * @param {import('http').IncomingMessage} req - The Express request object.
+ * @returns {Promise<string|undefined>} The Authorization header value to use.
+ */
+async function getValidAuthorizationHeader(req) {
+  const currentHeader = req?.headers?.authorization;
+  if (!currentHeader || !isEnabled(process.env.OPENID_REUSE_TOKENS)) {
+    return currentHeader;
+  }
+
+  const token = currentHeader.startsWith('Bearer ') ? currentHeader.slice(7) : currentHeader;
+
+  try {
+    const decoded = jwtDecode(token);
+    if (!decoded?.exp) {
+      return currentHeader;
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    const bufferSeconds = 30;
+
+    if (decoded.exp > now + bufferSeconds) {
+      return currentHeader;
+    }
+
+    logger.info('[MCP] Access token expired or expiring soon, attempting silent refresh');
+
+    const cookieStr = req?.headers?.cookie;
+    if (!cookieStr) {
+      return currentHeader;
+    }
+
+    const parsedCookies = cookies.parse(cookieStr);
+    const refreshToken = parsedCookies.refreshToken;
+    const tokenProvider = parsedCookies.token_provider;
+
+    if (!refreshToken || tokenProvider !== 'openid') {
+      return currentHeader;
+    }
+
+    const { getOpenIdConfig } = require('~/strategies/openidStrategy');
+    const openIdConfig = getOpenIdConfig();
+    if (!openIdConfig) {
+      return currentHeader;
+    }
+
+    const tokenset = await openIdClient.refreshTokenGrant(openIdConfig, refreshToken);
+    logger.info('[MCP] Access token refreshed successfully for MCP call');
+    return `Bearer ${tokenset.access_token}`;
+  } catch (err) {
+    logger.warn(`[MCP] Could not refresh access token, using existing: ${err.message}`);
+    return currentHeader;
+  }
+}
 
 /**
  * @param {object} params
@@ -378,7 +444,7 @@ function createToolInstance({ res, toolName, serverName, toolDefinition, provide
         },
         oauthStart,
         oauthEnd,
-        authorizationHeader: res.req?.headers?.authorization,
+        authorizationHeader: await getValidAuthorizationHeader(res.req),
       });
 
       if (isAssistantsEndpoint(provider) && Array.isArray(result)) {

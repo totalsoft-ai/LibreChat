@@ -40,9 +40,23 @@ async function customFetch(url, options) {
     if (options.body) {
       let bodyForLogging = '';
       if (options.body instanceof URLSearchParams) {
-        bodyForLogging = options.body.toString();
+        const masked = new URLSearchParams(options.body);
+        for (const key of masked.keys()) {
+          if (key.toLowerCase().includes('token') || key.toLowerCase().includes('secret')) {
+            const val = masked.get(key) ?? '';
+            masked.set(
+              key,
+              val.length > 6 ? `${val.substring(0, 3)}...${val.substring(val.length - 3)}` : '***',
+            );
+          }
+        }
+        bodyForLogging = masked.toString();
       } else if (typeof options.body === 'string') {
-        bodyForLogging = options.body;
+        try {
+          bodyForLogging = safeStringify(JSON.parse(options.body));
+        } catch {
+          bodyForLogging = '[non-JSON string body]';
+        }
       } else {
         bodyForLogging = safeStringify(options.body);
       }
