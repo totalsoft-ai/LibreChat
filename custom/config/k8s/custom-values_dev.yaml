@@ -11,7 +11,7 @@ hostAliases:
       - "keycloak.totalsoft.local"
   - ip: "10.1.48.101"
     hostnames:
-      - "ppm.totalsoft.local"
+      - "ppm-dev.totalsoft.local"
   - ip: "10.1.48.101"
     hostnames:
       - "erp-reports.totalsoft.local"
