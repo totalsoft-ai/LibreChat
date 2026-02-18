@@ -130,7 +130,17 @@ endpoints:
         "hf.co/totalsoft/ppm-qwen3-tool-calling-gguf:latest":
           prompt: 0
           completion: 0
-
+    - name: "PPM"
+      baseURL: "http://10.1.48.13:8001/v1"
+      apiKey: "dff700"
+      models:
+        default: ["qwen3-ppm-ft"]
+        fetch: false 
+      tokenConfig:
+        "qwen3-ppm-ft":
+          prompt: 0
+          completion: 0
+          
     - name: "Assistant"
       baseURL: "${ORCHESTRATOR_URL}"
       apiKey: "$ORCHESTRATOR_API_KEY}"
