@@ -177,8 +177,9 @@ export function processMCPEnv(params: {
   user?: TUser;
   customUserVars?: Record<string, string>;
   body?: RequestBody;
+  authorizationHeader?: string;
 }): MCPOptions {
-  const { options, user, customUserVars, body } = params;
+  const { options, user, customUserVars, body, authorizationHeader } = params;
 
   if (options === null || options === undefined) {
     return options;
@@ -207,7 +208,14 @@ export function processMCPEnv(params: {
   if ('headers' in newObj && newObj.headers) {
     const processedHeaders: Record<string, string> = {};
     for (const [key, originalValue] of Object.entries(newObj.headers)) {
-      processedHeaders[key] = processSingleValue({ originalValue, customUserVars, user, body });
+      let processedValue = processSingleValue({ originalValue, customUserVars, user, body });
+      if (authorizationHeader && processedValue.includes('{{LIBRECHAT_USER_ACCESS_TOKEN}}')) {
+        processedValue = processedValue.replace(
+          /\{\{LIBRECHAT_USER_ACCESS_TOKEN\}\}/g,
+          authorizationHeader,
+        );
+      }
+      processedHeaders[key] = processedValue;
     }
     newObj.headers = processedHeaders;
   }

@@ -372,5 +372,15 @@ export const useRevertAgentVersionMutation = (
 };
 
 export const invalidateAgentMarketplaceQueries = (queryClient: QueryClient) => {
-  queryClient.invalidateQueries([QueryKeys.marketplaceAgents]);
+  // Invalidate marketplace queries with all param variations
+  queryClient.invalidateQueries({
+    queryKey: [QueryKeys.marketplaceAgents],
+    refetchType: 'active',
+  });
+
+  // Invalidate agent list queries (AgentSelect and other lists)
+  queryClient.invalidateQueries({
+    queryKey: [QueryKeys.agents],
+    refetchType: 'active',
+  });
 };

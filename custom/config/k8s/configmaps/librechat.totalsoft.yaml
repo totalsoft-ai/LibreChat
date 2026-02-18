@@ -42,6 +42,12 @@ actions:
 
 
 #mcpServers:
+mcpServers:
+  ppm-timesheet:
+    type: streamable-http
+    url: "${URL_PPM}" #http://localhost:8000/sse
+    headers:
+      Authorization: "{{LIBRECHAT_USER_ACCESS_TOKEN}}"
 
 # Definition of custom endpoints
 endpoints:
@@ -97,7 +103,7 @@ endpoints:
       baseURL: "${LOCAL_MODELS_BASEURL}"
       apiKey: "dummy"
       models:
-        default: ["Test_Gemma_Retrained:latest", "orieg/gemma3-tools:4b-it-qat", "qwen3:8b", "phi4-mini:latest", "gemma3:4b", "gemma3:27b", "deepseek-r1:8b", "qwen2.5-coder:14b"]
+        default: ["Test_Gemma_Retrained:latest", "orieg/gemma3-tools:4b-it-qat", "qwen3:8b", "phi4-mini:latest", "gemma3:4b", "gemma3:27b", "deepseek-r1:8b", "qwen2.5-coder:14b", "hf.co/totalsoft/ppm-qwen3-tool-calling-gguf:latest"]
       streamRate: 35
       tokenConfig:
         "orieg/gemma3-tools:4b-it-qat":
@@ -121,7 +127,20 @@ endpoints:
         "qwen2.5-coder:14b":
           prompt: 0
           completion: 0
-
+        "hf.co/totalsoft/ppm-qwen3-tool-calling-gguf:latest":
+          prompt: 0
+          completion: 0
+    - name: "PPM"
+      baseURL: "http://10.1.48.13:8001/v1"
+      apiKey: "dff700"
+      models:
+        default: ["qwen3-ppm-ft"]
+        fetch: false 
+      tokenConfig:
+        "qwen3-ppm-ft":
+          prompt: 0
+          completion: 0
+          
     - name: "Assistant"
       baseURL: "${ORCHESTRATOR_URL}"
       apiKey: "$ORCHESTRATOR_API_KEY}"

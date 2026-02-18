@@ -7,6 +7,7 @@ import {
   MutationKeys,
   defaultOrderQuery,
   isAssistantsEndpoint,
+  DynamicQueryKeys,
 } from 'librechat-data-provider';
 import type * as t from 'librechat-data-provider';
 import type { UseMutationResult } from '@tanstack/react-query';
@@ -41,10 +42,11 @@ export const useUploadFileMutation = (
     },
     ...options,
     onSuccess: (data, formData, context) => {
-      queryClient.setQueryData<t.TFile[] | undefined>([QueryKeys.files], (_files) => [
-        data,
-        ...(_files ?? []),
-      ]);
+      // Update ALL file queries (global + workspace-specific) optimistically
+      queryClient.setQueriesData<t.TFile[]>(
+        { queryKey: [QueryKeys.files] },
+        (old) => (old ? [data, ...old] : [data]),
+      );
 
       const endpoint = formData.get('endpoint');
       const message_file = formData.get('message_file');
@@ -86,6 +88,9 @@ export const useUploadFileMutation = (
             ...update,
           };
         });
+
+        // Invalidate agent files query (separate query, needs refetch)
+        queryClient.invalidateQueries(DynamicQueryKeys.agentFiles(agent_id));
       }
 
       if (!assistant_id) {
@@ -166,26 +171,53 @@ export const useDeleteFilesMutation = (
       onError?.(error, vars, context);
     },
     onSuccess: (data, vars, context) => {
-      queryClient.setQueryData<t.TFile[] | undefined>([QueryKeys.files], (cachefiles) => {
-        const { files: filesDeleted } = vars;
+      const { files: filesDeleted } = vars;
+      const fileMap = filesDeleted.reduce((acc, file) => {
+        acc.set(file.file_id, file);
+        return acc;
+      }, new Map<string, t.BatchFile>());
 
-        const fileMap = filesDeleted.reduce((acc, file) => {
-          acc.set(file.file_id, file);
-          return acc;
-        }, new Map<string, t.BatchFile>());
-
-        return (cachefiles ?? []).filter((file) => !fileMap.has(file.file_id));
-      });
+      // Update ALL file queries (global + workspace-specific) optimistically
+      queryClient.setQueriesData<t.TFile[]>(
+        { queryKey: [QueryKeys.files] },
+        (old) => (old ?? []).filter((file) => !fileMap.has(file.file_id)),
+      );
 
       showToast({
         message: localize('com_ui_delete_success'),
         status: 'success',
       });
 
-      onSuccess?.(data, vars, context);
+      // Update agent cache optimistically if deleting agent files
       if (vars.agent_id != null && vars.agent_id) {
-        queryClient.refetchQueries([QueryKeys.agent, vars.agent_id]);
+        const fileIds = filesDeleted.map((f) => f.file_id);
+
+        queryClient.setQueryData<t.Agent>([QueryKeys.agent, vars.agent_id], (agent) => {
+          if (!agent || !agent.tool_resources) {
+            return agent;
+          }
+
+          const updatedToolResources = { ...agent.tool_resources };
+
+          // Remove deleted file_ids from all tool resources
+          Object.keys(updatedToolResources).forEach((toolKey) => {
+            const resource = updatedToolResources[toolKey];
+            if (resource?.file_ids) {
+              resource.file_ids = resource.file_ids.filter((id) => !fileIds.includes(id));
+            }
+          });
+
+          return {
+            ...agent,
+            tool_resources: updatedToolResources,
+          };
+        });
+
+        // Invalidate agent files query (separate query, needs refetch)
+        queryClient.invalidateQueries(DynamicQueryKeys.agentFiles(vars.agent_id));
       }
+
+      onSuccess?.(data, vars, context);
     },
   });
 };
