@@ -55,6 +55,8 @@ config:
     OPENID_SCOPE: "openid profile email"
     OPENID_AUTO_REDIRECT: "false"
     DEBUG_OPENID_REQUESTS: "true"
+    LOGIN_MAX: "500"
+    LOGIN_WINDOW: "1"
 resources:
   limits:
     cpu: 1
