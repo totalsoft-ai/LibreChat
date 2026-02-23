@@ -1,13 +1,14 @@
 import type { TFile } from 'librechat-data-provider';
+import { useAtomValue } from 'jotai';
 import { useGetFiles } from '~/data-provider';
 import { useFileStatusPolling } from '~/hooks/Files';
+import { currentWorkspaceIdAtom } from '~/store/workspaces';
 import { columns } from './PanelColumns';
 import DataTable from './PanelTable';
 
 export default function FilesPanel() {
-  const { data: files = [] } = useGetFiles<TFile[]>(
-    null  // Explicitly request only personal files (exclude workspace files)
-  );
+  const currentWorkspaceId = useAtomValue(currentWorkspaceIdAtom);
+  const { data: files = [] } = useGetFiles<TFile[]>(currentWorkspaceId);
 
   // Enable polling for RAG processing files
   useFileStatusPolling(files, {
