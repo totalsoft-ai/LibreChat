@@ -1,15 +1,18 @@
 import { FileSources, FileContext } from 'librechat-data-provider';
 import type { TFile } from 'librechat-data-provider';
+import { useAtomValue } from 'jotai';
 import { OGDialog, OGDialogContent, OGDialogHeader, OGDialogTitle } from '@librechat/client';
 import { useGetFiles } from '~/data-provider';
 import { DataTable, columns } from './Table';
 import { useLocalize } from '~/hooks';
+import { currentWorkspaceIdAtom } from '~/store/workspaces';
 
 export default function Files({ open, onOpenChange }) {
   const localize = useLocalize();
+  const currentWorkspaceId = useAtomValue(currentWorkspaceIdAtom);
 
   const { data: files = [] } = useGetFiles<TFile[]>(
-    null, // Explicitly request only personal files (exclude workspace files)
+    currentWorkspaceId,
     {
       select: (files) =>
         files.map((file) => {
