@@ -38,6 +38,7 @@ modelSpecs:
   prioritize: true
   addedEndpoints:
     - "agents"
+    - "Local Models"
   list:
     - name: "assistant-with-knowledge"
       label: "Assistant with Knowledge"
@@ -57,54 +58,54 @@ modelSpecs:
         endpoint: "Assistant"
         model: "qwen3:8b"
 
-    - name: "local-gemma3-4b"
-      label: "Gemma 3 4B"
-      group: "Local Models"
-      preset:
-        endpoint: "Local Models"
-        model: "gemma3:4b"
-
-    - name: "local-gemma3-27b"
-      label: "Gemma 3 27B"
-      group: "Local Models"
-      preset:
-        endpoint: "Local Models"
-        model: "gemma3:27b"
-
-    - name: "local-qwen3-8b"
-      label: "Qwen3 8B"
-      group: "Local Models"
-      preset:
-        endpoint: "Local Models"
-        model: "qwen3:8b"
-
-    - name: "local-phi4-mini"
-      label: "Phi4 Mini"
-      group: "Local Models"
-      preset:
-        endpoint: "Local Models"
-        model: "phi4-mini:latest"
-
-    - name: "local-deepseek-r1-8b"
-      label: "DeepSeek R1 8B"
-      group: "Local Models"
-      preset:
-        endpoint: "Local Models"
-        model: "deepseek-r1:8b"
-
-    - name: "local-qwen25-coder-14b"
-      label: "Qwen2.5 Coder 14B"
-      group: "Local Models"
-      preset:
-        endpoint: "Local Models"
-        model: "qwen2.5-coder:14b"
-
-    - name: "local-gemma3-tools"
-      label: "Gemma 3 Tools"
-      group: "Local Models"
-      preset:
-        endpoint: "Local Models"
-        model: "orieg/gemma3-tools:4b-it-qat"
+ #   - name: "local-gemma3-4b"
+ #     label: "Gemma 3 4B"
+ #     group: "Local Models"
+ #     preset:
+ #       endpoint: "Local Models"
+ #       model: "gemma3:4b"
+#
+ #   - name: "local-gemma3-27b"
+ #     label: "Gemma 3 27B"
+ #     group: "Local Models"
+ #     preset:
+ #       endpoint: "Local Models"
+ #       model: "gemma3:27b"
+#
+ #   - name: "local-qwen3-8b"
+ #     label: "Qwen3 8B"
+ #     group: "Local Models"
+ #     preset:
+ #       endpoint: "Local Models"
+ #       model: "qwen3:8b"
+#
+ #   - name: "local-phi4-mini"
+ #     label: "Phi4 Mini"
+ #     group: "Local Models"
+ #     preset:
+ #       endpoint: "Local Models"
+ #       model: "phi4-mini:latest"
+#
+ #   - name: "local-deepseek-r1-8b"
+ #     label: "DeepSeek R1 8B"
+ #     group: "Local Models"
+ #     preset:
+ #       endpoint: "Local Models"
+ #       model: "deepseek-r1:8b"
+#
+ #   - name: "local-qwen25-coder-14b"
+ #     label: "Qwen2.5 Coder 14B"
+ #     group: "Local Models"
+ #     preset:
+ #       endpoint: "Local Models"
+ #       model: "qwen2.5-coder:14b"
+#
+ #   - name: "local-gemma3-tools"
+ #     label: "Gemma 3 Tools"
+ #     group: "Local Models"
+ #     preset:
+ #       endpoint: "Local Models"
+ #       model: "orieg/gemma3-tools:4b-it-qat"
         
     - name: "gpt-4o"
       label: "GPT-4o"
