@@ -26,7 +26,7 @@ const { checkPermission } = require('~/server/services/PermissionService');
 const { loadAuthValues } = require('~/server/services/Tools/credentials');
 const { refreshS3FileUrls } = require('~/server/services/Files/S3/crud');
 const { hasAccessToFilesViaAgent } = require('~/server/services/Files');
-const { getFiles, batchUpdateFiles } = require('~/models/File');
+const { getFiles, batchUpdateFiles, getUserStorageUsed } = require('~/models/File');
 const { cleanFileName } = require('~/server/utils/files');
 const { getAssistant } = require('~/models/Assistant');
 const { getAgent } = require('~/models/Agent');
@@ -160,7 +160,16 @@ router.get('/agent/:agent_id', async (req, res) => {
 router.get('/config', async (req, res) => {
   try {
     const appConfig = req.config;
-    res.status(200).json(appConfig.fileConfig);
+    const megabyte = 1024 * 1024;
+    const userFileSizeLimitMB = parseInt(process.env.USER_FILE_SIZE_LIMIT_MB ?? '25', 10);
+    const userStorageLimitMB = parseInt(process.env.USER_STORAGE_LIMIT_MB ?? '1024', 10);
+    const userStorageUsed = await getUserStorageUsed(req.user.id);
+    res.status(200).json({
+      ...appConfig.fileConfig,
+      userFileSizeLimit: userFileSizeLimitMB * megabyte,
+      userStorageLimit: userStorageLimitMB * megabyte,
+      userStorageUsed,
+    });
   } catch (error) {
     logger.error('[/files] Error getting fileConfig', error);
     res.status(400).json({ message: 'Error in request', error: error.message });
@@ -468,6 +477,28 @@ router.post('/', async (req, res) => {
 
   try {
     filterFile({ req });
+
+    // Check user-level storage limits (parametrized via env vars)
+    const megabyte = 1024 * 1024;
+    const userFileSizeLimitMB = parseInt(process.env.USER_FILE_SIZE_LIMIT_MB ?? '25', 10);
+    const userStorageLimitMB = parseInt(process.env.USER_STORAGE_LIMIT_MB ?? '1024', 10);
+    const userFileSizeLimit = userFileSizeLimitMB * megabyte;
+    const userStorageLimit = userStorageLimitMB * megabyte;
+
+    if (req.file.size > userFileSizeLimit) {
+      return res.status(413).json({
+        message: `File exceeds the ${userFileSizeLimitMB} MB per-file limit`,
+      });
+    }
+
+    const storageUsed = await getUserStorageUsed(req.user.id);
+    if (storageUsed + req.file.size > userStorageLimit) {
+      const remainingBytes = Math.max(0, userStorageLimit - storageUsed);
+      const remainingMB = (remainingBytes / megabyte).toFixed(0);
+      return res.status(413).json({
+        message: `Storage limit exceeded. You have ${remainingMB} MB remaining of your ${userStorageLimitMB} MB quota`,
+      });
+    }
 
     metadata.temp_file_id = metadata.file_id;
     metadata.file_id = req.file_id;

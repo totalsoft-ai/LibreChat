@@ -150,6 +150,10 @@ jobs:
           "AUTO_REFILL_ENABLED" ="${{ vars.AUTO_REFILL_ENABLED }}"
           "AUTO_REFILL_TIMEZONE" ="${{ vars.AUTO_REFILL_TIMEZONE }}"
           "AUTO_REFILL_CRON" ="${{ vars.AUTO_REFILL_CRON }}"
+          "URL_PPM" = "${{ vars.URL_PPM }}"
+          "OPENID_REUSE_TOKENS"= "${{ vars.OPENID_REUSE_TOKENS }}"
+          "USER_FILE_SIZE_LIMIT_MB" = "${{ vars.USER_FILE_SIZE_LIMIT_MB }}"
+          "USER_STORAGE_LIMIT_MB" = "${{ vars.USER_STORAGE_LIMIT_MB }}"
         }
 
         ./custom/scripts/build-and-deploy.ps1 `
