@@ -23,7 +23,7 @@ balance:
 # Custom interface configuration
 interface:
   customWelcome: "Hello {{user.name}}!"
-  endpointsMenu: true
+  endpointsMenu: false
   modelSelect: true
   parameters: true
   sidePanel: true
@@ -32,6 +32,47 @@ interface:
   bookmarks: true
   multiConvo: true
   agents: true
+
+modelSpecs:
+  enforce: true
+  prioritize: true
+  list:
+    - name: "assistant-with-knowledge"
+      label: "Assistant with Knowledge"
+      preset:
+        endpoint: "Assistant-with-knowledge"
+        model: "us.anthropic.claude-3-5-haiku-20241022-v1:0"
+
+    - name: "file-search"
+      label: "File Search"
+      preset:
+        endpoint: "Local Models"
+        model: "qwen3:8b"
+        
+    - name: "assistant"
+      label: "Assistant"
+      preset:
+        endpoint: "Assistant"
+        model: "qwen3:8b"
+
+    - name: "local-models"
+      label: "Local Models"
+      preset:
+        endpoint: "Local Models"
+        model: "gemma3:4b"
+
+    - name: "gpt-4o"
+      label: "GPT-4o"
+      preset:
+        endpoint: "azureOpenAI"
+        model: "gpt-4o"
+
+    - name: "ppm"
+      label: "PPM"
+      preset:
+        endpoint: "PPM"
+        model: "qwen3-ppm-ft"
+
 
 # Example Actions Object Structure
 actions:
