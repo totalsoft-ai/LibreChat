@@ -54,7 +54,7 @@ export const useEndpoints = ({
   );
 
   const filteredEndpoints = useMemo(() => {
-    if (!interfaceConfig.modelSelect) {
+    if (!interfaceConfig.modelSelect || interfaceConfig.endpointsMenu === false) {
       return [];
     }
     const result: EModelEndpoint[] = [];
