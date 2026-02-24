@@ -23,7 +23,7 @@ balance:
 # Custom interface configuration
 interface:
   customWelcome: "Hello {{user.name}}!"
-  endpointsMenu: true
+  endpointsMenu: false
   modelSelect: true
   parameters: true
   sidePanel: true
