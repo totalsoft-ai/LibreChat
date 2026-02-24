@@ -24,7 +24,7 @@ balance:
 interface:
   customWelcome: "Hello {{user.name}}!"
   endpointsMenu: false
-  modelSelect: false
+  modelSelect: true
   parameters: true
   sidePanel: true
   presets: true
