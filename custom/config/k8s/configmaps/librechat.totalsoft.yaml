@@ -38,7 +38,6 @@ modelSpecs:
   prioritize: true
   addedEndpoints:
     - "agents"
-    - "Local Models"
   list:
     - name: "assistant-with-knowledge"
       label: "Assistant with Knowledge"
@@ -58,12 +57,12 @@ modelSpecs:
         endpoint: "Assistant"
         model: "qwen3:8b"
 
- #   - name: "local-gemma3-4b"
- #     label: "Gemma 3 4B"
- #     group: "Local Models"
- #     preset:
- #       endpoint: "Local Models"
- #       model: "gemma3:4b"
+    - name: "general-assistant"
+      label: "General Assistant"
+      group: "Local Models"
+      preset:
+       endpoint: "Local Models"
+       model: "gemma3:4b"
 #
  #   - name: "local-gemma3-27b"
  #     label: "Gemma 3 27B"
@@ -217,16 +216,7 @@ endpoints:
         "hf.co/totalsoft/ppm-qwen3-tool-calling-gguf:latest":
           prompt: 0
           completion: 0
-    - name: "PPM"
-      baseURL: "http://10.1.48.13:8001/v1"
-      apiKey: "dff700"
-      models:
-        default: ["qwen3-ppm-ft"]
-        fetch: false 
-      tokenConfig:
-        "qwen3-ppm-ft":
-          prompt: 0
-          completion: 0
+
           
     - name: "Assistant"
       baseURL: "${ORCHESTRATOR_URL}"
