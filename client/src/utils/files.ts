@@ -141,8 +141,9 @@ export const getFileType = (
  * Format a date string to a human readable format
  * @example
  * formatDate('2020-01-01T00:00:00.000Z') // '1 Jan 2020'
+ * formatDate('2020-01-01T10:55:00.000Z', false, true) // '1 Jan 2020 10:55'
  */
-export function formatDate(dateString: string, isSmallScreen = false) {
+export function formatDate(dateString: string, isSmallScreen = false, showTime = false) {
   if (!dateString) {
     return '';
   }
@@ -150,11 +151,17 @@ export function formatDate(dateString: string, isSmallScreen = false) {
   const date = new Date(dateString);
 
   if (isSmallScreen) {
-    return date.toLocaleDateString('en-US', {
+    const localeDateStr = date.toLocaleDateString('en-US', {
       month: 'numeric',
       day: 'numeric',
       year: '2-digit',
     });
+    if (showTime) {
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+      return `${localeDateStr} ${hours}:${minutes}`;
+    }
+    return localeDateStr;
   }
 
   const months = [
@@ -175,6 +182,12 @@ export function formatDate(dateString: string, isSmallScreen = false) {
   const day = date.getDate();
   const month = months[date.getMonth()];
   const year = date.getFullYear();
+
+  if (showTime) {
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${day} ${month} ${year} ${hours}:${minutes}`;
+  }
 
   return `${day} ${month} ${year}`;
 }

@@ -97,7 +97,7 @@ export const columns: ColumnDef<TFile>[] = [
     },
   },
   {
-    accessorKey: 'updatedAt',
+    accessorKey: 'createdAt',
     header: ({ column }) => {
       const localize = useLocalize();
       return (
@@ -113,7 +113,7 @@ export const columns: ColumnDef<TFile>[] = [
     },
     cell: ({ row }) => {
       const isSmallScreen = useMediaQuery('(max-width: 768px)');
-      return formatDate(row.original.updatedAt?.toString() ?? '', isSmallScreen);
+      return formatDate(row.original.createdAt?.toString() ?? '', isSmallScreen, true);
     },
   },
   {
