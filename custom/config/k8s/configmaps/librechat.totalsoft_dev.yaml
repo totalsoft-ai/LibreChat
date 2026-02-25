@@ -222,7 +222,8 @@ endpoints:
       apiKey: "dff700"
       models:
         default: ["qwen3-ppm-ft"]
-        fetch: false 
+        fetch: false
+      titleModel: 'qwen3-ppm-ft' 
       tokenConfig:
         "qwen3-ppm-ft":
           prompt: 0
