@@ -38,6 +38,7 @@ modelSpecs:
   prioritize: true
   addedEndpoints:
     - "agents"
+    - "Local Models"
   list:
     - name: "assistant-with-knowledge"
       label: "Assistant with Knowledge"
@@ -57,11 +58,12 @@ modelSpecs:
         endpoint: "Assistant"
         model: "qwen3:8b"
 
-    - name: "general-assistant"
-      label: "General Assistant"
-      preset:
-       endpoint: "Local Models"
-       model: "gemma3:4b"
+ #   - name: "local-gemma3-4b"
+ #     label: "Gemma 3 4B"
+ #     group: "Local Models"
+ #     preset:
+ #       endpoint: "Local Models"
+ #       model: "gemma3:4b"
 #
  #   - name: "local-gemma3-27b"
  #     label: "Gemma 3 27B"
@@ -104,6 +106,18 @@ modelSpecs:
  #     preset:
  #       endpoint: "Local Models"
  #       model: "orieg/gemma3-tools:4b-it-qat"
+        
+    - name: "gpt-4o"
+      label: "GPT-4o"
+      preset:
+        endpoint: "azureOpenAI"
+        model: "gpt-4o"
+
+    - name: "ppm"
+      label: "PPM"
+      preset:
+        endpoint: "PPM"
+        model: "qwen3-ppm-ft"
 
 
 # Example Actions Object Structure
@@ -115,12 +129,12 @@ actions:
 
 
 #mcpServers:
-#mcpServers:
-#  ppm-timesheet:
-#    type: streamable-http
-#    url: "${URL_PPM}" #http://localhost:8000/sse
-#    headers:
-#      Authorization: "{{LIBRECHAT_USER_ACCESS_TOKEN}}"
+mcpServers:
+  ppm-timesheet:
+    type: streamable-http
+    url: "${URL_PPM}" #http://localhost:8000/sse
+    headers:
+      Authorization: "{{LIBRECHAT_USER_ACCESS_TOKEN}}"
 
 # Definition of custom endpoints
 endpoints:
@@ -197,7 +211,22 @@ endpoints:
         "deepseek-r1:8b":
           prompt: 0
           completion: 0
-
+        "qwen2.5-coder:14b":
+          prompt: 0
+          completion: 0
+        "hf.co/totalsoft/ppm-qwen3-tool-calling-gguf:latest":
+          prompt: 0
+          completion: 0
+    - name: "PPM"
+      baseURL: "http://10.1.48.13:8001/v1"
+      apiKey: "dff700"
+      models:
+        default: ["qwen3-ppm-ft"]
+        fetch: false 
+      tokenConfig:
+        "qwen3-ppm-ft":
+          prompt: 0
+          completion: 0
           
     - name: "Assistant"
       baseURL: "${ORCHESTRATOR_URL}"
