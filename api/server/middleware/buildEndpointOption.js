@@ -42,36 +42,42 @@ async function buildEndpointOption(req, res, next) {
 
   const appConfig = req.config;
   if (appConfig.modelSpecs?.list && appConfig.modelSpecs?.enforce) {
-    /** @type {{ list: TModelSpec[] }}*/
-    const { list } = appConfig.modelSpecs;
+    /** @type {{ list: TModelSpec[], addedEndpoints?: string[] }}*/
+    const { list, addedEndpoints = [] } = appConfig.modelSpecs;
     const { spec } = parsedBody;
 
-    if (!spec) {
-      return handleError(res, { text: 'No model spec selected' });
-    }
+    const isAddedEndpoint =
+      addedEndpoints.includes(endpoint) ||
+      (isAgentsEndpoint(endpoint) && addedEndpoints.includes(EModelEndpoint.agents));
 
-    const currentModelSpec = list.find((s) => s.name === spec);
-    if (!currentModelSpec) {
-      return handleError(res, { text: 'Invalid model spec' });
-    }
-
-    if (endpoint !== currentModelSpec.preset.endpoint) {
-      return handleError(res, { text: 'Model spec mismatch' });
-    }
-
-    try {
-      currentModelSpec.preset.spec = spec;
-      if (currentModelSpec.iconURL != null && currentModelSpec.iconURL !== '') {
-        currentModelSpec.preset.iconURL = currentModelSpec.iconURL;
+    if (!isAddedEndpoint) {
+      if (!spec) {
+        return handleError(res, { text: 'No model spec selected' });
       }
-      parsedBody = parseCompactConvo({
-        endpoint,
-        endpointType,
-        conversation: currentModelSpec.preset,
-      });
-    } catch (error) {
-      logger.error(`Error parsing model spec for endpoint ${endpoint}`, error);
-      return handleError(res, { text: 'Error parsing model spec' });
+
+      const currentModelSpec = list.find((s) => s.name === spec);
+      if (!currentModelSpec) {
+        return handleError(res, { text: 'Invalid model spec' });
+      }
+
+      if (endpoint !== currentModelSpec.preset.endpoint) {
+        return handleError(res, { text: 'Model spec mismatch' });
+      }
+
+      try {
+        currentModelSpec.preset.spec = spec;
+        if (currentModelSpec.iconURL != null && currentModelSpec.iconURL !== '') {
+          currentModelSpec.preset.iconURL = currentModelSpec.iconURL;
+        }
+        parsedBody = parseCompactConvo({
+          endpoint,
+          endpointType,
+          conversation: currentModelSpec.preset,
+        });
+      } catch (error) {
+        logger.error(`Error parsing model spec for endpoint ${endpoint}`, error);
+        return handleError(res, { text: 'Error parsing model spec' });
+      }
     }
   }
 
