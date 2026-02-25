@@ -1,0 +1,274 @@
+# For more information, see the Configuration Guide:
+# https://www.librechat.ai/docs/configuration/librechat_yaml
+
+# Configuration version (required)
+version: 1.2.5
+
+# Cache settings: Set to true to enable caching
+cache: false
+
+# File strategy s3/firebase
+# fileStrategy: "s3"
+fileStrategy: "s3"
+
+balance:
+  enabled: true
+  startBalance: 20000
+  autoRefillEnabled: true
+  refillIntervalValue: 1
+  refillIntervalUnit: 'days'
+  refillAmount: 20000 
+  alertsEnabled: true
+
+# Custom interface configuration
+interface:
+  customWelcome: "Hello {{user.name}}!"
+  endpointsMenu: false
+  modelSelect: true
+  parameters: true
+  sidePanel: true
+  presets: true
+  prompts: true
+  bookmarks: true
+  multiConvo: true
+  agents: true
+
+modelSpecs:
+  enforce: true
+  prioritize: true
+  addedEndpoints:
+    - "agents"
+    - "Local Models"
+  list:
+    - name: "assistant-with-knowledge"
+      label: "Assistant with Knowledge"
+      preset:
+        endpoint: "Assistant-with-knowledge"
+        model: "us.anthropic.claude-3-5-haiku-20241022-v1:0"
+
+    - name: "file-search"
+      label: "File Search"
+      preset:
+        endpoint: "Local Models"
+        model: "qwen3:8b"
+        
+    - name: "assistant"
+      label: "Assistant"
+      preset:
+        endpoint: "Assistant"
+        model: "qwen3:8b"
+
+ #   - name: "local-gemma3-4b"
+ #     label: "Gemma 3 4B"
+ #     group: "Local Models"
+ #     preset:
+ #       endpoint: "Local Models"
+ #       model: "gemma3:4b"
+#
+ #   - name: "local-gemma3-27b"
+ #     label: "Gemma 3 27B"
+ #     group: "Local Models"
+ #     preset:
+ #       endpoint: "Local Models"
+ #       model: "gemma3:27b"
+#
+ #   - name: "local-qwen3-8b"
+ #     label: "Qwen3 8B"
+ #     group: "Local Models"
+ #     preset:
+ #       endpoint: "Local Models"
+ #       model: "qwen3:8b"
+#
+ #   - name: "local-phi4-mini"
+ #     label: "Phi4 Mini"
+ #     group: "Local Models"
+ #     preset:
+ #       endpoint: "Local Models"
+ #       model: "phi4-mini:latest"
+#
+ #   - name: "local-deepseek-r1-8b"
+ #     label: "DeepSeek R1 8B"
+ #     group: "Local Models"
+ #     preset:
+ #       endpoint: "Local Models"
+ #       model: "deepseek-r1:8b"
+#
+ #   - name: "local-qwen25-coder-14b"
+ #     label: "Qwen2.5 Coder 14B"
+ #     group: "Local Models"
+ #     preset:
+ #       endpoint: "Local Models"
+ #       model: "qwen2.5-coder:14b"
+#
+ #   - name: "local-gemma3-tools"
+ #     label: "Gemma 3 Tools"
+ #     group: "Local Models"
+ #     preset:
+ #       endpoint: "Local Models"
+ #       model: "orieg/gemma3-tools:4b-it-qat"
+        
+    - name: "gpt-4o"
+      label: "GPT-4o"
+      preset:
+        endpoint: "azureOpenAI"
+        model: "gpt-4o"
+
+    - name: "ppm"
+      label: "PPM"
+      preset:
+        endpoint: "PPM"
+        model: "qwen3-ppm-ft"
+
+
+# Example Actions Object Structure
+actions:
+  allowedDomains:
+    - "swapi.dev"
+    - "librechat.ai"
+    - "google.com"
+
+
+#mcpServers:
+mcpServers:
+  ppm-timesheet:
+    type: streamable-http
+    url: "${URL_PPM}" #http://localhost:8000/sse
+    headers:
+      Authorization: "{{LIBRECHAT_USER_ACCESS_TOKEN}}"
+
+# Definition of custom endpoints
+endpoints:
+  assistants:
+    disableBuilder: false # Disable Assistants Builder Interface by setting to `true`
+    pollIntervalMs: 3000  # Polling interval for checking assistant updates
+    timeoutMs: 180000  # Timeout for assistant operations
+    # Should only be one or the other, either `supportedIds` or `excludedIds`
+    supportedIds: ["asst_supportedAssistantId1", "asst_supportedAssistantId2"]
+    # excludedIds: ["asst_excludedAssistantId"]
+    # Only show assistants that the user created or that were created externally (e.g. in Assistants playground).
+    # privateAssistants: false # Does not work with `supportedIds` or `excludedIds`
+    # (optional) Models that support retrieval, will default to latest known OpenAI models that support the feature
+    retrievalModels: ["gpt-4-turbo-preview"]
+    # (optional) Assistant Capabilities available to all users. Omit the ones you wish to exclude. Defaults to list below.
+    capabilities: ["code_interpreter", "retrieval", "actions", "tools", "image_vision"]
+  agents:
+    # (optional) Default recursion depth for agents, defaults to 25
+    recursionLimit: 50
+    # (optional) Max recursion depth for agents, defaults to 25
+    maxRecursionLimit: 100
+    # (optional) Disable the builder interface for agents
+    disableBuilder: false
+    # (optional) Agent Capabilities available to all users. Omit the ones you wish to exclude. Defaults to list below.
+    capabilities: ["execute_code", "file_search", "actions", "tools", "artifacts"]
+  azureOpenAI:
+    # Endpoint-level configuration
+    titleModel: "gpt-4o"
+    plugins: true
+    assistants: false
+    groups:
+    # Group-level configuration
+    - group: "${AZURE_OPENAI_INSTANCE}"
+      apiKey: "${AZURE_OPENAI_API_KEY}" 
+      instanceName: "${AZURE_OPENAI_INSTANCE}"
+      version: "2025-01-01-preview"
+      # Model-level configuration
+      models:
+        gpt-4o:
+          deploymentName: gpt-4o
+  bedrock:
+    availableRegions:
+      - "${BEDROCK_AWS_DEFAULT_REGION}"
+    streamRate: 35
+    titleModel: 'anthropic.claude-3-haiku-20240307-v1:0'
+  custom:
+    - name: "Assistant-with-knowledge"
+      baseURL: "${ASSISTANT_WITH_K_BASEURL}"
+      apiKey: "${ASSISTANT_WITH_K_APIKEY}"
+      models:
+        default: ["us.anthropic.claude-3-5-haiku-20241022-v1:0"]
+    - name: "Local Models"
+      baseURL: "${LOCAL_MODELS_BASEURL}"
+      apiKey: "dummy"
+      models:
+        default: [ "orieg/gemma3-tools:4b-it-qat", "qwen3:8b", "phi4-mini:latest", "gemma3:4b", "deepseek-r1:8b"]
+      streamRate: 35
+      tokenConfig:
+        "orieg/gemma3-tools:4b-it-qat":
+          prompt: 0
+          completion: 0
+        "qwen3:8b":
+          prompt: 0
+          completion: 0
+        "phi4-mini:latest":
+          prompt: 0
+          completion: 0
+        "gemma3:4b":
+          prompt: 0
+          completion: 0
+        "gemma3:27b":
+          prompt: 0
+          completion: 0
+        "deepseek-r1:8b":
+          prompt: 0
+          completion: 0
+        "qwen2.5-coder:14b":
+          prompt: 0
+          completion: 0
+        "hf.co/totalsoft/ppm-qwen3-tool-calling-gguf:latest":
+          prompt: 0
+          completion: 0
+    - name: "PPM"
+      baseURL: "http://10.1.48.13:8001/v1"
+      apiKey: "dff700"
+      models:
+        default: ["qwen3-ppm-ft"]
+        fetch: false 
+      tokenConfig:
+        "qwen3-ppm-ft":
+          prompt: 0
+          completion: 0
+          
+    - name: "Assistant"
+      baseURL: "${ORCHESTRATOR_URL}"
+      apiKey: "$ORCHESTRATOR_API_KEY}"
+      titleMessageRole: "user"
+      models:
+        default: ["orieg/gemma3-tools:4b-it-qat", "qwen3:8b"]
+      maxContextTokens: 16000
+      contextStrategy: "refine" 
+      summarize: true
+      summaryModel: "phi4-mini:latest"
+      # Activează file search pentru acest endpoint
+      fileSearch: true
+      headers:
+        X-User-Email: "{{LIBRECHAT_USER_EMAIL}}"
+        X-User-Id: "{{LIBRECHAT_USER_ID}}"
+      tokenConfig:
+        "orieg/gemma3-tools:4b-it-qat":
+          prompt: 0
+          completion: 0
+        "qwen3:8b":
+          prompt: 0
+          completion: 0
+        "phi4-mini:latest":
+          prompt: 0
+          completion: 0
+
+
+#memory:
+#  disabled: false
+#  personalize: true
+#  tokenLimit: 3000
+#  messageWindowSize: 8
+#  agent:
+#    provider: "Local Models"
+#    model: "phi4-mini:latest"
+#    instructions: |
+#      You are a memory assistant. Store only user-approved, useful facts and preferences.
+#    model_parameters:
+#      temperature: 0.2
+#      max_tokens: 1000
+#  tokenConfig:
+#        "phi4-mini:latest":
+#          prompt: 0
+#          completion: 0

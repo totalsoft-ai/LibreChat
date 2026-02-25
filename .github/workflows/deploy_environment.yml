@@ -52,6 +52,7 @@ jobs:
       shell: pwsh
       run: |
         Copy-Item "custom\config\k8s\custom-values_dev.yaml" "custom\config\k8s\custom-values.yaml" -Force
+        Copy-Item "custom\config\k8s\configmaps\librechat.totalsoft_dev.yaml" "custom\config\k8s\configmaps\librechat.totalsoft.yaml" -Force
 
 
     - name: Create production certificates from secrets
