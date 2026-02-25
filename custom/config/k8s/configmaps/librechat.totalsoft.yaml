@@ -33,6 +33,79 @@ interface:
   multiConvo: true
   agents: true
 
+modelSpecs:
+  enforce: true
+  prioritize: true
+  addedEndpoints:
+    - "agents"
+  list:
+    - name: "assistant-with-knowledge"
+      label: "Assistant with Knowledge"
+      preset:
+        endpoint: "Assistant-with-knowledge"
+        model: "us.anthropic.claude-3-5-haiku-20241022-v1:0"
+
+    - name: "file-search"
+      label: "File Search"
+      preset:
+        endpoint: "Local Models"
+        model: "qwen3:8b"
+        
+    - name: "assistant"
+      label: "Assistant"
+      preset:
+        endpoint: "Assistant"
+        model: "qwen3:8b"
+
+    - name: "general-assistant"
+      label: "General Assistant"
+      preset:
+       endpoint: "Local Models"
+       model: "gemma3:4b"
+#
+ #   - name: "local-gemma3-27b"
+ #     label: "Gemma 3 27B"
+ #     group: "Local Models"
+ #     preset:
+ #       endpoint: "Local Models"
+ #       model: "gemma3:27b"
+#
+ #   - name: "local-qwen3-8b"
+ #     label: "Qwen3 8B"
+ #     group: "Local Models"
+ #     preset:
+ #       endpoint: "Local Models"
+ #       model: "qwen3:8b"
+#
+ #   - name: "local-phi4-mini"
+ #     label: "Phi4 Mini"
+ #     group: "Local Models"
+ #     preset:
+ #       endpoint: "Local Models"
+ #       model: "phi4-mini:latest"
+#
+ #   - name: "local-deepseek-r1-8b"
+ #     label: "DeepSeek R1 8B"
+ #     group: "Local Models"
+ #     preset:
+ #       endpoint: "Local Models"
+ #       model: "deepseek-r1:8b"
+#
+ #   - name: "local-qwen25-coder-14b"
+ #     label: "Qwen2.5 Coder 14B"
+ #     group: "Local Models"
+ #     preset:
+ #       endpoint: "Local Models"
+ #       model: "qwen2.5-coder:14b"
+#
+ #   - name: "local-gemma3-tools"
+ #     label: "Gemma 3 Tools"
+ #     group: "Local Models"
+ #     preset:
+ #       endpoint: "Local Models"
+ #       model: "orieg/gemma3-tools:4b-it-qat"
+
+
 # Example Actions Object Structure
 actions:
   allowedDomains:
