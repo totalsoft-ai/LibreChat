@@ -99,6 +99,7 @@ const tokenValues = Object.assign(
     deepseek: { prompt: 0.28, completion: 0.42 },
     command: { prompt: 0.38, completion: 0.38 },
     gemma: { prompt: 0.00, completion: 0.00 }, // Base pattern (using gemma-3n-e4b pricing)
+    'qwen3-ppm-ft': { prompt: 0, completion: 0 }, // Internal PPM fine-tuned model
     gemini: { prompt: 0.5, completion: 1.5 },
     'gpt-oss': { prompt: 0.05, completion: 0.2 },
     // Specific model variants (check FIRST - more specific patterns at end)
