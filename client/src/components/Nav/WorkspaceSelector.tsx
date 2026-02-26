@@ -61,8 +61,8 @@ export default function WorkspaceSelector() {
       setCurrentWorkspaceId(workspaceId);
       setIsPopoverActive(false);
 
-      // If selecting a workspace (not personal), check if we should show start page
       if (workspaceId) {
+        // If selecting a workspace, check if we should show start page
         const seenKey = `workspace_${workspaceId}_start_page_seen`;
         const hasSeen = localStorage.getItem(seenKey);
 
@@ -74,6 +74,9 @@ export default function WorkspaceSelector() {
         if (startPageEnabled && hasSeen !== 'true') {
           navigate(`/workspace/${workspaceId}/start`);
         }
+      } else {
+        // Personal selected — navigate to new chat
+        navigate('/');
       }
     },
     [setCurrentWorkspaceId, navigate, workspaces],
