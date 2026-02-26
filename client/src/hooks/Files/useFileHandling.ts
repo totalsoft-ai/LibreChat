@@ -114,6 +114,8 @@ const useFileHandling = (params?: UseFileHandling) => {
       onSuccess: (data) => {
         clearUploadTimer(data.temp_file_id);
         console.log('upload success', data);
+        // Refresh file config to update userStorageUsed after each upload
+        queryClient.invalidateQueries([QueryKeys.fileConfig]);
         if (agent_id) {
           queryClient.refetchQueries([QueryKeys.agent, agent_id]);
           return;

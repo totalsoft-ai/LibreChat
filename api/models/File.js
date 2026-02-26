@@ -151,6 +151,21 @@ const deleteFiles = async (file_ids, user) => {
 };
 
 /**
+ * Calculates the total storage used by a user (excludes temporary files with TTL).
+ * @param {string} userId - The user's ID.
+ * @returns {Promise<number>} Total bytes used by the user's permanent files.
+ */
+const getUserStorageUsed = async (userId) => {
+  const files = await File.find({
+    user: userId,
+    expiresAt: { $exists: false },
+  })
+    .select('bytes')
+    .lean();
+  return files.reduce((total, file) => total + (file.bytes ?? 0), 0);
+};
+
+/**
  * Batch updates files with new signed URLs in MongoDB
  *
  * @param {MongoFile[]} updates - Array of updates in the format { file_id, filepath }
@@ -183,4 +198,5 @@ module.exports = {
   deleteFiles,
   deleteFileByFilter,
   batchUpdateFiles,
+  getUserStorageUsed,
 };

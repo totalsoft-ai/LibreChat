@@ -51,6 +51,12 @@ export type FileConfig = {
   fileTokenLimit?: number;
   serverFileSizeLimit?: number;
   avatarSizeLimit?: number;
+  /** Per-file size limit for users (bytes), configured via USER_FILE_SIZE_LIMIT_MB env var */
+  userFileSizeLimit?: number;
+  /** Total storage quota per user (bytes), configured via USER_STORAGE_LIMIT_MB env var */
+  userStorageLimit?: number;
+  /** Current storage used by the authenticated user (bytes) */
+  userStorageUsed?: number;
   clientImageResize?: {
     enabled?: boolean;
     maxWidth?: number;

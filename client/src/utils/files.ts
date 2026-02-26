@@ -288,6 +288,13 @@ export const validateFiles = ({
       return false;
     }
 
+    // Check user per-file size limit (takes priority as more restrictive global limit)
+    if (fileConfig?.userFileSizeLimit && originalFile.size >= fileConfig.userFileSizeLimit) {
+      const limitMB = Math.round(fileConfig.userFileSizeLimit / megabyte);
+      setError(`File too large. Maximum allowed size is ${limitMB} MB per file.`);
+      return false;
+    }
+
     if (fileSizeLimit && originalFile.size >= fileSizeLimit) {
       setError(`File size exceeds ${fileSizeLimit / megabyte} MB.`);
       return false;
@@ -297,6 +304,19 @@ export const validateFiles = ({
   if (totalSizeLimit && currentTotalSize + incomingTotalSize > totalSizeLimit) {
     setError(`The total size of the files cannot exceed ${totalSizeLimit / megabyte} MB.`);
     return false;
+  }
+
+  // Check user total storage quota
+  if (fileConfig?.userStorageLimit != null && fileConfig?.userStorageUsed != null) {
+    if (fileConfig.userStorageUsed + incomingTotalSize > fileConfig.userStorageLimit) {
+      const remainingBytes = Math.max(0, fileConfig.userStorageLimit - fileConfig.userStorageUsed);
+      const remainingMB = (remainingBytes / megabyte).toFixed(0);
+      const limitMB = Math.round(fileConfig.userStorageLimit / megabyte);
+      setError(
+        `Storage quota exceeded. You have ${remainingMB} MB remaining of your ${limitMB} MB quota.`,
+      );
+      return false;
+    }
   }
 
   const combinedFilesInfo = [
