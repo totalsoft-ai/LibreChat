@@ -428,6 +428,26 @@ async function setupOpenId() {
             );
           }
 
+          // Extract namespaces from OIDC token based on OPENID_NAMESPACES_CLAIM_PATH env var
+          // e.g. OPENID_NAMESPACES_CLAIM_PATH=namespaces or realm_access.namespaces
+          let userNamespaces = [];
+          const namespaceClaimPath = process.env.OPENID_NAMESPACES_CLAIM_PATH;
+          if (namespaceClaimPath) {
+            let tokenForNamespaces = userinfo;
+            const namespaceTokenKind = process.env.OPENID_NAMESPACES_TOKEN_KIND || 'userinfo';
+            if (namespaceTokenKind === 'access' && tokenset.access_token) {
+              tokenForNamespaces = jwtDecode(tokenset.access_token);
+            } else if (namespaceTokenKind === 'id' && tokenset.id_token) {
+              tokenForNamespaces = jwtDecode(tokenset.id_token);
+            }
+            const rawNamespaces = get(tokenForNamespaces, namespaceClaimPath);
+            if (Array.isArray(rawNamespaces)) {
+              userNamespaces = rawNamespaces.filter((n) => typeof n === 'string');
+            } else if (typeof rawNamespaces === 'string' && rawNamespaces) {
+              userNamespaces = [rawNamespaces];
+            }
+          }
+
           if (!user) {
             user = {
               provider: 'openid',
@@ -437,6 +457,7 @@ async function setupOpenId() {
               emailVerified: userinfo.email_verified || false,
               name: fullName,
               idOnTheSource: userinfo.oid,
+              namespaces: userNamespaces,
             };
 
             const balanceConfig = getBalanceConfig(appConfig);
@@ -447,6 +468,7 @@ async function setupOpenId() {
             user.username = username;
             user.name = fullName;
             user.idOnTheSource = userinfo.oid;
+            user.namespaces = userNamespaces;
             if (userinfo.email && userinfo.email !== user.email) {
               user.email = userinfo.email;
               user.emailVerified = userinfo.email_verified || false;

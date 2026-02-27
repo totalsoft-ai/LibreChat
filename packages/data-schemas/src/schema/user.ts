@@ -146,6 +146,11 @@ const userSchema = new Schema<IUser>(
       type: String,
       sparse: true,
     },
+    /** Namespaces extracted from OIDC/Keycloak group attributes - used for RAG namespace filtering */
+    namespaces: {
+      type: [String],
+      default: [],
+    },
   },
   { timestamps: true },
 );
