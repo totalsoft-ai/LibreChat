@@ -204,6 +204,8 @@ export type TUser = {
   personalization?: {
     memories?: boolean;
   };
+  /** Namespaces extracted from OIDC/Keycloak group attributes - used for RAG namespace filtering */
+  namespaces?: string[];
   createdAt: string;
   updatedAt: string;
 };
