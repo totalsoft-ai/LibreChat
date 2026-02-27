@@ -38,6 +38,8 @@ export interface IUser extends Document {
   updatedAt?: Date;
   /** Field for external source identification (for consistency with TPrincipal schema) */
   idOnTheSource?: string;
+  /** Namespaces extracted from OIDC/Keycloak group attributes - used for RAG namespace filtering */
+  namespaces?: string[];
 }
 
 export interface BalanceConfig {

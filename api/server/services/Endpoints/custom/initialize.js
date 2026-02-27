@@ -1,6 +1,7 @@
 const { Providers } = require('@librechat/agents');
 const {
   resolveHeaders,
+  resolveAddParams,
   isUserProvided,
   getOpenAIConfig,
   getCustomEndpointConfig,
@@ -112,7 +113,7 @@ const initializeClient = async ({ req, res, endpointOption, optionsOnly, overrid
 
   const customOptions = {
     headers: resolvedHeaders,
-    addParams: endpointConfig.addParams,
+    addParams: resolveAddParams({ addParams: endpointConfig.addParams, user: req.user }),
     dropParams: endpointConfig.dropParams,
     customParams: endpointConfig.customParams,
     titleConvo: endpointConfig.titleConvo,

@@ -27,6 +27,9 @@ const ALLOWED_USER_FIELDS = [
   'termsAccepted',
 ] as const;
 
+/** Placeholder used in YAML config to inject user namespaces as a JSON array */
+const NAMESPACES_PLACEHOLDER = '{{LIBRECHAT_USER_NAMESPACES}}';
+
 type AllowedUserField = (typeof ALLOWED_USER_FIELDS)[number];
 type SafeUser = Pick<IUser, AllowedUserField>;
 
@@ -233,6 +236,46 @@ export function processMCPEnv(params: {
   }
 
   return newObj;
+}
+
+/**
+ * Resolves addParams values by replacing user placeholders, including the special
+ * `{{LIBRECHAT_USER_NAMESPACES}}` placeholder which is replaced with the actual
+ * namespaces array (not a string) so it can be sent as a JSON array to the API.
+ *
+ * @param options - Configuration object.
+ * @param options.addParams - The addParams object from endpoint config.
+ * @param options.user - Optional user object for replacing placeholders.
+ * @returns The processed addParams with placeholders replaced. Array values are kept as arrays.
+ */
+export function resolveAddParams(options?: {
+  addParams: Record<string, unknown> | undefined;
+  user?: Partial<TUser> | { id: string };
+}): Record<string, unknown> {
+  const { addParams, user } = options ?? {};
+  if (!addParams || typeof addParams !== 'object') {
+    return addParams ?? {};
+  }
+
+  const resolved: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(addParams)) {
+    if (typeof value === 'string') {
+      // Special case: {{LIBRECHAT_USER_NAMESPACES}} → replace with array
+      if (value === NAMESPACES_PLACEHOLDER) {
+        const iuser = user as TUser | undefined;
+        resolved[key] = Array.isArray(iuser?.namespaces) ? iuser.namespaces : [];
+      } else {
+        // Regular string placeholders (user fields, env vars, etc.)
+        resolved[key] = processSingleValue({
+          originalValue: value,
+          user: user as TUser,
+        });
+      }
+    } else {
+      resolved[key] = value;
+    }
+  }
+  return resolved;
 }
 
 /**
