@@ -26,7 +26,7 @@ async function resolveUserNamespaces(req, res, next) {
     const allNamespaces = [...new Set(result.rows.flatMap((r) => r.namespaces))];
     req.user.namespaces = allNamespaces;
 
-    logger.debug(`[resolveUserNamespaces] email=${email} namespaces=${JSON.stringify(allNamespaces)}`);
+    logger.info(`[resolveUserNamespaces] email=${email} namespaces=${JSON.stringify(allNamespaces)}`);
   } catch (err) {
     logger.error('[resolveUserNamespaces] PG query failed:', err.message);
   }
