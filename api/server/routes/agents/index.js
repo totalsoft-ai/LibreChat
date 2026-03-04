@@ -9,6 +9,7 @@ const {
   concurrentLimiter,
   messageUserLimiter,
 } = require('~/server/middleware');
+const { resolveUserNamespaces } = require('~/server/middleware/resolveUserNamespaces');
 const { v1 } = require('./v1');
 const chat = require('./chat');
 
@@ -24,6 +25,7 @@ router.use('/', v1);
 
 const chatRouter = express.Router();
 chatRouter.use(configMiddleware);
+chatRouter.use(resolveUserNamespaces);
 
 if (isEnabled(LIMIT_CONCURRENT_MESSAGES)) {
   chatRouter.use(concurrentLimiter);
