@@ -57,11 +57,11 @@ modelSpecs:
         endpoint: "Assistant"
         model: "qwen3:8b"
 
-    - name: "general-assistant"
-      label: "General Assistant"
-      preset:
-       endpoint: "Local Models"
-       model: "gemma3:4b"
+#    - name: "general-assistant"
+#      label: "General Assistant"
+#      preset:
+#       endpoint: "Local Models"
+#       model: "gemma3:4b"
 #
  #   - name: "local-gemma3-27b"
  #     label: "Gemma 3 27B"
