@@ -11,6 +11,7 @@ import {
   useUpdatePresetMutation,
   useDeletePresetMutation,
   useGetPresetsQuery,
+  useGetStartupConfig,
 } from '~/data-provider';
 import { cleanupPreset, removeUnavailableTools, getConvoSwitchLogic } from '~/utils';
 import useDefaultConvo from '~/hooks/Conversations/useDefaultConvo';
@@ -28,6 +29,7 @@ export default function usePresets() {
   const { showToast } = useToastContext();
   const { user, isAuthenticated } = useAuthContext();
 
+  const { data: startupConfig } = useGetStartupConfig();
   const modularChat = useRecoilValue(store.modularChat);
   const availableTools = useRecoilValue(store.availableTools);
   const setPresetModalVisible = useSetRecoilState(store.presetModalVisible);
@@ -183,7 +185,26 @@ export default function usePresets() {
       endpointsConfig,
     });
 
-    newPreset.spec = null;
+    const modelSpecsList = startupConfig?.modelSpecs?.list ?? [];
+    const addedEndpoints = startupConfig?.modelSpecs?.addedEndpoints ?? [];
+    const isEnforced = startupConfig?.modelSpecs?.enforce === true;
+    const isAddedEndpoint = addedEndpoints.includes(newPreset.endpoint ?? '');
+
+    if (isEnforced && !isAddedEndpoint && modelSpecsList.length > 0) {
+      const existingSpec = modelSpecsList.find(
+        (s) => s.name === newPreset.spec && s.preset.endpoint === newPreset.endpoint,
+      );
+      if (!existingSpec) {
+        const matchingSpec = modelSpecsList.find(
+          (s) =>
+            s.preset.endpoint === newPreset.endpoint &&
+            (!newPreset.model || !s.preset.model || s.preset.model === newPreset.model),
+        );
+        newPreset.spec = matchingSpec?.name ?? null;
+      }
+    } else {
+      newPreset.spec = null;
+    }
     newPreset.iconURL = newPreset.iconURL ?? null;
     newPreset.modelLabel = newPreset.modelLabel ?? null;
     const isModular = isCurrentModular && isNewModular && shouldSwitch;
