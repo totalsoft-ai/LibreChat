@@ -28,7 +28,11 @@ async function resolveUserNamespaces(req, res, next) {
 
     logger.info(`[resolveUserNamespaces] email=${email} namespaces=${JSON.stringify(allNamespaces)}`);
   } catch (err) {
-    logger.error('[resolveUserNamespaces] PG query failed:', err.message);
+    logger.error('[resolveUserNamespaces] PG query failed:', err.message, {
+      code: err.code,
+      detail: err.detail,
+      hint: err.hint,
+    });
   }
   next();
 }
