@@ -17,7 +17,7 @@ async function resolveUserNamespaces(req, res, next) {
     const result = await pool.query(
       `SELECT dn.namespaces
        FROM employees e
-       JOIN employee_assignments ea ON ea.employee_id = e.employee_id
+       JOIN employee_assignments ea ON ea.employee_id = e.id
        JOIN department_namespaces dn ON dn.department_id = ea.department_id
        WHERE e.email = $1`,
       [email],
