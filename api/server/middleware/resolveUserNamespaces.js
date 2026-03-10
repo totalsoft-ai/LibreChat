@@ -19,7 +19,7 @@ async function resolveUserNamespaces(req, res, next) {
        FROM employees e
        JOIN employee_assignments ea ON ea.employee_id = e.id
        JOIN department_namespaces dn ON dn.department_id = ea.department_id
-       WHERE e.email = $1`,
+       WHERE LOWER(e.email) = LOWER($1)`,
       [email],
     );
 
