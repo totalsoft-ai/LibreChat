@@ -211,6 +211,7 @@ const initializeAgent = async ({
     toolContextMap,
     useLegacyContent: !!options.useLegacyContent,
     maxContextTokens: Math.round((agentMaxContextTokens - maxTokens) * 0.9),
+    endpointTokenConfig: options.endpointTokenConfig,
   };
 };
 
