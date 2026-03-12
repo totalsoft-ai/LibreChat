@@ -208,7 +208,7 @@ const tokenValues = Object.assign(
     'qwen-max': { prompt: 1.6, completion: 6.4 },
     'qwq-32b': { prompt: 0.15, completion: 0.4 },
     // Qwen3 models
-    qwen3: { prompt: 0.035, completion: 0.138 }, // Qwen3 base pattern (using qwen3-4b pricing)
+    qwen3: { prompt: 0, completion: 0 }, // Qwen3 base pattern (using qwen3-4b pricing)
     'qwen3:8b': { prompt: 0.00, completion: 0.00 },
     'qwen3-8b': { prompt: 0.035, completion: 0.138 },
     'qwen3-14b': { prompt: 0.05, completion: 0.22 },
