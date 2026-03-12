@@ -225,7 +225,8 @@ endpoints:
       models:
         default: ["qwen3-ppm-ft"]
         fetch: false
-      titleModel: 'qwen3-ppm-ft' 
+      titleModel: 'qwen3:8b' 
+      titleEndpoint: "Local Models"
       tokenConfig:
         "qwen3-ppm-ft":
           prompt: 0
