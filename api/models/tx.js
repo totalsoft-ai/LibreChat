@@ -317,6 +317,13 @@ const getMultiplier = ({ valueKey, tokenType, model, endpoint, endpointTokenConf
     if (configValue !== undefined && configValue !== null) {
       return configValue;
     }
+    // If model is an agent ID, use the first matching value in endpointTokenConfig
+    if (typeof model === 'string' && model.startsWith('agent_')) {
+      const firstValue = Object.values(endpointTokenConfig)[0]?.[tokenType];
+      if (firstValue !== undefined && firstValue !== null) {
+        return firstValue;
+      }
+    }
     // Model not explicitly listed in endpointTokenConfig, fall through to pattern matching
   }
 
