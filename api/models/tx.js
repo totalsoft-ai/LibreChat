@@ -313,7 +313,11 @@ const getValueKey = (model, endpoint) => {
  */
 const getMultiplier = ({ valueKey, tokenType, model, endpoint, endpointTokenConfig }) => {
   if (endpointTokenConfig) {
-    return endpointTokenConfig?.[model]?.[tokenType] ?? defaultRate;
+    const configValue = endpointTokenConfig?.[model]?.[tokenType];
+    if (configValue !== undefined && configValue !== null) {
+      return configValue;
+    }
+    // Model not explicitly listed in endpointTokenConfig, fall through to pattern matching
   }
 
   if (valueKey && tokenType) {
