@@ -1,6 +1,7 @@
 const axios = require('axios');
 const { logger } = require('@librechat/data-schemas');
 const { isEnabled, generateShortLivedToken } = require('@librechat/api');
+const { getNamespace } = require('~/server/services/Files/VectorDB/crud');
 
 const footer = `Use the context as your learned knowledge to better answer the user.
 
@@ -22,10 +23,13 @@ function createContextHandlers(req, userMessageContent) {
   const useFullContext = isEnabled(process.env.RAG_USE_FULL_CONTEXT);
 
   const query = async (file) => {
+    const namespace = await getNamespace({ user: req.user });
+
     if (useFullContext) {
       return axios.get(`${process.env.RAG_API_URL}/documents/${file.file_id}/context`, {
         headers: {
           Authorization: `Bearer ${jwtToken}`,
+          'X-Namespace': namespace,
         },
       });
     }
@@ -41,6 +45,7 @@ function createContextHandlers(req, userMessageContent) {
         headers: {
           Authorization: `Bearer ${jwtToken}`,
           'Content-Type': 'application/json',
+          'X-Namespace': namespace,
         },
       },
     );
