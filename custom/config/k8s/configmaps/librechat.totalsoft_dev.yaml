@@ -107,17 +107,17 @@ modelSpecs:
  #       endpoint: "Local Models"
  #       model: "orieg/gemma3-tools:4b-it-qat"
         
-    - name: "gpt-4o"
-      label: "GPT-4o"
-      preset:
-        endpoint: "azureOpenAI"
-        model: "gpt-4o"
+ #  - name: "gpt-4o"
+ #    label: "GPT-4o"
+ #    preset:
+ #      endpoint: "azureOpenAI"
+ #      model: "gpt-4o"
 
-    - name: "ppm"
-      label: "PPM"
-      preset:
-        endpoint: "PPM"
-        model: "qwen3-ppm-ft"
+ #  - name: "ppm"
+ #    label: "PPM"
+ #    preset:
+ #      endpoint: "PPM"
+ #      model: "qwen3-ppm-ft"
 
 
 # Example Actions Object Structure
