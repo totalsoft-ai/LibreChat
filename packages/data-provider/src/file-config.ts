@@ -114,20 +114,12 @@ export const codeInterpreterMimeTypesList = [
 ];
 
 export const retrievalMimeTypesList = [
-  'text/x-c',
-  'text/x-c++',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'text/html',
-  'text/x-java',
   'application/json',
   'text/markdown',
   'application/pdf',
-  'text/x-php',
   'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-  'text/x-python',
-  'text/x-script.python',
-  'text/x-ruby',
-  'text/x-tex',
   'text/plain',
 ];
 
@@ -197,11 +189,12 @@ export const codeTypeMapping: { [key: string]: string } = {
   yml: 'application/x-yaml',
   yaml: 'application/x-yaml',
   log: 'text/plain',
+  sql: 'text/plain',
   tsv: 'text/tab-separated-values',
 };
 
 export const retrievalMimeTypes = [
-  /^(text\/(x-c|x-c\+\+|x-h|html|x-java|markdown|x-php|x-python|x-script\.python|x-ruby|x-tex|plain|vtt|xml))$/,
+  /^(text\/(html|markdown|plain|vtt|xml))$/,
   /^(application\/(json|pdf|vnd\.openxmlformats-officedocument\.(wordprocessingml\.document|presentationml\.presentation)))$/,
 ];
 
