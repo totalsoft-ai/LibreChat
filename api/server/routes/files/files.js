@@ -580,7 +580,7 @@ router.post('/', async (req, res) => {
 
     // Log upload metadata for debugging
     logger.debug(
-      `[/files] upload meta: endpoint=${metadata?.endpoint} tool_resource=${metadata?.tool_resource} file_id=${metadata?.file_id} isAssistantEndpoint=${isAssistantEndpoint} isPersonalSpace=${isPersonalSpaceEndpoint} isGlobalLibrary=${metadata?.isGlobalLibrary}`,
+      `[/files] upload meta: endpoint=${metadata?.endpoint} tool_resource=${metadata?.tool_resource} file_id=${metadata?.file_id} isAssistantEndpoint=${isAssistantEndpoint} isLocalModels=${isLocalModelsEndpoint} isGlobalLibrary=${metadata?.isGlobalLibrary}`,
     );
 
     // Use agent file upload processing for:
