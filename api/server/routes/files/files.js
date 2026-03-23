@@ -550,8 +550,9 @@ router.post('/', async (req, res) => {
         originalEndpoint === 'Local Models' ||
         originalEndpoint === EModelEndpoint.assistants
       ) {
-        const isTextFile = textMimeTypes.test(req.file?.mimetype ?? '');
-        metadata.tool_resource = isTextFile ? 'context' : 'file_search';
+        const mimetype = req.file?.mimetype ?? '';
+        const isCodeFile = textMimeTypes.test(mimetype) && mimetype !== 'text/plain';
+        metadata.tool_resource = isCodeFile ? 'context' : 'file_search';
         metadata.message_file = true;
         logger.debug(
           `[/files] Inferred tool_resource=${metadata.tool_resource} for custom Assistant/Local Models endpoint (mimetype: ${req.file?.mimetype})`,
