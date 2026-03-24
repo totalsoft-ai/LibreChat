@@ -1,6 +1,40 @@
 const { logger } = require('@librechat/data-schemas');
-const { Agent, Prompt, PromptGroup, File } = require('~/db/models');
+const { PrincipalType, ResourceType, AccessRoleIds } = require('librechat-data-provider');
+const { Agent, Prompt, PromptGroup, File, AclEntry } = require('~/db/models');
+const { grantPermission } = require('~/server/services/PermissionService');
 const Workspace = require('~/models/Workspace');
+
+/**
+ * Sync PUBLIC ACL entry for agents based on visibility.
+ * - visibility 'global': grant PUBLIC VIEW access so any authenticated user can fetch the agent
+ * - other visibility: revoke PUBLIC access
+ */
+const syncPublicAclEntry = async (resourceType, resourceMongoId, visibility, grantedBy) => {
+  if (resourceType !== 'agent') {
+    return;
+  }
+  try {
+    if (visibility === 'global') {
+      await grantPermission({
+        principalType: PrincipalType.PUBLIC,
+        resourceType: ResourceType.AGENT,
+        resourceId: resourceMongoId,
+        accessRoleId: AccessRoleIds.AGENT_VIEWER,
+        grantedBy,
+      });
+    } else {
+      await AclEntry.deleteOne({
+        resourceType: ResourceType.AGENT,
+        resourceId: resourceMongoId,
+        principalType: PrincipalType.PUBLIC,
+      });
+    }
+  } catch (error) {
+    logger.warn(
+      `[syncPublicAclEntry] Failed to sync PUBLIC ACL for agent ${resourceMongoId}: ${error.message}`,
+    );
+  }
+};
 
 /**
  * Get model for resource type
@@ -92,6 +126,7 @@ const shareResource = async (req, res) => {
     }
 
     await resource.save();
+    await syncPublicAclEntry(resourceType, resource._id, visibility, userId);
 
     logger.info(
       `[shareResource] ${resourceType} ${resourceId} shared as ${visibility} by user ${userId}`,
@@ -146,6 +181,7 @@ const unshareResource = async (req, res) => {
     resource.sharedWith = [];
 
     await resource.save();
+    await syncPublicAclEntry(resourceType, resource._id, 'private', userId);
 
     logger.info(`[unshareResource] ${resourceType} ${resourceId} set to private by user ${userId}`);
 
@@ -206,6 +242,7 @@ const updateVisibility = async (req, res) => {
     }
 
     await resource.save();
+    await syncPublicAclEntry(resourceType, resource._id, visibility, userId);
 
     // For prompts, also update the PromptGroup visibility
     if (resourceType === 'prompt' && resource.groupId) {
