@@ -32,6 +32,7 @@ interface:
   bookmarks: true
   multiConvo: true
   agents: true
+  marketplace: true
 
 modelSpecs:
   enforce: true
