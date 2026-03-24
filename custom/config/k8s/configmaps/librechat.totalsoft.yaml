@@ -219,6 +219,7 @@ endpoints:
           prompt: 0
           completion: 0 
 
+          
     - name: "Assistant"
       baseURL: "${ORCHESTRATOR_URL}"
       apiKey: "$ORCHESTRATOR_API_KEY}"
