@@ -11,6 +11,7 @@ const {
   EModelEndpoint,
   EToolResources,
   mergeFileConfig,
+  textMimeTypes,
   AgentCapabilities,
   checkOpenAIStorage,
   removeNullishValues,
@@ -594,6 +595,15 @@ const processFileUpload = async ({ req, res, metadata }) => {
 const processAgentFileUpload = async ({ req, res, metadata }) => {
   const { file } = req;
   const appConfig = req.config;
+
+  // Code files (text/x-* except text/plain) should never go to RAG — redirect to context
+  const mimetype = file?.mimetype ?? '';
+  const isCodeFile = textMimeTypes.test(mimetype) && mimetype !== 'text/plain';
+  if (isCodeFile && (!metadata.tool_resource || metadata.tool_resource === EToolResources.file_search)) {
+    logger.debug(`[processAgentFileUpload] Redirecting code file (${mimetype}) from ${metadata.tool_resource ?? 'undefined'} to context`);
+    metadata.tool_resource = EToolResources.context;
+  }
+
   const { agent_id, tool_resource, file_id, temp_file_id = null } = metadata;
 
   let messageAttachment = !!metadata.message_file;
