@@ -40,7 +40,7 @@ const localStorageAtoms = {
   saveBadgesState: atomWithLocalStorage('saveBadgesState', false),
 
   // Beta features settings
-  modularChat: atom<boolean>({ key: 'modularChat', default: false }),
+  modularChat: atom<boolean>(false),
   LaTeXParsing: atomWithLocalStorage('LaTeXParsing', true),
   centerFormOnLanding: atomWithLocalStorage('centerFormOnLanding', true),
   showFooter: atomWithLocalStorage('showFooter', true),
