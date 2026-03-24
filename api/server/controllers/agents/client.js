@@ -655,7 +655,7 @@ class AgentClient extends BaseClient {
         conversationId: this.conversationId,
         user: this.user ?? this.options.req.user?.id,
         endpointTokenConfig: this.options.endpointTokenConfig,
-        model: usage.model ?? model ?? this.model ?? this.options.agent.model_parameters.model,
+        model: (usage.model && !usage.model.startsWith('agent_') ? usage.model : null) ?? model ?? this.model ?? this.options.agent.model_parameters.model,
       };
 
       if (i > 0) {

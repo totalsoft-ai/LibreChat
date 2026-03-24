@@ -97,9 +97,10 @@ const initializeClient = async ({ req, res, endpointOption, optionsOnly, overrid
       : endpoint;
 
   let endpointTokenConfig =
-    !endpointConfig.tokenConfig &&
-    FetchTokenConfig[endpoint.toLowerCase()] &&
-    (await cache.get(tokenKey));
+    endpointConfig.tokenConfig ??
+    (!endpointConfig.tokenConfig &&
+      FetchTokenConfig[endpoint.toLowerCase()] &&
+      (await cache.get(tokenKey)));
 
   if (
     FetchTokenConfig[endpoint.toLowerCase()] &&

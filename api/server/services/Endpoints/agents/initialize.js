@@ -198,6 +198,7 @@ const initializeClient = async ({ req, res, signal, endpointOption }) => {
     endpointType: endpointOption.endpointType,
     resendFiles: primaryConfig.resendFiles ?? true,
     maxContextTokens: primaryConfig.maxContextTokens,
+    endpointTokenConfig: primaryConfig.endpointTokenConfig,
     endpoint:
       primaryConfig.id === Constants.EPHEMERAL_AGENT_ID
         ? primaryConfig.endpoint

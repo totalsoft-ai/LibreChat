@@ -183,6 +183,7 @@ Please follow these instructions when using tools from the respective MCP server
     oauthStart,
     oauthEnd,
     customUserVars,
+    authorizationHeader,
   }: {
     user?: TUser;
     serverName: string;
@@ -193,6 +194,7 @@ Please follow these instructions when using tools from the respective MCP server
     requestBody?: RequestBody;
     tokenMethods?: TokenMethods;
     customUserVars?: Record<string, string>;
+    authorizationHeader?: string;
     flowManager: FlowStateManager<MCPOAuthTokens | null>;
     oauthStart?: (authURL: string) => Promise<void>;
     oauthEnd?: () => Promise<void>;
@@ -231,6 +233,7 @@ Please follow these instructions when using tools from the respective MCP server
         options: rawConfig,
         customUserVars: customUserVars,
         body: requestBody,
+        authorizationHeader,
       });
       if ('headers' in currentOptions) {
         connection.setRequestHeaders(currentOptions.headers || {});

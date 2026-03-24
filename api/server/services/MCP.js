@@ -378,6 +378,7 @@ function createToolInstance({ res, toolName, serverName, toolDefinition, provide
         },
         oauthStart,
         oauthEnd,
+        authorizationHeader: res.req?.headers?.authorization,
       });
 
       if (isAssistantsEndpoint(provider) && Array.isArray(result)) {

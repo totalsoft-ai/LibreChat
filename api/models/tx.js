@@ -99,6 +99,7 @@ const tokenValues = Object.assign(
     deepseek: { prompt: 0.28, completion: 0.42 },
     command: { prompt: 0.38, completion: 0.38 },
     gemma: { prompt: 0.00, completion: 0.00 }, // Base pattern (using gemma-3n-e4b pricing)
+    'qwen3-ppm-ft': { prompt: 0, completion: 0 }, // Internal PPM fine-tuned model
     gemini: { prompt: 0.5, completion: 1.5 },
     'gpt-oss': { prompt: 0.05, completion: 0.2 },
     // Specific model variants (check FIRST - more specific patterns at end)
@@ -207,7 +208,7 @@ const tokenValues = Object.assign(
     'qwen-max': { prompt: 1.6, completion: 6.4 },
     'qwq-32b': { prompt: 0.15, completion: 0.4 },
     // Qwen3 models
-    qwen3: { prompt: 0.035, completion: 0.138 }, // Qwen3 base pattern (using qwen3-4b pricing)
+    qwen3: { prompt: 0, completion: 0 }, // Qwen3 base pattern (using qwen3-4b pricing)
     'qwen3:8b': { prompt: 0.00, completion: 0.00 },
     'qwen3-8b': { prompt: 0.035, completion: 0.138 },
     'qwen3-14b': { prompt: 0.05, completion: 0.22 },
@@ -312,7 +313,18 @@ const getValueKey = (model, endpoint) => {
  */
 const getMultiplier = ({ valueKey, tokenType, model, endpoint, endpointTokenConfig }) => {
   if (endpointTokenConfig) {
-    return endpointTokenConfig?.[model]?.[tokenType] ?? defaultRate;
+    const configValue = endpointTokenConfig?.[model]?.[tokenType];
+    if (configValue !== undefined && configValue !== null) {
+      return configValue;
+    }
+    // If model is an agent ID, use the first matching value in endpointTokenConfig
+    if (typeof model === 'string' && model.startsWith('agent_')) {
+      const firstValue = Object.values(endpointTokenConfig)[0]?.[tokenType];
+      if (firstValue !== undefined && firstValue !== null) {
+        return firstValue;
+      }
+    }
+    // Model not explicitly listed in endpointTokenConfig, fall through to pattern matching
   }
 
   if (valueKey && tokenType) {

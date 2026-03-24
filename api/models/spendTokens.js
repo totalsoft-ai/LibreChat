@@ -21,6 +21,9 @@ const spendTokens = async (txData, tokenUsage) => {
     {
       promptTokens,
       completionTokens,
+      model: txData.model,
+      endpointTokenConfig: !!txData.endpointTokenConfig,
+      endpointTokenConfigKeys: txData.endpointTokenConfig ? Object.keys(txData.endpointTokenConfig) : null,
     },
   );
   let prompt, completion;

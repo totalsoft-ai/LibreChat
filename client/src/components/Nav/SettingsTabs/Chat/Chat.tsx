@@ -69,13 +69,6 @@ const toggleSwitchConfigs = [
     hoverCardText: 'com_nav_info_save_badges_state',
     key: 'showBadges',
   },
-  {
-    stateAtom: store.modularChat,
-    localizationKey: 'com_nav_modular_chat',
-    switchId: 'modularChat',
-    hoverCardText: undefined,
-    key: 'modularChat',
-  },
 ];
 
 function Chat() {

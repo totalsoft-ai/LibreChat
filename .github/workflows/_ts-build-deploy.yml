@@ -96,6 +96,7 @@ jobs:
           "MINIO_SECRET_ACCESS_KEY" = "${{ secrets.MINIO_SECRET_ACCESS_KEY }}"
           "KC_CONNECTOR_API_KEY" = '${{ secrets.KC_CONNECTOR_API_KEY }}'
           "POSTGRES_LOGS_URI" = '${{ secrets.POSTGRES_LOGS_URI }}'
+          "PG_CONNECTION_STRING" = '${{ secrets.PG_CONNECTION_STRING }}'
           "MEILI_MASTER_KEY" = "${{ secrets.MEILI_MASTER_KEY }}"
         }
 

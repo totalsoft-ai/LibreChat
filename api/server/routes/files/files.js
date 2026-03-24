@@ -12,6 +12,7 @@ const {
   PermissionBits,
   isAgentsEndpoint,
   checkOpenAIStorage,
+  textMimeTypes,
 } = require('librechat-data-provider');
 const {
   filterFile,
@@ -536,32 +537,34 @@ router.post('/', async (req, res) => {
     const isAssistantEndpoint =
       metadata?.endpoint === 'Assistant' || metadata?.endpoint === EModelEndpoint.assistants;
 
-    const isPersonalSpaceEndpoint = metadata?.endpoint === 'Personal Space';
+    const isLocalModelsEndpoint = metadata?.endpoint === 'Local Models';
 
-    // Fallbacks: if upload comes from custom Assistant or Personal Space endpoint but tool_resource wasn't sent,
-    // infer file_search and ensure the file is a message attachment
+    // Fallbacks: if upload comes from custom Assistant or Local Models endpoint but tool_resource wasn't sent,
+    // infer tool_resource based on file type: text files use context (inline injection), others use file_search (RAG)
     if (!metadata?.tool_resource) {
       const originalEndpoint = metadata?.original_endpoint;
       if (
         metadata?.endpoint === 'Assistant' ||
-        metadata?.endpoint === 'Personal Space' ||
+        metadata?.endpoint === 'Local Models' ||
         originalEndpoint === 'Assistant' ||
-        originalEndpoint === 'Personal Space' ||
+        originalEndpoint === 'Local Models' ||
         originalEndpoint === EModelEndpoint.assistants
       ) {
-        metadata.tool_resource = 'file_search';
+        const mimetype = req.file?.mimetype ?? '';
+        const isCodeFile = textMimeTypes.test(mimetype) && mimetype !== 'text/plain';
+        metadata.tool_resource = isCodeFile ? 'context' : 'file_search';
         metadata.message_file = true;
         logger.debug(
-          '[/files] Inferred tool_resource=file_search for custom Assistant/Personal Space endpoint',
+          `[/files] Inferred tool_resource=${metadata.tool_resource} for custom Assistant/Local Models endpoint (mimetype: ${req.file?.mimetype})`,
         );
       }
     }
 
-    // Mark Personal Space files as global library
-    if (isPersonalSpaceEndpoint) {
+    // Mark Local Models files as global library
+    if (isLocalModelsEndpoint) {
       metadata.isGlobalLibrary = true;
       metadata.message_file = true;
-      logger.debug('[/files] Marked file as global library for Personal Space endpoint');
+      logger.debug('[/files] Marked file as global library for Local Models endpoint');
     }
 
     // Mark workspace uploads with file_search as message files
@@ -577,7 +580,7 @@ router.post('/', async (req, res) => {
 
     // Log upload metadata for debugging
     logger.debug(
-      `[/files] upload meta: endpoint=${metadata?.endpoint} tool_resource=${metadata?.tool_resource} file_id=${metadata?.file_id} isAssistantEndpoint=${isAssistantEndpoint} isPersonalSpace=${isPersonalSpaceEndpoint} isGlobalLibrary=${metadata?.isGlobalLibrary}`,
+      `[/files] upload meta: endpoint=${metadata?.endpoint} tool_resource=${metadata?.tool_resource} file_id=${metadata?.file_id} isAssistantEndpoint=${isAssistantEndpoint} isLocalModels=${isLocalModelsEndpoint} isGlobalLibrary=${metadata?.isGlobalLibrary}`,
     );
 
     // Use agent file upload processing for:
@@ -590,7 +593,7 @@ router.post('/', async (req, res) => {
     const shouldUseAgentFileUpload =
       isAgentsEndpoint(metadata.endpoint) ||
       (isAssistantEndpoint && metadata.tool_resource === 'file_search') ||
-      (isPersonalSpaceEndpoint && metadata.tool_resource === 'file_search') ||
+      (isLocalModelsEndpoint && (metadata.tool_resource === 'file_search' || metadata.tool_resource === 'context')) ||
       isWorkspaceFileSearch;
 
     logger.info(`[/files] Routing decision - shouldUseAgentFileUpload: ${shouldUseAgentFileUpload}, will use: ${shouldUseAgentFileUpload ? 'processAgentFileUpload (RAG)' : 'processFileUpload (standard)'}`);
