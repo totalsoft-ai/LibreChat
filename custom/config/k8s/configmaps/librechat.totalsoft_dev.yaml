@@ -31,7 +31,13 @@ interface:
   prompts: true
   bookmarks: true
   multiConvo: true
-  agents: true
+  agents:
+    use: true
+    create: true
+    share: true
+    public: false
+  marketplace:
+    use: true
 
 modelSpecs:
   enforce: true
