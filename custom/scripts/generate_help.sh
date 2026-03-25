@@ -52,10 +52,12 @@ mkdir -p "$OUTPUT_BASE/en"
 mkdir -p "$OUTPUT_BASE/ro"
 mkdir -p "$IMAGES_DIR"
 
-# Clear old generated images
-echo "Clearing old images..."
+# Clear old generated files
+echo "Clearing old generated files..."
 rm -f "$IMAGES_DIR"/en_*.png "$IMAGES_DIR"/en_*.jpg "$IMAGES_DIR"/en_*.gif
 rm -f "$IMAGES_DIR"/ro_*.png "$IMAGES_DIR"/ro_*.jpg "$IMAGES_DIR"/ro_*.gif
+rm -f "$OUTPUT_BASE/en"/*.md "$OUTPUT_BASE/en"/sections.json
+rm -f "$OUTPUT_BASE/ro"/*.md "$OUTPUT_BASE/ro"/sections.json
 
 # --- Parse EN ---
 echo "Parsing English manual..."
