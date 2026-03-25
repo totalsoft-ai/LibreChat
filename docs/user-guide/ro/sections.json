@@ -1,0 +1,41 @@
+{
+  "sections": [
+    {
+      "id": "introducere",
+      "title": "Introducere",
+      "order": 0,
+      "filename": "introducere.md"
+    },
+    {
+      "id": "autentificarea-in-aplicatie",
+      "title": "Autentificarea in aplicatie",
+      "order": 1,
+      "filename": "autentificarea-in-aplicatie.md"
+    },
+    {
+      "id": "sectiuni-aplicatie",
+      "title": "Sectiuni aplicatie",
+      "order": 2,
+      "filename": "sectiuni-aplicatie.md"
+    },
+    {
+      "id": "ecranul-principal",
+      "title": "Ecranul principal",
+      "order": 3,
+      "filename": "ecranul-principal.md"
+    },
+    {
+      "id": "setari-aditionale",
+      "title": "Setari aditionale",
+      "order": 4,
+      "filename": "setari-aditionale.md"
+    },
+    {
+      "id": "ghid-de-troubleshooting",
+      "title": "Ghid de troubleshooting",
+      "order": 5,
+      "filename": "ghid-de-troubleshooting.md"
+    }
+  ],
+  "default": "introducere"
+}
