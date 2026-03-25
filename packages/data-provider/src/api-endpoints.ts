@@ -252,9 +252,10 @@ export const mcp = {
   tools: `${BASE_URL}/api/mcp/tools`,
 };
 
-export const docs = (docId?: string) => {
+export const docs = (docId?: string, lang?: string) => {
   const base = `${BASE_URL}/api/docs`;
-  return docId ? `${base}/${docId}` : base;
+  const query = lang ? `?lang=${lang}` : '';
+  return docId ? `${base}/${docId}${query}` : `${base}${query}`;
 };
 
 export const revertAgentVersion = (agent_id: string) => `${agents({ path: `${agent_id}/revert` })}`;
