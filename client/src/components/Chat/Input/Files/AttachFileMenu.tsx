@@ -11,6 +11,7 @@ import {
 import {
   EToolResources,
   EModelEndpoint,
+  AgentCapabilities,
   defaultAgentCapabilities,
   isDocumentSupportedProvider,
 } from 'librechat-data-provider';
@@ -29,6 +30,7 @@ import {
   useFileHandling,
   useLocalize,
 } from '~/hooks';
+import { isCodeFile } from '~/hooks/Files/useAutoFileRoute';
 import useSharePointFileHandling from '~/hooks/Files/useSharePointFileHandling';
 import { SharePointPickerDialog } from '~/components/SharePoint';
 import { useGetStartupConfig } from '~/data-provider';
@@ -69,7 +71,7 @@ const AttachFileMenu = ({
     ephemeralAgentByConvoId(conversationId),
   );
   const [toolResource, setToolResource] = useState<EToolResources | undefined>();
-  const { handleFileChange } = useFileHandling({
+  const { handleFiles } = useFileHandling({
     overrideEndpoint: EModelEndpoint.agents,
     overrideEndpointFileConfig: endpointFileConfig,
   });
@@ -92,7 +94,7 @@ const AttachFileMenu = ({
   // HARDCODED FIX: Force file_search capability for Assistant endpoint
   const endpointCapabilities =
     endpoint === 'Assistant'
-      ? ['file_search']
+      ? [AgentCapabilities.file_search]
       : (endpointFileConfig?.capabilities ??
         agentsConfig?.capabilities ??
         defaultAgentCapabilities);
@@ -297,7 +299,18 @@ const AttachFileMenu = ({
       <FileUpload
         ref={inputRef}
         handleFileChange={(e) => {
-          handleFileChange(e, toolResource);
+          if (!e.target.files?.length) {
+            return;
+          }
+          const allFiles = Array.from(e.target.files);
+          const codeFiles = allFiles.filter(isCodeFile);
+          const otherFiles = allFiles.filter((f) => !isCodeFile(f));
+          if (codeFiles.length > 0) {
+            handleFiles(codeFiles);
+          }
+          if (otherFiles.length > 0) {
+            handleFiles(otherFiles, toolResource);
+          }
         }}
       >
         <DropdownPopup
