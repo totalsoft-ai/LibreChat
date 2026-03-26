@@ -156,7 +156,8 @@
       "data/",
       "client/",
       "admin/",
-      "packages/"
+      "packages/",
+      "docs/"
     ]
   },
   "dependencies": {
