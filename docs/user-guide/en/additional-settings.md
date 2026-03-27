@@ -2,15 +2,15 @@
 
 The assistant configuration menu is located on the right side of the screen and provides control over AI parameters. Each user can create agents that provide personalised, shorter or more elaborate responses.
 
-![image](/help-images/en_0064.png)
+![image](/help-images/en_0068.png)
 
-![image](/help-images/en_0065.png)
+![image](/help-images/en_0069.png)
 
 ## Define Agents
 
 The Agent Builder functionality allows the creation of personalised AI agents with specific instructions, configured model and extended capabilities.
 
-![image](/help-images/en_0066.png)
+![image](/help-images/en_0070.png)
 
 Fields required to create an agent:
 
@@ -24,11 +24,11 @@ Fields required to create an agent:
 | Model | Modelul AI utilizat de agent. Allows selection of the required capabilities based on task complexity. |
 
 
-![image](/help-images/en_0067.png)
+![image](/help-images/en_0071.png)
 
 **Advanced AI Settings**
 
-![image](/help-images/en_0068.png)
+![image](/help-images/en_0072.png)
 
 ### Temperature
 
@@ -113,17 +113,17 @@ Lower values for focused, on-topic responses
 
 To delete an agent, you must identify which workspace it was created in. Select the desired workspace and from the My Agents tab, select the agent to be deleted.
 
-![image](/help-images/en_0069.png)
+![image](/help-images/en_0073.png)
 
 On the desired agent, open the right panel and press the ''Delete'' button at the bottom of the screen.
 
-![image](/help-images/en_0070.png)
+![image](/help-images/en_0074.png)
 
 ## Prompt Library
 
 The Prompt Library allows quick creation and reuse of frequent instruction templates. Prompts can contain variables and can be called through a short command directly from the message field.
 
-![image](/help-images/en_0071.png)
+![image](/help-images/en_0075.png)
 
 Examples of useful prompts:
 
@@ -155,7 +155,7 @@ Variables: Automatically detected from {{variable_name}}, with the option to def
 
 Press "Save" or "Create" → the prompt appears in the library
 
-![image](/help-images/en_0072.png)
+![image](/help-images/en_0076.png)
 
 ### Using Prompts
 
@@ -171,9 +171,9 @@ The prompt text is automatically populated in the message field
 
 Press Enter or the send button to send the prompt
 
-![image](/help-images/en_0073.png)
+![image](/help-images/en_0077.png)
 
-![image](/help-images/en_0074.png)
+![image](/help-images/en_0078.png)
 
 ### Variables in Prompts – Detailed Guide with Examples
 
@@ -300,11 +300,11 @@ Scenario: A developer performs code review for multiple programming languages an
 
 The Memories functionality allows persistent storage of information about the user or context, which the agent will automatically use in all future conversations. If you set that you are a “business consultant specialised in Charisma HR", the agent will take this into account at every interaction.
 
-![image](/help-images/en_0075.png)
+![image](/help-images/en_0079.png)
 
 Memory is made up of key-value pairs (Key-Value), where Key represents the label under which the information is stored, and Value contains the actual information.
 
-![image](/help-images/en_0076.png)
+![image](/help-images/en_0080.png)
 
 Steps for creating a memory:
 
@@ -326,11 +326,11 @@ The memory appears in the Memories list. You can edit or delete any entry at any
 
 The Parameters functionality allows detailed configuration of the AI model behaviour: temperature, response length, personalised instructions and saving configurations as reusable presets.
 
-![image](/help-images/en_0077.png)
+![image](/help-images/en_0081.png)
 
 Model parameters control how the AI generates responses. Access them from the right panel, “Parameters" section, or directly from the agent creation form.
 
-![image](/help-images/en_0078.png)
+![image](/help-images/en_0082.png)
 
 ### Temperature – Response Creativity
 
@@ -425,7 +425,7 @@ Text (.txt, .md)
 
 **The maximum file size is 25 MB and the total storage space is 1024 MB.**
 
-![image](/help-images/en_0079.png)
+![image](/help-images/en_0083.png)
 
 ### Upload and Indexing Process
 
@@ -474,11 +474,11 @@ Example:
 
 When the file is selected, the "File Search" function becomes active in the chat area. On the right side, the file can be seen in "RAG Processing" status”.
 
-![image](/help-images/en_0080.png)
+![image](/help-images/en_0084.png)
 
 Rezultat:
 
-![image](/help-images/en_0081.png)
+![image](/help-images/en_0085.png)
 
 How to manage uploaded files:
 
@@ -494,7 +494,7 @@ Press "Delete" — confirmation "✓ Successfully deleted" appears
 
 Bookmarks are labels that you attach to important conversations, to instantly find them without searching the chronological list. They are useful whenever you want to quickly return to a chat with an important analysis, a document draft, or a reference conversation for a project. A bookmark does not modify or move the conversation — it only adds a visible marker in the right panel, accessible with a single click. **The same bookmark can be used for multiple chats.**
 
-![image](/help-images/en_0082.png)
+![image](/help-images/en_0086.png)
 
 ### Creating a Bookmark
 
@@ -514,13 +514,13 @@ The bookmark appears active in the right side panel
 
 Once the bookmark is created, you can associate it with a chat in two ways: from the bookmark icon located in the top navigation bar (next to the agent selector), or directly from the Bookmarks panel on the right. Press the bookmark icon in the top bar, select the desired label from the displayed list and the current chat will be marked automatically.
 
-![image](/help-images/en_0083.png)
+![image](/help-images/en_0087.png)
 
 ### Searching Chats by Bookmark
 
 To quickly filter the list of conversations by a specific bookmark, press the bookmark icon in the top navigation bar and select the desired label. The chat list in the left panel will display exclusively the conversations marked with that bookmark, hiding all others. The numeric counter next to each label in the Bookmarks panel shows how many chats have been marked with that label.
 
-![image](/help-images/en_0084.png)
+![image](/help-images/en_0088.png)
 
 ### Managing and Deleting Bookmarks
 
@@ -528,6 +528,6 @@ Individual editing or deletion of a bookmark is done directly from the right pan
 
 To return to the normal view of all conversations and deactivate any active filter, press the “Clear all" button in the bookmarks menu. This action does not delete the labels — it only removes the active filter, displaying the complete list of chats again.
 
-![image](/help-images/en_0085.png)
+![image](/help-images/en_0089.png)
 
-![image](/help-images/en_0086.png)
+![image](/help-images/en_0090.png)

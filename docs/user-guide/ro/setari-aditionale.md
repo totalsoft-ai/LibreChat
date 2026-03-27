@@ -2,15 +2,15 @@
 
 Meniul de configurare a asistenților se află în partea dreaptă a ecranului și oferă control asupra parametrilor AI. Fiecare utilizator își poate crea agenți care să ofere răspunsuri personale, mai scurte sau mai elaborate.
 
-![image](/help-images/ro_0064.png)
+![image](/help-images/ro_0068.png)
 
-![image](/help-images/ro_0065.png)
+![image](/help-images/ro_0069.png)
 
 ## Definire agenti
 
 Funcționalitatea Agent Builder permite crearea de agenți AI personalizați cu instrucțiuni specifice, model configurat și capabilități extinse.
 
-![image](/help-images/ro_0066.png)
+![image](/help-images/ro_0070.png)
 
 Câmpuri necesare pentru crearea unui agent:
 
@@ -24,11 +24,11 @@ Câmpuri necesare pentru crearea unui agent:
 | Model | Modelul AI utilizat de agent. Permite selectarea capabilităților necesare în funcție de complexitatea sarcinilor. |
 
 
-![image](/help-images/ro_0067.png)
+![image](/help-images/ro_0071.png)
 
 **Configurări Avansate AI**
 
-![image](/help-images/ro_0068.png)
+![image](/help-images/ro_0072.png)
 
 ### Temperatura
 
@@ -113,17 +113,17 @@ Valori mai mici pentru răspunsuri concentrate, pe subiect
 
 Pentru a sterge un agent trebuie sa identificam in ce workspace a fost creat. Selectam workspace-ul dorit si din tabul My Agents selectam agentul care se doreste a fi sters.
 
-![image](/help-images/ro_0069.png)
+![image](/help-images/ro_0073.png)
 
 Pe agentul dorit se deschide ecranul din dreapta si apasam butonul ‘’Delete’’ din partea inferiora a ecranului. 
 
-![image](/help-images/ro_0070.png)
+![image](/help-images/ro_0074.png)
 
 ## Biblioteca de Prompturi
 
 Biblioteca de Prompturi permite crearea și reutilizarea rapidă a șabloanelor de instrucțiuni frecvente. Prompturile pot conține variabile și pot fi apelate printr-o comandă scurtă direct din câmpul de mesaj.
 
-![image](/help-images/ro_0071.png)
+![image](/help-images/ro_0075.png)
 
 Exemple de prompturi utile:
 
@@ -155,7 +155,7 @@ Variabile: Detectate automat din {{nume_variabilă}}, cu posibilitate de definir
 
 Apăsați "Salvează" sau "Creează" → promptul apare în bibliotecă
 
-![image](/help-images/ro_0072.png)
+![image](/help-images/ro_0076.png)
 
 ### Utilizarea Prompturilor
 
@@ -171,9 +171,9 @@ Textul promptului este populat automat în câmpul de mesaj
 
 Apăsați Enter sau butonul de trimitere pentru a trimite promptul
 
-![image](/help-images/ro_0073.png)
+![image](/help-images/ro_0077.png)
 
-![image](/help-images/ro_0074.png)
+![image](/help-images/ro_0078.png)
 
 ### Variabile în Prompturi – Ghid Detaliat cu Exemple
 
@@ -300,11 +300,11 @@ Scenariu: Un dezvoltator face code review pentru mai multe limbaje de programare
 
 Funcționalitatea Memories permite stocarea de informații persistente despre utilizator sau context, pe care agentul le va folosi automat în toate conversațiile viitoare. Dacă setați că sunteți „consultant business specializat pe Charisma HR", agentul va ține cont de asta la fiecare interacțiune.
 
-![image](/help-images/ro_0075.png)
+![image](/help-images/ro_0079.png)
 
 Memoria este compusă din perechi cheie-valoare (Key-Value), unde Key reprezintă eticheta sub care este stocată informația, iar Value conține informația propriu-zisă.
 
-![image](/help-images/ro_0076.png)
+![image](/help-images/ro_0080.png)
 
 Pași pentru crearea unei memorii:
 
@@ -326,11 +326,11 @@ Memoria apare în lista Memories. Puteți edita sau șterge orice intrare oricâ
 
 Funcționalitatea Parameters permite configurarea detaliată a comportamentului modelului AI: temperatură, lungimea răspunsurilor, instrucțiuni personalizate și salvarea configurațiilor ca preseturi reutilizabile.
 
-![image](/help-images/ro_0077.png)
+![image](/help-images/ro_0081.png)
 
 Parametrii modelului controlează cum generează AI-ul răspunsurile. Accesați-i din panoul drept, secțiunea „Parameters", sau direct din formularul de creare a agentului.
 
-![image](/help-images/ro_0078.png)
+![image](/help-images/ro_0082.png)
 
 ### Temperature – Creativitatea Răspunsurilor
 
@@ -425,7 +425,7 @@ Text (.txt, .md)
 
 **Dimensiunea maximă per fișier este 25 MB si spatial de stocare total este de 1024MB.**
 
-![image](/help-images/ro_0079.png)
+![image](/help-images/ro_0083.png)
 
 ### Procesul de Încărcare și Indexare
 
@@ -474,11 +474,11 @@ Exemplu:
 
 In momentul in care fisierul e selectat, in partea de chat apare activa functia “File Search”. In partea din dreapta se observa faptul ca fisierul este in statusul “Procesare RAG”.
 
-![image](/help-images/ro_0080.png)
+![image](/help-images/ro_0084.png)
 
 Rezultat:
 
-![image](/help-images/ro_0081.png)
+![image](/help-images/ro_0085.png)
 
 Cum gestionați fișierele încărcate:
 
@@ -494,7 +494,7 @@ Apăsați „Delete" — apare confirmarea „✓ Successfully deleted"
 
 Bookmarks-urile sunt etichete pe care le atașați unor conversații importante, pentru a le regăsi instantaneu fără a le căuta în lista cronologică. Sunt utile ori de câte ori doriți să reveniți rapid la un chat cu o analiză importantă, un draft de document sau o conversație de referință pentru un proiect. Un bookmark nu modifică și nu mută conversația — adaugă doar un marcaj vizibil în panoul din dreapta, accesibil cu un singur click. Acelasi bookmark poate fi folosit pentru mai multe chat-uri.
 
-![image](/help-images/ro_0082.png)
+![image](/help-images/ro_0086.png)
 
 ### Crearea unui Bookmark
 
@@ -514,13 +514,13 @@ Bookmark-ul apare activ în panoul lateral drept
 
 Odată creat bookmark-ul, îl puteți asocia unui chat în două moduri: din iconița de bookmark localizată în bara superioară de navigare (lângă selectorul de agent), sau direct din panoul Bookmarks din dreapta. Apăsați iconița de bookmark din bara de sus, selectați eticheta dorită din lista afișată și chat-ul curent va fi marcat automat.
 
-![image](/help-images/ro_0083.png)
+![image](/help-images/ro_0087.png)
 
 ### Căutarea Chat-urilor după Bookmark
 
 Pentru a filtra rapid lista de conversații după un bookmark specific, apăsați iconița de bookmark din bara superioară de navigare și selectați eticheta dorită. Lista de chat-uri din panoul stâng va afișa exclusiv conversațiile marcate cu acel bookmark, ascunzând toate celelalte. Contorul numeric de lângă fiecare etichetă din panoul Bookmarks arată câte chat-uri au fost marcate cu acea etichetă.
 
-![image](/help-images/ro_0084.png)
+![image](/help-images/ro_0088.png)
 
 ### Gestionarea și Ștergerea Bookmark-urilor
 
@@ -528,6 +528,6 @@ Editarea sau ștergerea individuală a unui bookmark se face direct din panoul d
 
 Pentru a reveni la vizualizarea normală a tuturor conversațiilor și a dezactiva orice filtrare activă, apăsați butonul „Clear all" din meniul bookmarks. Această acțiune nu șterge etichetele — doar elimină filtrul activ, afișând din nou lista completă de chat-uri.
 
-![image](/help-images/ro_0085.png)
+![image](/help-images/ro_0089.png)
 
-![image](/help-images/ro_0086.png)
+![image](/help-images/ro_0090.png)
