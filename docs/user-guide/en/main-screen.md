@@ -46,6 +46,49 @@ Documentation is accessed and loaded into the database both in link format and t
 
 ![image](/help-images/en_0041.png)
 
+### Retrieving Documents from Confluence
+
+**Synchronization with the Knowledge Base**
+
+The platform integrates an **automatic mechanism** for retrieving documents from Confluence into the **vectorized database**. **Not all pages from Confluence are indexed** — to avoid overloading the database with irrelevant content, the system applies a **filter based on the page title**.
+
+### Inclusion Rule — Filter by Title
+
+A Confluence page is automatically retrieved **only if its title contains one of the key words** defined in the namespace configuration. This rule applies **regardless of the space** the page belongs to.
+
+**The accepted key words in the title are:**
+
+
+| Keyword (pattern) | Examples of accepted titles |
+| --- | --- |
+| documenta?i* | Documentation, Documentations |
+| documentare | Documentation of process X |
+| documentation | API Documentation |
+| specifica?i* | Specification, Technical Specifications |
+| manual* | User Manual, Manuals |
+| configur?r* | Configuration, System Configurations |
+| test case | Test case login |
+| *test* | Testing, Tests, Test Run |
+| tehnic | Technical Guide, Technical Documentation |
+| train* | Training, Trainings, Train the trainer |
+
+
+**Recommendation:** ***When creating a new page in Confluence, include one of the key words above in the title if you want it to be available in the Tessa agent’s responses.***
+
+### Synchronization Schedule
+
+The indexing service runs **automatically every night, at 02:00**. At each run, the system:
+
+Scans pages from the configured Confluence namespaces
+
+Filters pages whose title matches one of the defined patterns
+
+Loads the content of eligible pages into vectorized database
+
+Updates existing records if the page has been modified
+
+**⚠ Warning:** *Any page* ***added or renamed*** *in Confluence will become available in Tessa* ***at the earliest the next day****, after the* **nightly service run**.
+
 ## Multi-tool Assistant (Assistant)
 
 The assistant offers complete support through multiple functionalities, detecting user requirements and processing them quickly to provide efficient solutions.
@@ -139,6 +182,58 @@ Detailed explanations for each change
 
 ![image](/help-images/en_0047.png)
 
+### Attaching Code Files (SQL, Python and other formats)
+
+In addition to the copy/paste method, the Tessa platform allows direct attachment of code files for code review. The functionality is available through the **File Search** assistant and is used through the **"Attach Files"** button or through drag & drop.
+
+**Supported code formats:**
+
+•   **SQL (.sql)** — database scripts, stored procedures, queries
+
+•   **Python (.py)** — scripts and modules
+
+•   Other text code formats (JavaScript, C#, TypeScript, XML etc.) — processed as plain text
+
+**Steps to use:**
+
+**Step 1 — Select the File Search assistant**
+
+From the assistant **selector** in the top **bar**, choose File Search.
+
+![image](/help-images/en_0048.png)
+
+**Step 2 — Upload the file**
+
+Press the **"Attach Files"** button from the **message field** or drag the **file** directly into the chat **window** (drag & drop). The file appears above the **message field**, ready for **processing**.
+
+![image](/help-images/en_0049.png)
+
+**Step 3 — Disable the File Search button and formulate the request**
+
+Once the **file** is **attached**, the application **detects** the file **type** and automatically **disables** the File Search **button**. If this doesn't **happen**, **disable** the File Search **button** from the **message bar** so that the assistant processes the file as code text, not as an **indexed** document. Write the desired request in the **message field** (e.g., "**Check if the script is correct**") and press Enter.
+
+![image](/help-images/en_0050.png)
+
+**Step 4 — View the result**
+
+The assistant **analyzes** the code and returns a detailed **response**: **identifies** syntax **errors**, **explains** the script **logic**, **suggests** improvements and **provides** the corrected **version**.
+
+![image](/help-images/en_0051.png)
+
+**Important behavior to remember:**
+
+•   The **file** is not **vectorized** and is not saved in the **database** — it remains only in the current conversation. If you open a new chat or another conversation, the file must be attached again
+
+•   **All** code files are **processed** as plain text, **regardless** of **extension**
+
+•   Limit: approximately **1,500 lines** of code per file. Larger files are processed **partially** — only the first ~1,500 lines
+
+•   **Processing** code files does not **consume tokens** from the daily **limit** of 20,000 — the processing cost is **zero**
+
+•   **Response export**: there is currently **no** dedicated **export button** — use **copy/paste** to extract the corrected code from the assistant's response
+
+**Note: For large SQL files (over 1,500 lines), split the script into logical chunks (e.g., one module or stored procedure per conversation) and attach them separately for optimal results.**
+
 ### Document Flow
 
 **Functionality:** Automatic generation of professional documentation using AI.
@@ -153,7 +248,7 @@ Execution plans – Roadmaps and tasks
 
 Process diagrams – Visual flows for workflows
 
-![image](/help-images/en_0048.png)
+![image](/help-images/en_0052.png)
 
 **Recommendation:** The more initial details you provide, the completer and more accurate the generated document will be. Include:
 
@@ -167,7 +262,7 @@ Functional and non-functional requirements
 
 **Process diagram example:**
 
-![image](/help-images/en_0049.png)
+![image](/help-images/en_0053.png)
 
 ## PPM Agent – Timesheets from Chat
 
@@ -177,25 +272,25 @@ The PPM Agent is a specialized AI assistant that provides a direct link between 
 
 The PPM Agent is accessed from the Agent Marketplace section. Press the Marketplace icon (4-square grid) from the top navigation bar of the left panel.
 
-![image](/help-images/en_0050.png)
+![image](/help-images/en_0054.png)
 
 Also, you can find the PPM agent from the Tools Selector > My Agents > PPM.
 
-![image](/help-images/en_0051.png)
+![image](/help-images/en_0055.png)
 
 In the Marketplace page, identify the agent **PPM** from the General category and press it to open it. Alternatively, use the “Search agents…” field and type “PPM”.
 
-![image](/help-images/en_0052.png)
+![image](/help-images/en_0056.png)
 
 Press the “Start Chat” button to start a session with the PPM agent. The chat interface is identical to that of any other assistant — the active agent is indicated in the top bar with the icon and the name “PPM”.
 
-![image](/help-images/en_0053.png)
+![image](/help-images/en_0057.png)
 
 ### Using the PPM Agent
 
 The agent page has the same configuration as the other agents. Questions are entered directly in the chat; the user is automatically recognised.
 
-![image](/help-images/en_0054.png)
+![image](/help-images/en_0058.png)
 
 ### Viewing Timesheets
 
@@ -209,7 +304,7 @@ You can request to view timesheets for any recent period using natural language.
 
 The agent returns detailed daily timesheets for the requested period, with hours per project, per task, and the notes filled in at time logging. The response includes the total hours for the period.
 
-![image](/help-images/en_0055.png)
+![image](/help-images/en_0059.png)
 
 **Example 2 – Timesheets for a single day**
 
@@ -217,7 +312,7 @@ The agent returns detailed daily timesheets for the requested period, with hours
 
 The agent displays the complete breakdown of that day: each logged activity, allocated hours, corresponding project and task, and added notes.
 
-![image](/help-images/en_0056.png)
+![image](/help-images/en_0060.png)
 
 **Example 3 – Timesheets using relative dates**
 
@@ -225,7 +320,7 @@ The agent displays the complete breakdown of that day: each logged activity, all
 
 The agent interprets "last month" in relation to the current date and returns timesheets for the entire previous month. There is no need to specify exact dates — the agent understands temporal expressions in natural language.
 
-![image](/help-images/en_0057.png)
+![image](/help-images/en_0061.png)
 
 ### Adding Timesheets from Chat
 
@@ -239,7 +334,7 @@ The agent automatically identifies the specified project and task, records the 3
 
 ***⚠️ Make sure you correctly specify the project code (e.g.: ERP_PDM_CHARISMA) and the exact task name. You can check the list of available tasks before time logging.***
 
-![image](/help-images/en_0058.png)
+![image](/help-images/en_0062.png)
 
 ### Viewing Allocated Projects and Tasks
 
@@ -251,7 +346,7 @@ Before logging hours, it is recommended to check the list of projects and tasks 
 
 The agent returns the complete list of active projects to which the user is allocated, with the official codes from PPM, necessary for correct time logging.
 
-![image](/help-images/en_0059.png)
+![image](/help-images/en_0063.png)
 
 **Example 2 – Tasks allocated for a week**
 
@@ -259,7 +354,7 @@ The agent returns the complete list of active projects to which the user is allo
 
 The agent displays allocated tasks from PPM for the specified period, grouped by projects. Useful for planning the days of the week and correctly allocating hours per activity.
 
-![image](/help-images/en_0060.png)
+![image](/help-images/en_0064.png)
 
 ### Other Available Functionalities
 
@@ -283,15 +378,43 @@ Sending timesheets for approval to the manager (e.g.: “I want to send the time
 
 **Note:** ***The PPM Agent automatically recognizes the logged-in user — there is no need to specify the email address or other identification data. Always use the exact project code and correct task name to avoid errors in time logging. The exact list can be obtained from the PPM agent before adding hours.***
 
+
+| Agent PPM – Command List | Agent PPM – Command List | Agent PPM – Command List |
+| --- | --- | --- |
+| # | Category | Command (chat message) |
+| VIEW TIMESHEETS | VIEW TIMESHEETS | VIEW TIMESHEETS |
+| 1 | View timesheets | I want to see the timesheet for the period 13.03.2026 – 16.03.2026 |
+| 2 | View timesheets | I want to see the timesheet starting from 8 March |
+| 3 | View timesheets | Load the timesheet for 02 March – 06 March |
+| 4 | View timesheets | Show me the timesheets for the day 16.03.2026 |
+| 5 | View timesheets | We are in March. I want to see the timesheets for the previous month |
+| ADVANCED VIEW | ADVANCED VIEW | ADVANCED VIEW |
+| 6 | Advanced view | I want to see the timesheet for the period 01.03.2026 – 16.03.2026 group by weeks, each week has 5 working days |
+| 7 | Advanced view | I want to see the timesheet for the period 01.03.2026 – 16.03.2026 group by working days, when you find missing timesheets add 0h on the missing days |
+| 8 | Advanced view | Load past dates or days where less than 8 hours or more than 8 hours are logged |
+| TIMESHEET ENTRY | TIMESHEET ENTRY | TIMESHEET ENTRY |
+| 9 | Timesheet entry | Log 3 hours today on project ERP_PDM_CHARISMA_AI, on the PPM task in Tessa and add to Notes: Testing Agent PPM |
+| PROJECTS AND TASKS | PROJECTS AND TASKS | PROJECTS AND TASKS |
+| 10 | Projects and tasks | I want you to tell me what projects I am allocated to |
+| 11 | Projects and tasks | I want to see the tasks allocated to me for the week 16 MARCH – 20 MARCH |
+| 12 | Projects and tasks | I want a report of the tasks I am allocated to on project ERP_PDM_CHARISMA_AI |
+| TIMESHEET APPROVAL | TIMESHEET APPROVAL | TIMESHEET APPROVAL |
+| 13 | Timesheet approval | I want to see if there are any unapproved timesheets |
+| PROJECT INFORMATION | PROJECT INFORMATION | PROJECT INFORMATION |
+| 14 | Project information | I want to see the members of project ERP_PDM_CHARISMA_AI |
+| 15 | Project information | Load the next milestones from PPM for my projects |
+| 16 | Project information | Load used hours and total available hours for project ERP_PDM_CHARISMA_AI |
+
+
 ## Export and Share Conversations
 
-![image](/help-images/en_0061.png)
+![image](/help-images/en_0065.png)
 
 ### Export Conversations
 
 You can export any conversation to save it locally or to include it in reports and documentation. The text (.txt) export is ideal when you want to edit or reuse the content of the responses — for example, copying an AI-generated specification directly into a Word document or email. The screenshot format is recommended when you want to present the conversation exactly as it looks on the platform, including formatting, tables and code blocks, without any further editing needed.
 
-![image](/help-images/en_0062.png)
+![image](/help-images/en_0066.png)
 
 Steps for export:
 
@@ -314,7 +437,7 @@ Available export formats:
 
 You can share a conversation with a colleague via a unique link, without requiring them to authenticate on the platform. This is especially useful when you want to quickly send a complex response — an analysis, an execution plan or an AI-generated diagram — to a colleague who does not have an active account or is not logged in at that moment. The link remains active indefinitely and can be revoked at any time, giving you full control over access to the information.
 
-![image](/help-images/en_0063.png)
+![image](/help-images/en_0067.png)
 
 Sharing features:
 
