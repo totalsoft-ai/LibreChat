@@ -30,7 +30,7 @@ import {
   useFileHandling,
   useLocalize,
 } from '~/hooks';
-import { isCodeFile } from '~/hooks/Files/useAutoFileRoute';
+import useAutoFileRoute from '~/hooks/Files/useAutoFileRoute';
 import useSharePointFileHandling from '~/hooks/Files/useSharePointFileHandling';
 import { SharePointPickerDialog } from '~/components/SharePoint';
 import { useGetStartupConfig } from '~/data-provider';
@@ -75,6 +75,7 @@ const AttachFileMenu = ({
     overrideEndpoint: EModelEndpoint.agents,
     overrideEndpointFileConfig: endpointFileConfig,
   });
+  const routeFiles = useAutoFileRoute(handleFiles);
   const { handleSharePointFiles, isProcessing, downloadProgress } = useSharePointFileHandling({
     overrideEndpoint: EModelEndpoint.agents,
     overrideEndpointFileConfig: endpointFileConfig,
@@ -203,10 +204,6 @@ const AttachFileMenu = ({
           label: localize('com_ui_upload_file_search'),
           onClick: () => {
             setToolResource(EToolResources.file_search);
-            setEphemeralAgent((prev) => ({
-              ...prev,
-              [EToolResources.file_search]: true,
-            }));
             onAction();
           },
           icon: <FileSearch className="icon-md" />,
@@ -218,10 +215,6 @@ const AttachFileMenu = ({
           label: localize('com_ui_upload_code_files'),
           onClick: () => {
             setToolResource(EToolResources.execute_code);
-            setEphemeralAgent((prev) => ({
-              ...prev,
-              [EToolResources.execute_code]: true,
-            }));
             onAction();
           },
           icon: <TerminalSquareIcon className="icon-md" />,
@@ -302,15 +295,7 @@ const AttachFileMenu = ({
           if (!e.target.files?.length) {
             return;
           }
-          const allFiles = Array.from(e.target.files);
-          const codeFiles = allFiles.filter(isCodeFile);
-          const otherFiles = allFiles.filter((f) => !isCodeFile(f));
-          if (codeFiles.length > 0) {
-            handleFiles(codeFiles);
-          }
-          if (otherFiles.length > 0) {
-            handleFiles(otherFiles, toolResource);
-          }
+          routeFiles(Array.from(e.target.files));
         }}
       >
         <DropdownPopup
