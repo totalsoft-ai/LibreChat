@@ -21,7 +21,15 @@ jobs:
       uses: actions/checkout@v3
       with:
         fetch-depth: 0
-      
+
+    - name: Ensure client/public is fully checked out
+      shell: pwsh
+      run: |
+        git sparse-checkout disable 2>$null || true
+        git checkout HEAD -- client/public/
+        $count = (Get-ChildItem -Path "client/public" -Recurse -File -ErrorAction SilentlyContinue | Measure-Object).Count
+        Write-Host "client/public file count: $count"
+
     - name: Set dynamic image tag
       id: set-tag
       shell: pwsh
