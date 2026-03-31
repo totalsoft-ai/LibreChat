@@ -6,6 +6,7 @@ const { FileSources } = require('librechat-data-provider');
 const { logAxiosError, generateShortLivedToken } = require('@librechat/api');
 const { updateEmbeddingStatus } = require('./status');
 const Workspace = require('~/models/Workspace');
+const { getAgent } = require('~/models/Agent');
 
 /**
  * Produces a sanitized namespace string from raw input (email or id).
@@ -28,14 +29,20 @@ function sanitizeNamespace(raw) {
 
 /**
  * Gets the appropriate namespace for RAG operations.
- * If workspaceId is provided, uses workspace name; otherwise uses user email/id.
+ * Priority: agentName > workspaceId > user email/id.
  *
  * @param {Object} params - Parameters object
  * @param {Object} params.user - User object with email and id
  * @param {string} [params.workspaceId] - Optional workspace ID
+ * @param {string} [params.agentName] - Optional agent name (highest priority)
  * @returns {Promise<string>} - Sanitized namespace string
  */
-async function getNamespace({ user, workspaceId }) {
+async function getNamespace({ user, workspaceId, agentName }) {
+  if (agentName) {
+    logger.debug(`[getNamespace] Using agent name for namespace: ${agentName}`);
+    return sanitizeNamespace(agentName);
+  }
+
   if (workspaceId) {
     try {
       const workspace = await Workspace.findOne({ workspaceId, isActive: true });
@@ -83,7 +90,16 @@ const deleteVectors = async (req, file) => {
   logger.info(`[deleteVectors] Full file object keys: ${Object.keys(file).join(', ')}`);
   try {
     const jwtToken = generateShortLivedToken(req.user.id);
-    const namespace = await getNamespace({ user: req.user, workspaceId: file.workspace });
+    let agentName;
+    if (file.agent_id) {
+      try {
+        const agent = await getAgent({ id: file.agent_id });
+        agentName = agent?.name;
+      } catch (err) {
+        logger.warn(`[deleteVectors] Could not fetch agent ${file.agent_id} for namespace:`, err.message);
+      }
+    }
+    const namespace = await getNamespace({ user: req.user, workspaceId: file.workspace, agentName });
 
     // RAG API uses source path as document identifier: "./uploads/public/{filename}"
     const sourceToDelete = `./uploads/public/${file.filename}`;
@@ -144,13 +160,13 @@ const deleteVectors = async (req, file) => {
  *            - filepath: The path where the file is saved.
  *            - bytes: The size of the file in bytes.
  */
-async function uploadVectors({ req, file, file_id, entity_id, storageMetadata, workspaceId }) {
+async function uploadVectors({ req, file, file_id, entity_id, storageMetadata, workspaceId, agentName }) {
   if (!process.env.RAG_API_URL) {
     throw new Error('RAG_API_URL not defined');
   }
 
   try {
-    const namespace = await getNamespace({ user: req.user, workspaceId });
+    const namespace = await getNamespace({ user: req.user, workspaceId, agentName });
 
     logger.info(
       `[uploadVectors] Starting upload to RAG - file: ${file.originalname}, file_id: ${file_id}, workspace: ${workspaceId || 'none'}, namespace: ${namespace}`,

@@ -26,7 +26,7 @@ const {
   resizeImageBuffer,
 } = require('~/server/services/Files/images');
 const { addResourceFileId, deleteResourceFileId } = require('~/server/controllers/assistants/v2');
-const { addAgentResourceFile, removeAgentResourceFiles } = require('~/models/Agent');
+const { addAgentResourceFile, removeAgentResourceFiles, getAgent } = require('~/models/Agent');
 const { getOpenAIClient } = require('~/server/controllers/assistants/helpers');
 const { createFile, updateFileUsage, deleteFiles, getFiles } = require('~/models/File');
 const { loadAuthValues } = require('~/server/services/Tools/credentials');
@@ -746,6 +746,20 @@ const processAgentFileUpload = async ({ req, res, metadata }) => {
   const isImageFile = file.mimetype.startsWith('image');
   const source = getFileStrategy(appConfig, { isImage: isImageFile });
 
+  // Fetch agent name for namespace isolation (only needed for file_search uploads)
+  let agentName;
+  if (agent_id && tool_resource === EToolResources.file_search) {
+    try {
+      const agentDoc = await getAgent({ id: agent_id });
+      agentName = agentDoc?.name;
+      if (agentName) {
+        logger.info(`[processAgentFileUpload] Using agent namespace: "${agentName}" for file_search upload`);
+      }
+    } catch (err) {
+      logger.warn(`[processAgentFileUpload] Could not fetch agent ${agent_id} for namespace:`, err.message);
+    }
+  }
+
   if (tool_resource === EToolResources.file_search) {
     // FIRST: Upload to Storage for permanent backup (S3/local/etc.)
     const { handleFileUpload } = getStrategyFunctions(source);
@@ -777,6 +791,7 @@ const processAgentFileUpload = async ({ req, res, metadata }) => {
         file_id: file_id,
       },
       workspaceId: metadata.workspace,
+      agentName,
     });
 
     // Vector status will be stored at root level, no need for metadata
@@ -841,6 +856,7 @@ const processAgentFileUpload = async ({ req, res, metadata }) => {
     width,
     workspace: metadata.workspace,
     isGlobalLibrary: req.body.isGlobalLibrary || false,
+    agent_id: messageAttachment ? undefined : agent_id,
   });
 
   logger.info(

@@ -6,7 +6,7 @@ const { generateShortLivedToken } = require('@librechat/api');
 const { Tools, EToolResources } = require('librechat-data-provider');
 const { filterFilesByAgentAccess } = require('~/server/services/Files/permissions');
 const { getFiles } = require('~/models/File');
-const { sanitizeNamespace } = require('~/server/services/Files/VectorDB/crud');
+// getNamespace is required dynamically inside the tool closure
 
 /**
  *
@@ -127,8 +127,8 @@ const primeFiles = async (options) => {
  * @param {ServerRequest} [options.req] - The Express request object (for user email/namespace)
  * @returns
  */
-const createFileSearchTool = async ({ userId, files, entity_id, fileCitations = false, req, workspaceId }) => {
-  const workspaceContext = workspaceId ? ` in workspace ${workspaceId}` : '';
+const createFileSearchTool = async ({ userId, files, entity_id, fileCitations = false, req, workspaceId, agentName }) => {
+  const workspaceContext = agentName ? ` for agent "${agentName}"` : workspaceId ? ` in workspace ${workspaceId}` : '';
   logger.info(`[createFileSearchTool] Created tool with ${files.length} files available for user ${userId}${workspaceContext}`);
 
   return tool(
@@ -154,7 +154,7 @@ const createFileSearchTool = async ({ userId, files, entity_id, fileCitations = 
 
       // Generate namespace using getNamespace (supports workspace isolation)
       const { getNamespace } = require('~/server/services/Files/VectorDB/crud');
-      const namespace = await getNamespace({ user: req?.user || { id: userId }, workspaceId });
+      const namespace = await getNamespace({ user: req?.user || { id: userId }, workspaceId, agentName });
       logger.debug(`[${Tools.file_search}] Using namespace: ${namespace} for user: ${req?.user?.id || userId}${workspaceContext}`);
 
       /**
