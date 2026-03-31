@@ -299,6 +299,7 @@ const loadTools = async ({
         const { files, toolContext } = await primeSearchFiles({
           ...options,
           agentId: agent?.id,
+          agentName: agent?.name,
         });
         if (toolContext) {
           toolContextMap[tool] = toolContext;
@@ -326,7 +327,8 @@ const loadTools = async ({
           entity_id: agent?.id,
           fileCitations,
           req: options.req,
-          workspaceId: options.workspaceId, // Pass workspace for namespace isolation
+          workspaceId: options.workspaceId,
+          agentName: agent?.name,
         });
       };
       continue;
