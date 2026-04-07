@@ -125,7 +125,7 @@ export abstract class UserConnectionManager {
           useOAuth: true,
           user: user,
           customUserVars: customUserVars,
-          authorizationHeader: authorizationHeader,
+          authorizationHeader,
           flowManager: flowManager,
           tokenMethods: tokenMethods,
           signal: signal,
