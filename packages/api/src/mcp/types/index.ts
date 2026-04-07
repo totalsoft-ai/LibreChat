@@ -163,6 +163,7 @@ export interface OAuthConnectionOptions {
   useOAuth: true;
   requestBody?: RequestBody;
   customUserVars?: Record<string, string>;
+  authorizationHeader?: string;
   flowManager: FlowStateManager<o.MCPOAuthTokens | null>;
   tokenMethods?: TokenMethods;
   signal?: AbortSignal;
