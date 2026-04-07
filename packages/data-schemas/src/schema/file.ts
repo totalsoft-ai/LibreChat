@@ -110,6 +110,11 @@ const file: Schema<IMongoFile> = new Schema(
       ref: 'User',
       default: null,
     },
+    agent_id: {
+      type: String,
+      default: null,
+      index: true,
+    },
   },
   {
     timestamps: true,
