@@ -96,6 +96,7 @@ const startServer = async () => {
   app.use(staticCache(appConfig.paths.dist));
   app.use(staticCache(appConfig.paths.fonts));
   app.use(staticCache(appConfig.paths.assets));
+  app.use('/help-images', staticCache(appConfig.paths.helpImages));
 
   if (!ALLOW_SOCIAL_LOGIN) {
     console.warn('Social logins are disabled. Set ALLOW_SOCIAL_LOGIN=true to enable them.');
@@ -150,6 +151,7 @@ const startServer = async () => {
   app.use('/api/workspaces', routes.workspaces);
   app.use('/api/docs', routes.docs);
   app.use('/api/admin/events', routes.adminEvents);
+  app.use('/api/admin/analytics', routes.adminAnalytics);
 
   app.use(ErrorController);
 

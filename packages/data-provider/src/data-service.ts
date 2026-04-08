@@ -1024,12 +1024,12 @@ export interface DocListResponse {
   default: string;
 }
 
-export function getDocsList(): Promise<DocListResponse> {
-  return request.get(endpoints.docs());
+export function getDocsList(lang?: string): Promise<DocListResponse> {
+  return request.get(endpoints.docs(undefined, lang));
 }
 
-export function getDocContent(docId: string): Promise<DocContent> {
-  return request.get(endpoints.docs(docId));
+export function getDocContent(docId: string, lang?: string): Promise<DocContent> {
+  return request.get(endpoints.docs(docId, lang));
 }
 
 // Admin Events

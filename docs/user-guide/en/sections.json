@@ -1,0 +1,41 @@
+{
+  "sections": [
+    {
+      "id": "introduction",
+      "title": "Introduction",
+      "order": 0,
+      "filename": "introduction.md"
+    },
+    {
+      "id": "application-authentication",
+      "title": "Application Authentication",
+      "order": 1,
+      "filename": "application-authentication.md"
+    },
+    {
+      "id": "application-sections",
+      "title": "Application Sections",
+      "order": 2,
+      "filename": "application-sections.md"
+    },
+    {
+      "id": "main-screen",
+      "title": "Main Screen",
+      "order": 3,
+      "filename": "main-screen.md"
+    },
+    {
+      "id": "additional-settings",
+      "title": "Additional Settings",
+      "order": 4,
+      "filename": "additional-settings.md"
+    },
+    {
+      "id": "troubleshooting-guide",
+      "title": "Troubleshooting Guide",
+      "order": 5,
+      "filename": "troubleshooting-guide.md"
+    }
+  ],
+  "default": "introduction"
+}

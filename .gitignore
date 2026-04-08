@@ -149,3 +149,6 @@ helm/**/.values.yaml
 /.tabnine/
 /.codeium
 *.local.md
+
+# Help docs source files (large Word documents)
+custom/docs/

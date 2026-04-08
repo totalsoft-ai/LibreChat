@@ -16,6 +16,7 @@ const { getLogStores } = require('~/cache');
  * @param {FlowStateManager<any>} [params.flowManager]
  * @param {(authURL: string) => Promise<boolean>} [params.oauthStart]
  * @param {Record<string, Record<string, string>>} [params.userMCPAuthMap]
+ * @param {string} [params.authorizationHeader]
  */
 async function reinitMCPServer({
   user,
@@ -27,6 +28,7 @@ async function reinitMCPServer({
   returnOnOAuth = true,
   oauthStart: _oauthStart,
   flowManager: _flowManager,
+  authorizationHeader,
 }) {
   /** @type {MCPConnection | null} */
   let connection = null;
@@ -60,6 +62,7 @@ async function reinitMCPServer({
         returnOnOAuth,
         customUserVars,
         connectionTimeout,
+        authorizationHeader,
         tokenMethods: {
           findToken,
           updateToken,

@@ -26,6 +26,7 @@ const {
 } = require('@librechat/agents');
 const {
   Constants,
+  ErrorTypes,
   Permissions,
   VisionModes,
   ContentTypes,
@@ -1076,9 +1077,22 @@ class AgentClient extends BaseClient {
           '[api/server/controllers/agents/client.js #sendCompletion] Unhandled error type',
           err,
         );
+        const errMsg = (err?.message || '').toLowerCase();
+        const isContextLengthError =
+          errMsg.includes('context_length_exceeded') ||
+          errMsg.includes('maximum context length') ||
+          errMsg.includes('prompt is too long') ||
+          errMsg.includes('too many tokens') ||
+          errMsg.includes('request too large') ||
+          errMsg.includes('input is too long');
+
+        const errorContent = isContextLengthError
+          ? `{"type":"${ErrorTypes.CONTEXT_LENGTH_EXCEEDED}"}`
+          : `An error occurred while processing the request${err?.message ? `: ${err.message}` : ''}`;
+
         this.contentParts.push({
           type: ContentTypes.ERROR,
-          [ContentTypes.ERROR]: `An error occurred while processing the request${err?.message ? `: ${err.message}` : ''}`,
+          [ContentTypes.ERROR]: errorContent,
         });
       }
     }

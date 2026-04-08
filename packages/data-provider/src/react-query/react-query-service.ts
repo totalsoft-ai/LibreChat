@@ -897,11 +897,12 @@ export const useGetSharedResourcesQuery = (
  * Hook to get the list of all available documentation sections
  */
 export const useGetDocsListQuery = (
+  lang?: string,
   config?: UseQueryOptions<dataService.DocListResponse>,
 ): QueryObserverResult<dataService.DocListResponse> => {
   return useQuery<dataService.DocListResponse>(
-    [QueryKeys.docsList],
-    () => dataService.getDocsList(),
+    [QueryKeys.docsList, lang],
+    () => dataService.getDocsList(lang),
     {
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
@@ -1025,11 +1026,12 @@ export const useGetAllSharedResourcesQuery = (
  */
 export const useGetDocContentQuery = (
   docId: string,
+  lang?: string,
   config?: UseQueryOptions<dataService.DocContent>,
 ): QueryObserverResult<dataService.DocContent> => {
   return useQuery<dataService.DocContent>(
-    [QueryKeys.docs, docId],
-    () => dataService.getDocContent(docId),
+    [QueryKeys.docs, docId, lang],
+    () => dataService.getDocContent(docId, lang),
     {
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
