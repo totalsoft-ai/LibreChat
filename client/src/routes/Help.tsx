@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGetDocsListQuery, useGetDocContentQuery } from 'librechat-data-provider/react-query';
-import type { DocContent } from 'librechat-data-provider';
 import Markdown from '~/components/Chat/Messages/Content/Markdown';
 import { Spinner } from '@librechat/client';
 import { cn } from '~/utils';
@@ -18,21 +17,36 @@ import {
   HelpErrorBoundary,
 } from '~/components/Help';
 
+const SUPPORTED_LANGS = ['en', 'ro'] as const;
+type Lang = (typeof SUPPORTED_LANGS)[number];
+const DEFAULT_LANG: Lang = 'en';
+
 function HelpContent() {
   const { section } = useParams<{ section?: string }>();
   const navigate = useNavigate();
   const contentRef = useRef<HTMLDivElement>(null);
 
+  // Language state — default English
+  const [lang, setLang] = useState<Lang>(DEFAULT_LANG);
+
   // Get list of all documentation sections
-  const { data: docsList, isLoading: isLoadingList } = useGetDocsListQuery();
+  const { data: docsList, isLoading: isLoadingList } = useGetDocsListQuery(lang, {});
 
   // Determine current section (from URL or default)
   const currentSection = section || docsList?.default || 'index';
 
   // Get content for current section
-  const { data: docContent, isLoading: isLoadingContent } = useGetDocContentQuery(currentSection, {
-    enabled: !!currentSection,
-  });
+  const { data: docContent, isLoading: isLoadingContent } = useGetDocContentQuery(
+    currentSection,
+    lang,
+    { enabled: !!currentSection },
+  );
+
+  // When language changes, navigate to default section of new language
+  const handleLangChange = (newLang: Lang) => {
+    setLang(newLang);
+    navigate('/help');
+  };
 
   // Mobile menu state
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -49,7 +63,7 @@ function HelpContent() {
     // Transform markdown links like ./01-getting-started.md to /help/getting-started
     return docContent.content.replace(
       /\[([^\]]+)\]\(\.\/([^)]+)\.md\)/g,
-      (match, text, filename) => {
+      (_match, text, filename) => {
         // Convert filename to doc ID (e.g., "01-getting-started" -> "getting-started")
         const docId = filename.replace(/^\d+-/, '');
         return `[${text}](#${docId})`;
@@ -164,9 +178,29 @@ function HelpContent() {
         {/* Sidebar with tabs - Desktop only */}
         <aside className="hidden w-64 flex-shrink-0 overflow-y-auto border-r border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800 lg:block">
           <div className="sticky top-0 z-10 bg-gray-50 p-4 dark:bg-gray-800">
-            <h1 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">
+            <h1 className="mb-3 text-xl font-semibold text-gray-900 dark:text-white">
               TESSA Help
             </h1>
+
+            {/* Language switcher */}
+            <div className="mb-4 flex rounded-md border border-gray-200 dark:border-gray-600">
+              {SUPPORTED_LANGS.map((l) => (
+                <button
+                  key={l}
+                  onClick={() => handleLangChange(l)}
+                  className={cn(
+                    'flex-1 py-1 text-xs font-medium transition-colors first:rounded-l-md last:rounded-r-md',
+                    lang === l
+                      ? 'bg-green-600 text-white'
+                      : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700',
+                  )}
+                  aria-pressed={lang === l}
+                >
+                  {l === 'en' ? 'English' : 'Română'}
+                </button>
+              ))}
+            </div>
+
             {/* Search */}
             <HelpSearch
               sections={docsList?.sections || []}
@@ -214,7 +248,7 @@ function HelpContent() {
                 <article className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
                   {/* Markdown content */}
                   <div className="prose max-w-none dark:prose-invert [&>*]:max-w-none">
-                    <Markdown content={transformedContent} />
+                    <Markdown content={transformedContent} isLatestMessage={false} />
                   </div>
 
                   {/* Feedback widget */}
@@ -233,56 +267,6 @@ function HelpContent() {
                 </article>
               </div>
 
-              {/* Table of contents (desktop only) - DISABLED */}
-              {false && docContent.sections.length > 0 && (
-                <aside
-                  className="hidden w-64 flex-shrink-0 overflow-y-auto border-l border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800 lg:block"
-                  aria-label="Table of contents"
-                >
-                  <div className="sticky top-4">
-                    <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-700 dark:text-gray-300">
-                      On This Page
-                    </h2>
-                    <nav className="space-y-1" role="navigation">
-                      {docContent.sections.map((section) => (
-                        <div key={section.id}>
-                          <button
-                            onClick={() => handleSubsectionClick(section.id)}
-                            className={cn(
-                              'block w-full rounded px-2 py-1 text-left text-sm transition-colors',
-                              activeSubsection === section.id
-                                ? 'font-medium text-green-600 dark:text-green-400'
-                                : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200',
-                            )}
-                            aria-current={activeSubsection === section.id ? 'location' : undefined}
-                          >
-                            {section.title}
-                          </button>
-                          {section.subsections && section.subsections.length > 0 && (
-                            <div className="ml-3 mt-1 space-y-1 border-l border-gray-300 pl-2 dark:border-gray-600">
-                              {section.subsections.map((subsection) => (
-                                <button
-                                  key={subsection.id}
-                                  onClick={() => handleSubsectionClick(subsection.id)}
-                                  className={cn(
-                                    'block w-full rounded px-2 py-0.5 text-left text-xs transition-colors',
-                                    activeSubsection === subsection.id
-                                      ? 'font-medium text-green-600 dark:text-green-400'
-                                      : 'text-gray-500 hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-300',
-                                  )}
-                                  aria-current={activeSubsection === subsection.id ? 'location' : undefined}
-                                >
-                                  {subsection.title}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </nav>
-                  </div>
-                </aside>
-              )}
             </div>
           ) : (
             <div className="flex flex-1 items-center justify-center">

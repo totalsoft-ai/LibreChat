@@ -1,6 +1,7 @@
-import React, { useRef } from 'react';
+import React, { useRef, useCallback } from 'react';
 import { FileUpload, TooltipAnchor, AttachmentIcon } from '@librechat/client';
 import { useLocalize, useFileHandling } from '~/hooks';
+import useAutoFileRoute from '~/hooks/Files/useAutoFileRoute';
 import { cn } from '~/utils';
 
 const AttachFile = ({ disabled }: { disabled?: boolean | null }) => {
@@ -8,7 +9,18 @@ const AttachFile = ({ disabled }: { disabled?: boolean | null }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const isUploadDisabled = disabled ?? false;
 
-  const { handleFileChange } = useFileHandling();
+  const { handleFiles } = useFileHandling();
+  const routeFiles = useAutoFileRoute(handleFiles);
+
+  const handleFileChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      if (!event.target.files?.length) {
+        return;
+      }
+      routeFiles(Array.from(event.target.files));
+    },
+    [routeFiles],
+  );
 
   return (
     <FileUpload ref={inputRef} handleFileChange={handleFileChange}>

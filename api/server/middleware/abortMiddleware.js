@@ -335,6 +335,21 @@ const handleAbortError = async (res, req, error, data) => {
     errorText = `{"type":"${ErrorTypes.NO_SYSTEM_MESSAGES}"}`;
   }
 
+  const errorMsg = (error?.message || '').toLowerCase();
+  if (
+    errorMsg.includes('context_length_exceeded') ||
+    errorMsg.includes('context length') ||
+    errorMsg.includes('maximum context') ||
+    errorMsg.includes('prompt is too long') ||
+    errorMsg.includes('too many tokens') ||
+    errorMsg.includes('request too large') ||
+    errorMsg.includes('content size exceeds') ||
+    errorMsg.includes('input is too long') ||
+    error?.code === 'context_length_exceeded'
+  ) {
+    errorText = `{"type":"${ErrorTypes.CONTEXT_LENGTH_EXCEEDED}"}`;
+  }
+
   /**
    * @param {string} partialText
    * @returns {Promise<void>}

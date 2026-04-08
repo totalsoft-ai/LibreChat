@@ -201,6 +201,7 @@ async function reconnectServer({ res, user, index, signal, serverName, userMCPAu
     forceNew: true,
     returnOnOAuth: false,
     connectionTimeout: Time.TWO_MINUTES,
+    authorizationHeader: res.req?.headers?.authorization,
   });
 }
 
