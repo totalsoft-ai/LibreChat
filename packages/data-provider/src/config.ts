@@ -1451,6 +1451,10 @@ export enum ErrorTypes {
    * Generic Authentication failure
    */
   AUTH_FAILED = 'auth_failed',
+  /**
+   * Context length exceeded - conversation too long for the model
+   */
+  CONTEXT_LENGTH_EXCEEDED = 'context_length_exceeded',
 }
 
 /**
