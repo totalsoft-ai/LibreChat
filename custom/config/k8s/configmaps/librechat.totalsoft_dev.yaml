@@ -41,6 +41,7 @@ modelSpecs:
   addedEndpoints:
     - "agents"
     - "Local Models"
+    - "PPM Gemma"
   list:
     - name: "assistant-with-knowledge"
       label: "Assistant with Knowledge"
@@ -238,12 +239,18 @@ endpoints:
           completion: 0
 
     - name: "PPM Gemma"
+      label: "PPM Gemma (gemma4-e2b)"
       baseURL: "${PPM_GEMMA_BASEURL}"
-      apiKey: "dummy"
+      apiKey: "dff7002"
       models:
-        fetch: true
+        default: ["gemma4-e2b"]
+        fetch: false
       titleModel: 'gemma3:4b'
       titleEndpoint: "Local Models"
+      tokenConfig:
+        "gemma4-e2b":
+          prompt: 0
+          completion: 0
           
     - name: "Assistant"
       baseURL: "${ORCHESTRATOR_URL}"
