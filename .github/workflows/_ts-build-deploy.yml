@@ -164,6 +164,7 @@ jobs:
           "USER_FILE_SIZE_LIMIT_MB" = "${{ vars.USER_FILE_SIZE_LIMIT_MB }}"
           "USER_STORAGE_LIMIT_MB" = "${{ vars.USER_STORAGE_LIMIT_MB }}"
           "OPENID_PROMPT" = "${{ vars.OPENID_PROMPT }}"
+          "PPM_GEMMA_BASEURL" = "${{ vars.PPM_GEMMA_BASEURL }}"
         }
 
         ./custom/scripts/build-and-deploy.ps1 `

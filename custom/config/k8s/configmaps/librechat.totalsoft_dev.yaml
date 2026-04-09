@@ -230,12 +230,20 @@ endpoints:
       models:
         default: ["qwen3-ppm-ft"]
         fetch: false
-      titleModel: 'gemma3:4b' 
+      titleModel: 'gemma3:4b'
       titleEndpoint: "Local Models"
       tokenConfig:
         "qwen3-ppm-ft":
           prompt: 0
           completion: 0
+
+    - name: "PPM Gemma"
+      baseURL: "${PPM_GEMMA_BASEURL}"
+      apiKey: "dummy"
+      models:
+        fetch: true
+      titleModel: 'gemma3:4b'
+      titleEndpoint: "Local Models"
           
     - name: "Assistant"
       baseURL: "${ORCHESTRATOR_URL}"
