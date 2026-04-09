@@ -163,6 +163,7 @@ jobs:
           "OPENID_REUSE_TOKENS"= "${{ vars.OPENID_REUSE_TOKENS }}"
           "USER_FILE_SIZE_LIMIT_MB" = "${{ vars.USER_FILE_SIZE_LIMIT_MB }}"
           "USER_STORAGE_LIMIT_MB" = "${{ vars.USER_STORAGE_LIMIT_MB }}"
+          "OPENID_PROMPT" = "${{ vars.OPENID_PROMPT }}"
         }
 
         ./custom/scripts/build-and-deploy.ps1 `
