@@ -8,11 +8,9 @@ const { getLogStores } = require('~/cache');
 
 const router = Router();
 
-const PPM_SERVER = 'ppm-timesheet';
+const PPM_SERVER = process.env.PPM_MCP_SERVER_NAME || 'ppm-timesheet';
 
-/**
- * Extrage textul brut din răspunsul MCP, fără prefixul "[Today: ...]"
- */
+/** Extracts raw text from MCP tool response, stripping the "[Today: ...]" prefix. */
 function extractText(toolResponse) {
   const content = toolResponse?.[0];
   let text = '';
@@ -26,14 +24,14 @@ function extractText(toolResponse) {
       .join('');
   }
 
-  // Strip "[Today: YYYY-MM-DD]\n\n" prefix added by PPM server
   const separatorIdx = text.indexOf('\n\n');
+  if (separatorIdx === -1) {
+    logger.warn('[PPM] extractText: expected "\\n\\n" separator not found in MCP response');
+  }
   return separatorIdx !== -1 ? text.slice(separatorIdx + 2) : text;
 }
 
-/**
- * Parsează lista de proiecte din textul formatat de PPM (bullet points "  • CODE")
- */
+/** Parses project list from PPM formatted text (bullet points "  • CODE"). */
 function parseProjects(text) {
   return text
     .split('\n')
@@ -45,23 +43,19 @@ function parseProjects(text) {
     });
 }
 
-/**
- * Parsează lista de task-uri din textul formatat de PPM
- * Format așteptat: "  • Nume Task (ID: 2)"
- */
+/** Parses task list from PPM formatted text. Expected format: "  • Task Name (ID: 2)" */
 function parseTasks(text) {
   return text
     .split('\n')
     .map((line) => line.trim())
     .filter((line) => line.startsWith('•'))
-    .map((line) => {
+    .map((line, idx) => {
       const raw = line.replace(/^•\s*/, '').trim();
       const idMatch = raw.match(/\(ID:\s*(\d+)\)\s*$/);
-      const id = idMatch ? parseInt(idMatch[1], 10) : null;
+      const id = idMatch ? parseInt(idMatch[1], 10) : idx + 1;
       const name = raw.replace(/\s*\(ID:\s*\d+\)\s*$/, '').trim();
       return { id, name };
-    })
-    .filter((t) => t.id !== null);
+    });
 }
 
 async function callPPMTool(user, toolName, toolArguments, authorizationHeader) {
@@ -87,16 +81,16 @@ router.get('/projects', requireJwtAuth, async (req, res) => {
     const text = extractText(result);
     const projects = parseProjects(text);
     logger.debug('[PPM] get_user_projects parsed count:', projects.length);
-    res.json([{ code: 'administrativ', name: 'Administrativ' }, ...projects]);
+    res.json([{ code: 'administrativ', name: 'Administrative' }, ...projects]);
   } catch (error) {
     logger.error('[PPM] get_user_projects failed', { message: error.message });
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Failed to fetch projects' });
   }
 });
 
 router.get('/tasks', requireJwtAuth, async (req, res) => {
   try {
-    const { projectCode } = req.query;
+    const projectCode = String(req.query.projectCode ?? '').slice(0, 100);
     const args = projectCode ? { project_code: projectCode } : {};
     const result = await callPPMTool(req.user, 'get_user_tasks', args, req.headers.authorization);
     const text = extractText(result);
@@ -105,7 +99,7 @@ router.get('/tasks', requireJwtAuth, async (req, res) => {
     res.json(tasks);
   } catch (error) {
     logger.error('[PPM] get_user_tasks failed', { message: error.message });
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Failed to fetch tasks' });
   }
 });
 

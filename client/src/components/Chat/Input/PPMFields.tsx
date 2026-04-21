@@ -13,18 +13,6 @@ interface PPMProject {
 interface PPMTask {
   id: number | string;
   name: string;
-  project_code?: string;
-}
-
-function toArray<T>(data: unknown): T[] {
-  if (Array.isArray(data)) return data as T[];
-  if (data && typeof data === 'object') {
-    const obj = data as Record<string, unknown>;
-    const firstArray = Object.values(obj).find((v) => Array.isArray(v));
-    if (firstArray) return firstArray as T[];
-  }
-  console.warn('[PPMFields] unexpected response format:', data);
-  return [];
 }
 
 async function fetchPPMProjects(token: string): Promise<PPMProject[]> {
@@ -33,7 +21,7 @@ async function fetchPPMProjects(token: string): Promise<PPMProject[]> {
   });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   const data = await res.json();
-  return toArray<PPMProject>(data);
+  return Array.isArray(data) ? data : [];
 }
 
 async function fetchPPMTasks(token: string, projectCode: string): Promise<PPMTask[]> {
@@ -42,15 +30,14 @@ async function fetchPPMTasks(token: string, projectCode: string): Promise<PPMTas
   });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   const data = await res.json();
-  return toArray<PPMTask>(data);
+  return Array.isArray(data) ? data : [];
 }
 
 export default function PPMFields() {
   const { conversation } = useChatContext();
   const agentsMap = useAgentsMapContext();
   const methods = useChatFormContext();
-
-  const { token } = useAuthContext();
+  const { token, user } = useAuthContext();
 
   const agentName = agentsMap?.[conversation?.agent_id ?? '']?.name;
   const isPPM = agentName === 'PPM';
@@ -61,9 +48,8 @@ export default function PPMFields() {
   const {
     data: projects = [],
     isLoading: projectsLoading,
-    error: projectsError,
   } = useQuery({
-    queryKey: ['ppm-projects'],
+    queryKey: ['ppm-projects', user?.id],
     queryFn: () => fetchPPMProjects(token ?? ''),
     enabled: isPPM && !!token,
     staleTime: 5 * 60 * 1000,
@@ -72,8 +58,9 @@ export default function PPMFields() {
   const {
     data: tasks = [],
     isLoading: tasksLoading,
+    error: tasksError,
   } = useQuery({
-    queryKey: ['ppm-tasks', selectedProject?.code],
+    queryKey: ['ppm-tasks', user?.id, selectedProject?.code],
     queryFn: () => fetchPPMTasks(token ?? '', selectedProject!.code),
     enabled: isPPM && selectedProject != null && !!token,
     staleTime: 2 * 60 * 1000,
@@ -102,15 +89,14 @@ export default function PPMFields() {
     if (!selectedProject) return;
     const current = methods.getValues('text') ?? '';
     const separator = current.length > 0 && !current.endsWith('\n') ? '\n' : '';
-    let insertion = `Proiect: ${selectedProject.code}`;
+    let insertion = `PROJECT: ${selectedProject.code}`;
     if (selectedTask) {
-      insertion += ` | Task: ${selectedTask.name}`;
+      insertion += ` | TASK: ${selectedTask.name}`;
     }
     methods.setValue('text', current + separator + insertion, { shouldValidate: true });
   }, [selectedProject, selectedTask, methods]);
 
   if (!isPPM) return null;
-  if (projectsError) console.error('[PPMFields] projects error:', projectsError);
 
   const selectClass =
     'h-7 cursor-pointer appearance-none rounded-2xl border border-border-medium bg-surface-secondary px-3 text-xs font-medium text-text-secondary transition-colors hover:bg-surface-tertiary hover:text-text-primary focus:outline-none disabled:cursor-not-allowed disabled:opacity-40';
@@ -118,12 +104,13 @@ export default function PPMFields() {
   return (
     <div className="flex items-center gap-1.5">
       <select
+        aria-label="Select project"
         className={selectClass}
         value={selectedProject?.code ?? ''}
         onChange={handleProjectChange}
         disabled={projectsLoading}
       >
-        <option value="">{projectsLoading ? 'Loading...' : '📁 Project'}</option>
+        <option value="">{projectsLoading ? 'Loading...' : 'Project'}</option>
         {projects.map((p) => (
           <option key={p.code} value={p.code}>
             {p.name}
@@ -132,16 +119,19 @@ export default function PPMFields() {
       </select>
 
       <select
+        aria-label="Select task"
         className={selectClass}
         value={selectedTask ? String(selectedTask.id) : ''}
         onChange={handleTaskChange}
         disabled={!selectedProject || tasksLoading}
       >
         {!selectedProject ? (
-          <option value="">📋 Task</option>
+          <option value="">Select a project first</option>
+        ) : tasksError ? (
+          <option value="">Failed to load tasks</option>
         ) : (
           <>
-            <option value="">{tasksLoading ? 'Loading...' : '📋 Task'}</option>
+            <option value="">{tasksLoading ? 'Loading...' : tasks.length === 0 ? 'No tasks available' : 'Task'}</option>
             {tasks.map((t) => (
               <option key={t.id} value={String(t.id)}>
                 {t.name}
