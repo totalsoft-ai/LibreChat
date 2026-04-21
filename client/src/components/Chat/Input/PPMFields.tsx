@@ -4,6 +4,7 @@ import { useChatFormContext } from '~/Providers';
 import { useAgentsMapContext } from '~/Providers/AgentsMapContext';
 import { useChatContext } from '~/Providers/ChatContext';
 import { useAuthContext } from '~/hooks/AuthContext';
+import { useLocalize } from '~/hooks';
 
 interface PPMProject {
   code: string;
@@ -38,6 +39,7 @@ export default function PPMFields() {
   const agentsMap = useAgentsMapContext();
   const methods = useChatFormContext();
   const { token, user } = useAuthContext();
+  const localize = useLocalize();
 
   const agentName = agentsMap?.[conversation?.agent_id ?? '']?.name;
   const isPPM = agentName === 'PPM';
@@ -110,7 +112,7 @@ export default function PPMFields() {
         onChange={handleProjectChange}
         disabled={projectsLoading}
       >
-        <option value="">{projectsLoading ? 'Loading...' : 'Project'}</option>
+        <option value="">{projectsLoading ? localize('com_ui_loading') : localize('com_ui_ppm_project')}</option>
         {projects.map((p) => (
           <option key={p.code} value={p.code}>
             {p.name}
@@ -126,12 +128,12 @@ export default function PPMFields() {
         disabled={!selectedProject || tasksLoading}
       >
         {!selectedProject ? (
-          <option value="">Select a project first</option>
+          <option value="">{localize('com_ui_ppm_select_project_first')}</option>
         ) : tasksError ? (
-          <option value="">Failed to load tasks</option>
+          <option value="">{localize('com_ui_ppm_failed_tasks')}</option>
         ) : (
           <>
-            <option value="">{tasksLoading ? 'Loading...' : tasks.length === 0 ? 'No tasks available' : 'Task'}</option>
+            <option value="">{tasksLoading ? localize('com_ui_loading') : tasks.length === 0 ? localize('com_ui_ppm_no_tasks') : localize('com_ui_ppm_task')}</option>
             {tasks.map((t) => (
               <option key={t.id} value={String(t.id)}>
                 {t.name}
@@ -147,7 +149,7 @@ export default function PPMFields() {
           onClick={insertIntoText}
           className="h-7 rounded-2xl border border-border-medium bg-surface-secondary px-3 text-xs font-medium text-text-secondary transition-colors hover:bg-surface-tertiary hover:text-text-primary active:scale-95"
         >
-          + Add
+          + {localize('com_ui_add')}
         </button>
       )}
     </div>
