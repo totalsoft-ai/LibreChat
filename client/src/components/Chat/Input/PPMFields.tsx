@@ -94,7 +94,7 @@ export default function PPMFields() {
     const isAdmin = selectedProject.code === 'administrativ';
     let insertion = isAdmin ? 'Administrative' : `PROJECT: ${selectedProject.code}`;
     if (selectedTask) {
-      insertion += ` | TASK: ${selectedTask.name}`;
+      insertion += `, TASK:${selectedTask.name}`;
     }
     methods.setValue('text', current + separator + insertion, { shouldValidate: true });
   }, [selectedProject, selectedTask, methods]);
