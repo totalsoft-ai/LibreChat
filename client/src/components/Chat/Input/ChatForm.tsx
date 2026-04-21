@@ -20,6 +20,7 @@ import {
 } from '~/hooks';
 import { mainTextareaId, BadgeItem } from '~/common';
 import AttachFileChat from './Files/AttachFileChat';
+import PPMFields from './PPMFields';
 import FileFormChat from './Files/FileFormChat';
 import { cn, removeFocusRings } from '~/utils';
 import TextareaHeader from './TextareaHeader';
@@ -304,6 +305,7 @@ const ChatForm = memo(({ index = 0 }: { index?: number }) => {
               <div className={`${isRTL ? 'mr-2' : 'ml-2'}`}>
                 <AttachFileChat conversation={conversation} disableInputs={disableInputs} />
               </div>
+              <PPMFields />
               <BadgeRow
                 showEphemeralBadges={!isAgentsEndpoint(endpoint) && !isAssistantsEndpoint(endpoint)}
                 isSubmitting={isSubmitting || isSubmittingAdded}

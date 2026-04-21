@@ -148,6 +148,7 @@ const startServer = async () => {
 
   app.use('/api/tags', routes.tags);
   app.use('/api/mcp', routes.mcp);
+  app.use('/api/ppm', routes.ppm);
   app.use('/api/workspaces', routes.workspaces);
   app.use('/api/docs', routes.docs);
   app.use('/api/admin/events', routes.adminEvents);
