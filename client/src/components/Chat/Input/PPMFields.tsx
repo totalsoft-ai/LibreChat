@@ -90,7 +90,7 @@ export default function PPMFields() {
   const insertIntoText = useCallback(() => {
     if (!selectedProject) return;
     const current = methods.getValues('text') ?? '';
-    const separator = current.length > 0 && !current.endsWith('\n') ? '\n' : '';
+    const separator = current.length > 0 && !current.endsWith(' ') ? ' ' : '';
     const isAdmin = selectedProject.code === 'administrativ';
     let insertion = isAdmin ? 'Administrative' : `PROJECT: ${selectedProject.code}`;
     if (selectedTask) {
