@@ -243,7 +243,7 @@ endpoints:
       baseURL: "${PPM_GEMMA_BASEURL}"
       apiKey: "dff7002"
       models:
-        default: ["gemma4-e4b-base""]
+        default: ["gemma4-e4b-base"]
         fetch: true
       titleModel: 'gemma3:4b'
       titleEndpoint: "Local Models"
