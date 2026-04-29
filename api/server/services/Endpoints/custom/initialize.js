@@ -44,6 +44,7 @@ const initializeClient = async ({ req, res, endpointOption, optionsOnly, overrid
   let resolvedHeaders = resolveHeaders({
     headers: endpointConfig.headers,
     user: req.user,
+    authorizationHeader: req.headers?.authorization,
   });
 
   if (CUSTOM_API_KEY.match(envVarRegex)) {

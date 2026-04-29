@@ -301,20 +301,25 @@ export function resolveHeaders(options?: {
   user?: Partial<TUser> | { id: string };
   body?: RequestBody;
   customUserVars?: Record<string, string>;
+  authorizationHeader?: string;
 }) {
-  const { headers, user, body, customUserVars } = options ?? {};
+  const { headers, user, body, customUserVars, authorizationHeader } = options ?? {};
   const inputHeaders = headers ?? {};
 
   const resolvedHeaders: Record<string, string> = { ...inputHeaders };
 
   if (inputHeaders && typeof inputHeaders === 'object' && !Array.isArray(inputHeaders)) {
     Object.keys(inputHeaders).forEach((key) => {
-      resolvedHeaders[key] = processSingleValue({
+      let value = processSingleValue({
         originalValue: inputHeaders[key],
         customUserVars,
         user: user as TUser,
         body,
       });
+      if (authorizationHeader && value.includes('{{LIBRECHAT_USER_ACCESS_TOKEN}}')) {
+        value = value.replace(/\{\{LIBRECHAT_USER_ACCESS_TOKEN\}\}/g, authorizationHeader);
+      }
+      resolvedHeaders[key] = value;
     });
   }
 
