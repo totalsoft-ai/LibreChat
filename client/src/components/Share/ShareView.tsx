@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { Spinner } from '@librechat/client';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { buildTree } from 'librechat-data-provider';
 import { useGetSharedMessages } from 'librechat-data-provider/react-query';
 import { useLocalize, useDocumentTitle } from '~/hooks';
@@ -11,6 +11,7 @@ import Footer from '../Chat/Footer';
 
 function SharedView() {
   const localize = useLocalize();
+  const navigate = useNavigate();
   const { data: config } = useGetStartupConfig();
   const { shareId } = useParams();
   const { data, isLoading } = useGetSharedMessages(shareId ?? '');
@@ -67,6 +68,28 @@ function SharedView() {
       >
         <div className="transition-width relative flex h-full w-full flex-1 flex-col items-stretch overflow-hidden pt-0 dark:bg-surface-secondary">
           <div className="flex h-full flex-col text-text-primary" role="presentation">
+            <div className="fixed left-4 top-4 z-50">
+              <button
+                onClick={() => navigate('/')}
+                className="flex items-center gap-2 rounded-lg bg-surface-primary px-3 py-2 text-sm font-medium text-text-primary shadow-md ring-1 ring-border-medium transition-colors hover:bg-surface-hover"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                  <polyline points="9 22 9 12 15 12 15 22" />
+                </svg>
+                {config?.appTitle ?? 'Home'}
+              </button>
+            </div>
             {content}
             <div className="w-full border-t-0 pl-0 pt-2 md:w-[calc(100%-.5rem)] md:border-t-0 md:border-transparent md:pl-0 md:pt-0 md:dark:border-transparent">
               <Footer className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-center gap-2 bg-gradient-to-t from-surface-secondary to-transparent px-2 pb-2 pt-8 text-xs text-text-secondary md:px-[60px]" />
