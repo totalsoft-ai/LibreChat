@@ -7,6 +7,7 @@ import {
   useAuthContext,
   useAgentsMap,
   useFileMap,
+  useInactivityTimeout,
 } from '~/hooks';
 import {
   PromptGroupsProvider,
@@ -33,6 +34,8 @@ export default function Root() {
 
   // Global health check - runs once per authenticated session
   useHealthCheck(isAuthenticated);
+
+  useInactivityTimeout({ isActive: isAuthenticated, onTimeout: () => logout('/login') });
 
   const assistantsMap = useAssistantsMap({ isAuthenticated });
   const agentsMap = useAgentsMap({ isAuthenticated });
