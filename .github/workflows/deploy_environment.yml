@@ -19,7 +19,7 @@ on:
 
 jobs:
   build-and-deploy:
-    runs-on: self-hosted
+    runs-on: [self-hosted, docker]
     environment: ${{ github.event.inputs.environment }}
     
     steps:
