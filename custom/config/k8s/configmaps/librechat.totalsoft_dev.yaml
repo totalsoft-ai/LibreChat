@@ -230,6 +230,7 @@ endpoints:
           completion: 0
     - name: "PPM"
       baseURL: "http://10.1.48.13/v1"
+      apiKey: "dff700"
       models:
         default: ["ppm"]
         fetch: false

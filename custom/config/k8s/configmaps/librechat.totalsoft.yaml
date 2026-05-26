@@ -175,7 +175,7 @@ endpoints:
       baseURL: "${ASSISTANT_WITH_K_BASEURL}"
       apiKey: "${ASSISTANT_WITH_K_APIKEY}"
       models:
-        default: ["us.anthropic.claude-3-5-haiku-20241022-v1:0"]
+        default: ["us.anthropic.claude-haiku-4-5-20251001-v1:0"]
       addParams:
         namespaces: "{{LIBRECHAT_USER_NAMESPACES}}"
       titleModel: 'gemma4-e4b-base'
@@ -216,6 +216,7 @@ endpoints:
 
     - name: "PPM"
       baseURL: "http://10.1.48.13/v1"
+      apiKey: "dff700"
       models:
         default: ["ppm"]
         fetch: false
