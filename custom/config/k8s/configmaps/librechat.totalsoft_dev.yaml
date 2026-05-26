@@ -239,12 +239,12 @@ endpoints:
       baseURL: "http://10.1.48.13/v1"
       apiKey: "dff700"
       models:
-        default: ["qwen3-ppm-ft"]
+        default: ["ppm"]
         fetch: false
       titleModel: 'gemma4-e4b-base'
       titleEndpoint: "PPM"
       tokenConfig:
-        "qwen3-ppm-ft":
+        "ppm":
           prompt: 0
           completion: 0
         "gemma4-e4b-base":
