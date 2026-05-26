@@ -41,7 +41,7 @@ modelSpecs:
   addedEndpoints:
     - "agents"
     - "Local Models"
-    - "PPM Gemma"
+    - "PPM"
   list:
     - name: "Orchestrator"
       label: "Orchestrator"
