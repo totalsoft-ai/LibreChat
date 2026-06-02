@@ -2,7 +2,7 @@ import { useState, memo } from 'react';
 import { useRecoilState } from 'recoil';
 import { useNavigate } from 'react-router-dom';
 import * as Select from '@ariakit/react/select';
-import { FileText, LogOut, BookOpen, ClipboardList, BarChart2 } from 'lucide-react';
+import { FileText, LogOut, BookOpen, ClipboardList, BarChart2, FlaskConical } from 'lucide-react';
 import { LinkIcon, GearIcon, DropdownMenuSeparator, Avatar } from '@librechat/client';
 import { useGetStartupConfig, useGetUserBalance } from '~/data-provider';
 import FilesView from '~/components/Chat/Input/Files/FilesView';
@@ -106,6 +106,16 @@ function AccountSettings() {
           >
             <BarChart2 className="icon-md" aria-hidden="true" />
             Analytics
+          </Select.SelectItem>
+        )}
+        {user?.role === 'ADMIN' && (
+          <Select.SelectItem
+            value=""
+            onClick={() => navigate('/evals')}
+            className="select-item text-sm"
+          >
+            <FlaskConical className="icon-md" aria-hidden="true" />
+            Eval Baselines
           </Select.SelectItem>
         )}
         <Select.SelectItem

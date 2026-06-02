@@ -1102,3 +1102,35 @@ export const useGetEventsLogsQuery = (
     },
   );
 };
+
+export const useGetEvalsBaselinesQuery = (
+  params?: dataService.EvalsQueryParams,
+  config?: UseQueryOptions<dataService.EvalsResponse>,
+): QueryObserverResult<dataService.EvalsResponse> => {
+  return useQuery<dataService.EvalsResponse>(
+    [QueryKeys.evalsBaselines, params],
+    () => dataService.getEvalsBaselines(params),
+    { refetchOnWindowFocus: false, refetchOnMount: true, staleTime: 60 * 1000, ...config },
+  );
+};
+
+export const useGetEvalsFiltersQuery = (
+  config?: UseQueryOptions<dataService.EvalsFilterOptions>,
+): QueryObserverResult<dataService.EvalsFilterOptions> => {
+  return useQuery<dataService.EvalsFilterOptions>(
+    [QueryKeys.evalsFilters],
+    () => dataService.getEvalsFilters(),
+    { refetchOnWindowFocus: false, refetchOnMount: true, staleTime: 5 * 60 * 1000, ...config },
+  );
+};
+
+export const useGetEvalsModelScoresQuery = (
+  params?: dataService.ModelScoresParams,
+  config?: UseQueryOptions<dataService.ModelScoreItem[]>,
+): QueryObserverResult<dataService.ModelScoreItem[]> => {
+  return useQuery<dataService.ModelScoreItem[]>(
+    [QueryKeys.evalsModelScores, params],
+    () => dataService.getEvalsModelScores(params),
+    { refetchOnWindowFocus: false, refetchOnMount: true, staleTime: 60 * 1000, ...config },
+  );
+};

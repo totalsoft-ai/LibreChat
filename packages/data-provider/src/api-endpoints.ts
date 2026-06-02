@@ -436,3 +436,11 @@ export const eventsInternal = (params?: Record<string, unknown>) =>
 
 export const eventsLogs = (params?: Record<string, unknown>) =>
   `${eventsRoot}/logs${params ? buildQuery(params) : ''}`;
+
+// Admin Evals
+const evalsRoot = `${BASE_URL}/api/admin/evals`;
+export const evalsBaselines = (params?: Record<string, unknown>) =>
+  `${evalsRoot}/baselines${params ? buildQuery(params) : ''}`;
+export const evalsFilters = () => `${evalsRoot}/filters`;
+export const evalsModelScores = (params?: Record<string, unknown>) =>
+  `${evalsRoot}/model-scores${params ? buildQuery(params) : ''}`;

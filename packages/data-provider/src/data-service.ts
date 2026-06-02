@@ -1073,3 +1073,68 @@ export function getEventsInternal(params?: EventsQueryParams): Promise<EventsRes
 export function getEventsLogs(params?: EventsQueryParams): Promise<EventsResponse> {
   return request.get(endpoints.eventsLogs(params as Record<string, unknown>));
 }
+
+// Admin Evals
+export interface EvalsQueryParams {
+  page?: number;
+  pageSize?: number;
+  endpoint?: string;
+  category?: string;
+  agentModel?: string;
+  repo?: string;
+  branch?: string;
+  testName?: string;
+  fromDate?: string;
+  toDate?: string;
+}
+
+export interface BaselineItem {
+  id: number;
+  repo: string;
+  branch: string;
+  commit_sha: string;
+  pr_number: number | null;
+  endpoint: string;
+  category: string;
+  score: number;
+  timestamp: string;
+  agent_model: string;
+  test_name: string;
+}
+
+export interface EvalsResponse {
+  data: BaselineItem[];
+  pagination: { page: number; pageSize: number; total: number; totalPages: number };
+}
+
+export interface EvalsFilterOptions {
+  endpoints: string[];
+  categories: string[];
+  agentModels: string[];
+  repos: string[];
+  branches: string[];
+}
+
+export interface ModelScoreItem {
+  agent_model: string;
+  avg_score: number;
+  run_count: number;
+  latest_score: number;
+}
+
+export interface ModelScoresParams {
+  endpoint?: string;
+  category?: string;
+}
+
+export function getEvalsBaselines(params?: EvalsQueryParams): Promise<EvalsResponse> {
+  return request.get(endpoints.evalsBaselines(params as Record<string, unknown>));
+}
+
+export function getEvalsFilters(): Promise<EvalsFilterOptions> {
+  return request.get(endpoints.evalsFilters());
+}
+
+export function getEvalsModelScores(params?: ModelScoresParams): Promise<ModelScoreItem[]> {
+  return request.get(endpoints.evalsModelScores(params as Record<string, unknown>));
+}

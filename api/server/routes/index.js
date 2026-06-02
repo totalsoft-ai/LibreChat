@@ -33,10 +33,12 @@ const workspaces = require('./workspaces');
 const docs = require('./docs');
 const adminEvents = require('./admin/events');
 const adminAnalytics = require('./admin/analytics');
+const adminEvals = require('./admin/evals');
 
 module.exports = {
   adminEvents,
   adminAnalytics,
+  adminEvals,
   workspaces,
   mcp,
   ppm,

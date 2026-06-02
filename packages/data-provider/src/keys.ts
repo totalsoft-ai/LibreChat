@@ -66,6 +66,10 @@ export enum QueryKeys {
   eventsAuth = 'eventsAuth',
   eventsInternal = 'eventsInternal',
   eventsLogs = 'eventsLogs',
+  /* Admin Evals */
+  evalsBaselines = 'evalsBaselines',
+  evalsFilters = 'evalsFilters',
+  evalsModelScores = 'evalsModelScores',
 }
 
 // Dynamic query keys that require parameters
