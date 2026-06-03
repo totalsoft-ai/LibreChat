@@ -10,6 +10,11 @@ const ENDPOINT_LABELS: Record<string, string> = {
   '/v1/chat/completions': 'Assistant with Knowledge',
 };
 
+const ENDPOINT_REPO_KEYWORD: Record<string, string> = {
+  '/debug/classify': 'orchestrator',
+  '/v1/chat/completions': 'assistant-with-knowledge',
+};
+
 const endpointLabel = (ep: string) => ENDPOINT_LABELS[ep] ?? ep;
 
 const formatTimestamp = (ts: string | null | undefined): string => {
@@ -35,14 +40,25 @@ const ScoreBadge = ({ score }: { score: number }) => {
   );
 };
 
-export default function EvalsTable() {
+interface Props {
+  endpoint?: string;
+  repo?: string;
+}
+
+export default function EvalsTable({ endpoint: externalEndpoint = '', repo: externalRepo = '' }: Props) {
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<Omit<EvalsQueryParams, 'page' | 'pageSize'>>({});
   const [testNameInput, setTestNameInput] = useState('');
 
+  const mergedFilters = {
+    ...filters,
+    endpoint: filters.endpoint ?? (externalEndpoint || undefined),
+    repo: filters.repo ?? (externalRepo || undefined),
+  };
+
   const queryParams = useMemo<EvalsQueryParams>(
-    () => ({ page, pageSize: 20, ...filters }),
-    [page, filters],
+    () => ({ page, pageSize: 20, ...mergedFilters }),
+    [page, mergedFilters],
   );
 
   const { data, isLoading, error, refetch } = useGetEvalsBaselinesQuery(queryParams);
@@ -50,6 +66,19 @@ export default function EvalsTable() {
 
   const set = (key: keyof typeof filters, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value || undefined }));
+    setPage(1);
+  };
+
+  const selectEndpoint = (value: string) => {
+    const keyword = value ? ENDPOINT_REPO_KEYWORD[value] : undefined;
+    const matchedRepo = keyword
+      ? filterOptions?.repos.find((r) => r.toLowerCase().includes(keyword))
+      : undefined;
+    setFilters((prev) => ({
+      ...prev,
+      endpoint: value || undefined,
+      repo: matchedRepo ?? undefined,
+    }));
     setPage(1);
   };
 
@@ -62,17 +91,17 @@ export default function EvalsTable() {
       <div className="rounded-xl border border-border-light bg-surface-secondary p-4 space-y-3">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
           {[
-            { label: 'Endpoint', key: 'endpoint' as const, opts: filterOptions?.endpoints ?? [], labelFn: endpointLabel },
+            { label: 'Endpoint', key: 'endpoint' as const, opts: filterOptions?.endpoints ?? [], labelFn: endpointLabel, onChangeFn: selectEndpoint },
             { label: 'Category', key: 'category' as const, opts: filterOptions?.categories ?? [] },
             { label: 'Model', key: 'agentModel' as const, opts: filterOptions?.agentModels ?? [] },
             { label: 'Repo', key: 'repo' as const, opts: filterOptions?.repos ?? [] },
             { label: 'Branch', key: 'branch' as const, opts: filterOptions?.branches ?? [] },
-          ].map(({ label, key, opts, labelFn }: { label: string; key: keyof typeof filters; opts: string[]; labelFn?: (v: string) => string }) => (
+          ].map(({ label, key, opts, labelFn, onChangeFn }: { label: string; key: keyof typeof filters; opts: string[]; labelFn?: (v: string) => string; onChangeFn?: (v: string) => void }) => (
             <div key={key} className="flex flex-col gap-1">
               <label className="text-xs font-medium text-text-secondary">{label}</label>
               <select
                 value={(filters[key] as string) ?? ''}
-                onChange={(e) => set(key, e.target.value)}
+                onChange={(e) => onChangeFn ? onChangeFn(e.target.value) : set(key, e.target.value)}
                 className="rounded-lg border border-border-light bg-surface-primary px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-purple-500/40"
               >
                 <option value="">All</option>
@@ -198,7 +227,7 @@ export default function EvalsTable() {
                     <span className="block truncate font-medium text-text-primary" title={row.test_name}>{row.test_name ?? '—'}</span>
                   </td>
                   <td className="px-4 py-2.5"><ScoreBadge score={row.score} /></td>
-                  <td className="px-4 py-2.5 whitespace-nowrap text-text-primary">{row.endpoint ? endpointLabel(row.endpoint) : '—'}</td>
+                  <td className="px-4 py-2.5 whitespace-nowrap text-text-primary">{row.endpoint ?? '—'}</td>
                   <td className="px-4 py-2.5 whitespace-nowrap text-text-primary">{row.category ?? '—'}</td>
                   <td className="px-4 py-2.5 max-w-[140px]">
                     <span className="block truncate text-text-primary" title={row.agent_model}>{row.agent_model ?? '—'}</span>

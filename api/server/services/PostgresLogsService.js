@@ -158,6 +158,17 @@ const queryLogs = async ({ page = 1, pageSize = 20, level, fromDate, toDate }) =
  * @param {Object} [logEntry.metadata] - Additional metadata
  * @returns {Promise<Object>} Inserted log entry
  */
+const safeStringify = (obj) => {
+  const seen = new WeakSet();
+  return JSON.stringify(obj, (key, value) => {
+    if (typeof value === 'object' && value !== null) {
+      if (seen.has(value)) return '[Circular]';
+      seen.add(value);
+    }
+    return value;
+  });
+};
+
 const insertLog = async ({ level, message, stack, metadata }) => {
   const currentPool = getPool();
   if (!currentPool) {
@@ -174,7 +185,7 @@ const insertLog = async ({ level, message, stack, metadata }) => {
     level,
     message,
     stack || null,
-    metadata ? JSON.stringify(metadata) : null,
+    metadata ? safeStringify(metadata) : null,
   ]);
 
   return result.rows[0];

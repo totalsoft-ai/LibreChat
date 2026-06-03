@@ -10,5 +10,6 @@ router.use(checkAdmin);
 router.get('/baselines', EvalsController.getBaselines);
 router.get('/filters', EvalsController.getFilters);
 router.get('/model-scores', EvalsController.getModelScores);
+router.get('/pr-comparison', EvalsController.getPRComparison);
 
 module.exports = router;

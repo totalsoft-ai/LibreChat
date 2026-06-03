@@ -70,6 +70,7 @@ export enum QueryKeys {
   evalsBaselines = 'evalsBaselines',
   evalsFilters = 'evalsFilters',
   evalsModelScores = 'evalsModelScores',
+  evalsPRComparison = 'evalsPRComparison',
 }
 
 // Dynamic query keys that require parameters

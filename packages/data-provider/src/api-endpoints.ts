@@ -444,3 +444,6 @@ export const evalsBaselines = (params?: Record<string, unknown>) =>
 export const evalsFilters = () => `${evalsRoot}/filters`;
 export const evalsModelScores = (params?: Record<string, unknown>) =>
   `${evalsRoot}/model-scores${params ? buildQuery(params) : ''}`;
+
+export const evalsPRComparison = (params?: Record<string, unknown>) =>
+  `${evalsRoot}/pr-comparison${params ? buildQuery(params) : ''}`;

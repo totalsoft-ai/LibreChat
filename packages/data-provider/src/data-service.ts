@@ -1119,6 +1119,7 @@ export interface ModelScoreItem {
   agent_model: string;
   avg_score: number;
   run_count: number;
+  test_count: number;
   latest_score: number;
 }
 
@@ -1137,4 +1138,33 @@ export function getEvalsFilters(): Promise<EvalsFilterOptions> {
 
 export function getEvalsModelScores(params?: ModelScoresParams): Promise<ModelScoreItem[]> {
   return request.get(endpoints.evalsModelScores(params as Record<string, unknown>));
+}
+
+export interface PRComparisonItem {
+  pr_number: number;
+  branch: string;
+  repo: string;
+  agent_model: string;
+  pr_avg_score: number;
+  pr_run_count: number;
+  pr_test_count: number;
+  latest_timestamp: string;
+  baseline_avg_score: number | null;
+}
+
+export interface PRComparisonParams {
+  repo?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface PRComparisonResponse {
+  data: PRComparisonItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export function getEvalsPRComparison(params?: PRComparisonParams): Promise<PRComparisonResponse> {
+  return request.get(endpoints.evalsPRComparison(params as Record<string, unknown>));
 }

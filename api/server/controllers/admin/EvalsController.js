@@ -2,6 +2,7 @@ const {
   queryBaselines,
   getFilterOptions,
   getModelScores: queryModelScores,
+  getPRComparison: queryPRComparison,
 } = require('~/server/services/PostgresEvalsService');
 
 const handleError = (res, error, label) => {
@@ -39,11 +40,22 @@ const getFilters = async (req, res) => {
 
 const getModelScores = async (req, res) => {
   try {
-    const { endpoint, category } = req.query;
-    return res.json(await queryModelScores({ endpoint, category }));
+    const { endpoint, category, repo } = req.query;
+    return res.json(await queryModelScores({ endpoint, category, repo }));
   } catch (error) {
     return handleError(res, error, 'fetch model scores');
   }
 };
 
-module.exports = { getBaselines, getFilters, getModelScores };
+const getPRComparison = async (req, res) => {
+  try {
+    const { repo, page = '1', pageSize = '5' } = req.query;
+    const parsedPage = Math.max(1, parseInt(page, 10) || 1);
+    const parsedPageSize = Math.min(20, Math.max(1, parseInt(pageSize, 10) || 5));
+    return res.json(await queryPRComparison({ repo, page: parsedPage, pageSize: parsedPageSize }));
+  } catch (error) {
+    return handleError(res, error, 'fetch PR comparison');
+  }
+};
+
+module.exports = { getBaselines, getFilters, getModelScores, getPRComparison };

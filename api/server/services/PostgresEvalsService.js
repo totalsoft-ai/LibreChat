@@ -115,7 +115,7 @@ const getFilterOptions = async () => {
   };
 };
 
-const getModelScores = async ({ endpoint, category } = {}) => {
+const getModelScores = async ({ endpoint, category, repo } = {}) => {
   const currentPool = getPool();
   if (!currentPool) throw new Error('PostgreSQL evals connection not available.');
 
@@ -125,7 +125,16 @@ const getModelScores = async ({ endpoint, category } = {}) => {
 
   if (endpoint) { conditions.push(`endpoint = $${i++}`); params.push(endpoint); }
   if (category) { conditions.push(`category = $${i++}`); params.push(category); }
-  i = applyBranchAllowlist(conditions, params, i);
+  if (repo) { conditions.push(`repo = $${i++}`); params.push(repo); }
+
+  // For repos with a branch allowlist, filter by those branches;
+  // otherwise restrict to main baseline (pr_number IS NULL)
+  if (repo && REPO_BRANCH_ALLOWLIST[repo]) {
+    const branches = REPO_BRANCH_ALLOWLIST[repo];
+    const placeholders = branches.map(() => `$${i++}`).join(', ');
+    conditions.push(`branch IN (${placeholders})`);
+    params.push(...branches);
+  }
 
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
@@ -134,6 +143,7 @@ const getModelScores = async ({ endpoint, category } = {}) => {
        agent_model,
        ROUND(AVG(score)::numeric, 2) as avg_score,
        COUNT(*) as run_count,
+       COUNT(DISTINCT test_name) as test_count,
        ROUND((array_agg(score ORDER BY timestamp DESC))[1]::numeric, 2) as latest_score
      FROM baselines
      ${where}
@@ -145,6 +155,71 @@ const getModelScores = async ({ endpoint, category } = {}) => {
   return result.rows;
 };
 
+/**
+ * Get PR evals compared against baseline (pr_number IS NULL) for the same model+repo.
+ * Returns one row per (pr_number, repo, agent_model).
+ */
+const getPRComparison = async ({ repo, page = 1, pageSize = 5 } = {}) => {
+  const currentPool = getPool();
+  if (!currentPool) throw new Error('PostgreSQL evals connection not available.');
+
+  const conditions = ['pr_number IS NOT NULL', 'pr_number != 0'];
+  const params = [];
+  let i = 1;
+
+  if (repo) { conditions.push(`repo = $${i++}`); params.push(repo); }
+
+  const where = `WHERE ${conditions.join(' AND ')}`;
+  const offset = (page - 1) * pageSize;
+
+  // Get total distinct PR count
+  const countResult = await currentPool.query(
+    `SELECT COUNT(DISTINCT pr_number) as total FROM baselines ${where}`,
+    params,
+  );
+  const total = parseInt(countResult.rows[0].total, 10);
+
+  // Get paginated PR numbers
+  const prParams = [...params, pageSize, offset];
+  const prNumbers = await currentPool.query(
+    `SELECT DISTINCT pr_number, MAX(timestamp) as latest
+     FROM baselines ${where}
+     GROUP BY pr_number
+     ORDER BY latest DESC
+     LIMIT $${i} OFFSET $${i + 1}`,
+    prParams,
+  );
+
+  if (prNumbers.rows.length === 0) return { data: [], total, page, pageSize };
+
+  const prs = prNumbers.rows.map((r) => r.pr_number);
+  const prPlaceholders = prs.map((_, idx) => `$${idx + 1}`).join(', ');
+
+  const result = await currentPool.query(
+    `SELECT
+       pr.pr_number,
+       pr.branch,
+       pr.repo,
+       pr.agent_model,
+       ROUND(AVG(pr.score)::numeric, 2) AS pr_avg_score,
+       COUNT(DISTINCT pr.id) AS pr_run_count,
+       COUNT(DISTINCT pr.test_name) AS pr_test_count,
+       MAX(pr.timestamp) AS latest_timestamp,
+       ROUND(AVG(baseline.score)::numeric, 2) AS baseline_avg_score
+     FROM baselines pr
+     LEFT JOIN baselines baseline
+       ON baseline.agent_model = pr.agent_model
+       AND baseline.repo = pr.repo
+       AND baseline.pr_number IS NULL
+     WHERE pr.pr_number IN (${prPlaceholders})
+     GROUP BY pr.pr_number, pr.branch, pr.repo, pr.agent_model
+     ORDER BY MAX(pr.timestamp) DESC, pr.pr_number DESC`,
+    prs,
+  );
+
+  return { data: result.rows, total, page, pageSize };
+};
+
 const closePool = async () => {
   if (pool) {
     await pool.end();
@@ -153,4 +228,4 @@ const closePool = async () => {
   }
 };
 
-module.exports = { initializePool, getPool, queryBaselines, getFilterOptions, getModelScores, closePool };
+module.exports = { initializePool, getPool, queryBaselines, getFilterOptions, getModelScores, getPRComparison, closePool };

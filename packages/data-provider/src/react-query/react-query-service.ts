@@ -1124,6 +1124,17 @@ export const useGetEvalsFiltersQuery = (
   );
 };
 
+export const useGetEvalsPRComparisonQuery = (
+  params?: dataService.PRComparisonParams,
+  config?: UseQueryOptions<dataService.PRComparisonResponse>,
+): QueryObserverResult<dataService.PRComparisonResponse> => {
+  return useQuery<dataService.PRComparisonResponse>(
+    [QueryKeys.evalsPRComparison, params],
+    () => dataService.getEvalsPRComparison(params),
+    { refetchOnWindowFocus: false, refetchOnMount: true, staleTime: 60 * 1000, ...config },
+  );
+};
+
 export const useGetEvalsModelScoresQuery = (
   params?: dataService.ModelScoresParams,
   config?: UseQueryOptions<dataService.ModelScoreItem[]>,
