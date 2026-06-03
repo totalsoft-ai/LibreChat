@@ -82,9 +82,6 @@ export default function EvalsPage() {
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-text-primary leading-tight">Eval Baselines</h1>
-                <p className="text-sm text-text-secondary mt-0.5">
-                  Evaluation results per model, endpoint and category
-                </p>
               </div>
             </div>
             <div className="flex rounded-lg border border-border-light overflow-hidden text-sm shrink-0">

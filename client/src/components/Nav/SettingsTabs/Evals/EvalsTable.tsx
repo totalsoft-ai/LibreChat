@@ -5,17 +5,6 @@ import {
 } from 'librechat-data-provider/react-query';
 import type { EvalsQueryParams } from 'librechat-data-provider';
 
-const ENDPOINT_LABELS: Record<string, string> = {
-  '/debug/classify': 'Orchestrator - Routes',
-  '/v1/chat/completions': 'Assistant with Knowledge',
-};
-
-const ENDPOINT_REPO_KEYWORD: Record<string, string> = {
-  '/debug/classify': 'orchestrator',
-  '/v1/chat/completions': 'assistant-with-knowledge',
-};
-
-const endpointLabel = (ep: string) => ENDPOINT_LABELS[ep] ?? ep;
 
 const formatTimestamp = (ts: string | null | undefined): string => {
   if (!ts) return '—';
@@ -69,18 +58,6 @@ export default function EvalsTable({ endpoint: externalEndpoint = '', repo: exte
     setPage(1);
   };
 
-  const selectEndpoint = (value: string) => {
-    const keyword = value ? ENDPOINT_REPO_KEYWORD[value] : undefined;
-    const matchedRepo = keyword
-      ? filterOptions?.repos.find((r) => r.toLowerCase().includes(keyword))
-      : undefined;
-    setFilters((prev) => ({
-      ...prev,
-      endpoint: value || undefined,
-      repo: matchedRepo ?? undefined,
-    }));
-    setPage(1);
-  };
 
   const hasActiveFilters = Object.values(filters).some(Boolean);
   const { pagination } = data ?? {};
@@ -89,12 +66,9 @@ export default function EvalsTable({ endpoint: externalEndpoint = '', repo: exte
     <div className="space-y-4">
       {/* Filtre */}
       <div className="rounded-xl border border-border-light bg-surface-secondary p-4 space-y-3">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           {[
-            { label: 'Endpoint', key: 'endpoint' as const, opts: filterOptions?.endpoints ?? [], labelFn: endpointLabel, onChangeFn: selectEndpoint },
-            { label: 'Category', key: 'category' as const, opts: filterOptions?.categories ?? [] },
             { label: 'Model', key: 'agentModel' as const, opts: filterOptions?.agentModels ?? [] },
-            { label: 'Repo', key: 'repo' as const, opts: filterOptions?.repos ?? [] },
             { label: 'Branch', key: 'branch' as const, opts: filterOptions?.branches ?? [] },
           ].map(({ label, key, opts, labelFn, onChangeFn }: { label: string; key: keyof typeof filters; opts: string[]; labelFn?: (v: string) => string; onChangeFn?: (v: string) => void }) => (
             <div key={key} className="flex flex-col gap-1">
@@ -172,7 +146,7 @@ export default function EvalsTable({ endpoint: externalEndpoint = '', repo: exte
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-surface-secondary border-b border-border-light">
-                {['#', 'Test Name', 'Score', 'Endpoint', 'Category', 'Model', 'Repo', 'Branch', 'Commit', 'PR', 'Date'].map((h) => (
+                {['Test Name', 'Score', 'Endpoint', 'Model', 'Branch', 'PR', 'Date'].map((h) => (
                   <th key={h} className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-secondary">
                     {h}
                   </th>
@@ -192,7 +166,7 @@ export default function EvalsTable({ endpoint: externalEndpoint = '', repo: exte
 
               {error && !isLoading && (
                 <tr>
-                  <td colSpan={11} className="px-4 py-12 text-center">
+                  <td colSpan={7} className="px-4 py-12 text-center">
                     <div className="flex flex-col items-center gap-2">
                       <svg className="h-8 w-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -206,7 +180,7 @@ export default function EvalsTable({ endpoint: externalEndpoint = '', repo: exte
 
               {!isLoading && !error && data?.data.length === 0 && (
                 <tr>
-                  <td colSpan={11} className="px-4 py-12 text-center">
+                  <td colSpan={7} className="px-4 py-12 text-center">
                     <div className="flex flex-col items-center gap-2">
                       <svg className="h-8 w-8 text-text-secondary opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -222,23 +196,13 @@ export default function EvalsTable({ endpoint: externalEndpoint = '', repo: exte
                   key={row.id}
                   className={`border-b border-border-light transition-colors hover:bg-purple-50/40 dark:hover:bg-purple-900/5 ${idx % 2 === 0 ? 'bg-surface-primary' : 'bg-surface-secondary/40'}`}
                 >
-                  <td className="px-4 py-2.5 font-mono text-xs text-text-secondary">{row.id}</td>
                   <td className="px-4 py-2.5 max-w-[220px]">
                     <span className="block truncate font-medium text-text-primary" title={row.test_name}>{row.test_name ?? '—'}</span>
                   </td>
                   <td className="px-4 py-2.5"><ScoreBadge score={row.score} /></td>
                   <td className="px-4 py-2.5 whitespace-nowrap text-text-primary">{row.endpoint ?? '—'}</td>
-                  <td className="px-4 py-2.5 whitespace-nowrap text-text-primary">{row.category ?? '—'}</td>
-                  <td className="px-4 py-2.5 max-w-[140px]">
-                    <span className="block truncate text-text-primary" title={row.agent_model}>{row.agent_model ?? '—'}</span>
-                  </td>
-                  <td className="px-4 py-2.5 text-text-secondary">{row.repo ?? '—'}</td>
+                  <td className="px-4 py-2.5 text-text-primary">{row.agent_model ?? '—'}</td>
                   <td className="px-4 py-2.5 text-text-secondary">{row.branch ?? '—'}</td>
-                  <td className="px-4 py-2.5">
-                    {row.commit_sha
-                      ? <span className="font-mono text-xs bg-gray-100 dark:bg-gray-800 text-text-secondary rounded px-1.5 py-0.5" title={row.commit_sha}>{row.commit_sha.slice(0, 7)}</span>
-                      : '—'}
-                  </td>
                   <td className="px-4 py-2.5 text-text-secondary">
                     {row.pr_number != null ? <span className="text-purple-600 dark:text-purple-400 font-medium">#{row.pr_number}</span> : '—'}
                   </td>
