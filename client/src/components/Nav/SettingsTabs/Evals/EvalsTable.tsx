@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   useGetEvalsBaselinesQuery,
   useGetEvalsFiltersQuery,
@@ -39,16 +39,19 @@ export default function EvalsTable({ endpoint: externalEndpoint = '', repo: exte
   const [filters, setFilters] = useState<Omit<EvalsQueryParams, 'page' | 'pageSize'>>({});
   const [testNameInput, setTestNameInput] = useState('');
 
-  const mergedFilters = {
-    ...filters,
-    endpoint: filters.endpoint ?? (externalEndpoint || undefined),
-    repo: filters.repo ?? (externalRepo || undefined),
-  };
-
   const queryParams = useMemo<EvalsQueryParams>(
-    () => ({ page, pageSize: 20, ...mergedFilters }),
-    [page, mergedFilters],
+    () => ({
+      page,
+      pageSize: 20,
+      ...filters,
+      endpoint: filters.endpoint ?? (externalEndpoint || undefined),
+      repo: filters.repo ?? (externalRepo || undefined),
+    }),
+    [page, filters, externalEndpoint, externalRepo],
   );
+
+  // Reset page when global filters change
+  useEffect(() => { setPage(1); }, [externalEndpoint, externalRepo]);
 
   const { data, isLoading, error, refetch } = useGetEvalsBaselinesQuery(queryParams);
   const { data: filterOptions } = useGetEvalsFiltersQuery();
@@ -223,21 +226,31 @@ export default function EvalsTable({ endpoint: externalEndpoint = '', repo: exte
             <span className="font-medium text-text-primary">{pagination.totalPages}</span>
           </p>
           <div className="flex items-center gap-1">
-            {[
-              { label: '«', action: () => setPage(1), disabled: page === 1 },
-              { label: 'Previous', action: () => setPage((p) => Math.max(1, p - 1)), disabled: page === 1 },
-              { label: 'Next', action: () => setPage((p) => Math.min(pagination.totalPages, p + 1)), disabled: page === pagination.totalPages },
-              { label: '»', action: () => setPage(pagination.totalPages), disabled: page === pagination.totalPages },
-            ].map(({ label, action, disabled }) => (
-              <button
-                key={label}
-                onClick={action}
-                disabled={disabled}
-                className="rounded-lg border border-border-light px-3 py-1.5 text-xs text-text-secondary hover:bg-surface-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              >
-                {label}
-              </button>
-            ))}
+            <button onClick={() => setPage(1)} disabled={page === 1}
+              className="rounded-lg border border-border-light px-2.5 py-1.5 text-xs text-text-secondary hover:bg-surface-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors">«</button>
+            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
+              className="rounded-lg border border-border-light px-3 py-1.5 text-xs text-text-secondary hover:bg-surface-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors">Previous</button>
+            {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
+              .filter((p) => p === 1 || p === pagination.totalPages || Math.abs(p - page) <= 1)
+              .reduce<(number | 'ellipsis')[]>((acc, p, idx, arr) => {
+                if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push('ellipsis');
+                acc.push(p);
+                return acc;
+              }, [])
+              .map((p, idx) =>
+                p === 'ellipsis' ? (
+                  <span key={`e${idx}`} className="px-1 text-xs text-text-secondary">…</span>
+                ) : (
+                  <button key={p} onClick={() => setPage(p as number)}
+                    className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+                      p === page ? 'border-purple-600 bg-purple-600 text-white' : 'border-border-light text-text-secondary hover:bg-surface-hover'
+                    }`}>{p}</button>
+                )
+              )}
+            <button onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))} disabled={page === pagination.totalPages}
+              className="rounded-lg border border-border-light px-3 py-1.5 text-xs text-text-secondary hover:bg-surface-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors">Next</button>
+            <button onClick={() => setPage(pagination.totalPages)} disabled={page === pagination.totalPages}
+              className="rounded-lg border border-border-light px-2.5 py-1.5 text-xs text-text-secondary hover:bg-surface-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors">»</button>
           </div>
         </div>
       )}

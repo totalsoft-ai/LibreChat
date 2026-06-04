@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useGetEvalsPRComparisonQuery } from 'librechat-data-provider/react-query';
 
 const formatDate = (ts: string) => {
@@ -34,7 +34,7 @@ const Delta = ({ pr, baseline }: { pr: number; baseline: number | null }) => {
       </span>
     );
   }
-  return <span className="text-xs text-text-secondary">—</span>;
+  return <span className="text-xs text-text-secondary">no change</span>;
 };
 
 interface Props {
@@ -43,6 +43,7 @@ interface Props {
 
 export default function PRComparison({ repo }: Props) {
   const [page, setPage] = useState(1);
+  useEffect(() => { setPage(1); }, [repo]);
   const { data, isLoading, error } = useGetEvalsPRComparisonQuery({ repo: repo || undefined, page, pageSize: 5 });
 
   // Group by PR number
@@ -150,27 +151,34 @@ export default function PRComparison({ repo }: Props) {
       ))}
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-text-secondary">
-            Page <span className="font-medium text-text-primary">{page}</span> of{' '}
-            <span className="font-medium text-text-primary">{totalPages}</span>
-          </p>
-          <div className="flex items-center gap-1">
+        <div className="flex items-center justify-center gap-1">
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+            className="rounded-lg border border-border-light px-3 py-1.5 text-xs text-text-secondary hover:bg-surface-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            Previous
+          </button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
             <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="rounded-lg border border-border-light px-3 py-1.5 text-xs text-text-secondary hover:bg-surface-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              key={p}
+              onClick={() => setPage(p)}
+              className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+                p === page
+                  ? 'border-purple-600 bg-purple-600 text-white'
+                  : 'border-border-light text-text-secondary hover:bg-surface-hover'
+              }`}
             >
-              Previous
+              {p}
             </button>
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-              className="rounded-lg border border-border-light px-3 py-1.5 text-xs text-text-secondary hover:bg-surface-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              Next
-            </button>
-          </div>
+          ))}
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+            className="rounded-lg border border-border-light px-3 py-1.5 text-xs text-text-secondary hover:bg-surface-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            Next
+          </button>
         </div>
       )}
     </div>
