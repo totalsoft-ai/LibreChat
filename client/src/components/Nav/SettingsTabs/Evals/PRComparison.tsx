@@ -11,12 +11,16 @@ const formatDate = (ts: string) => {
 
 const Delta = ({ pr, baseline }: { pr: number; baseline: number | null }) => {
   if (baseline === null) {
-    return <span className="text-xs text-text-secondary">no baseline</span>;
+    return (
+      <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+        no baseline
+      </span>
+    );
   }
   const delta = Math.round((pr - baseline) * 100) / 100;
   if (delta > 0) {
     return (
-      <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-green-600 dark:text-green-400">
+      <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 text-xs font-bold text-green-700 dark:bg-green-900/30 dark:text-green-400">
         <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
         </svg>
@@ -26,7 +30,7 @@ const Delta = ({ pr, baseline }: { pr: number; baseline: number | null }) => {
   }
   if (delta < 0) {
     return (
-      <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-red-500 dark:text-red-400">
+      <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-1 text-xs font-bold text-red-600 dark:bg-red-900/30 dark:text-red-400">
         <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
         </svg>
@@ -34,7 +38,11 @@ const Delta = ({ pr, baseline }: { pr: number; baseline: number | null }) => {
       </span>
     );
   }
-  return <span className="text-xs text-text-secondary">no change</span>;
+  return (
+    <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+      no change
+    </span>
+  );
 };
 
 interface Props {

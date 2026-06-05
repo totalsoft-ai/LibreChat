@@ -56,11 +56,10 @@ export default function EvalsPage() {
 
   return (
     <div className="flex h-screen flex-col bg-surface-primary dark:bg-gray-900">
-      <div className="flex-1 overflow-auto">
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
-
-          {/* Header */}
-          <div className="flex items-center justify-between gap-4">
+      {/* Sticky header */}
+      <div className="sticky top-0 z-10 border-b border-border-light bg-surface-primary/95 backdrop-blur-sm dark:bg-gray-900/95">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between gap-4 py-3">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => navigate(-1)}
@@ -71,7 +70,7 @@ export default function EvalsPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
-              <h1 className="text-2xl font-bold text-text-primary leading-tight">Eval Baselines</h1>
+              <h1 className="text-lg font-bold text-text-primary leading-tight">Eval Baselines</h1>
             </div>
             <div className="flex rounded-lg border border-border-light overflow-hidden text-sm shrink-0">
               {filterOptions?.endpoints.map((ep, i) => (
@@ -91,12 +90,17 @@ export default function EvalsPage() {
               </button>
             </div>
           </div>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-auto">
+        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
 
           <ModelScoresDashboard endpoint={endpoint} repo={repo} />
 
           <div className="flex items-center gap-4">
             <div className="flex-1 border-t border-border-light" />
-            <span className="text-xs font-medium uppercase tracking-wider text-text-secondary">PR Evals</span>
+            <span className="text-xs font-medium uppercase tracking-wider text-text-secondary">PR vs Baseline Comparison</span>
             <div className="flex-1 border-t border-border-light" />
           </div>
 
@@ -104,7 +108,7 @@ export default function EvalsPage() {
 
           <div className="flex items-center gap-4">
             <div className="flex-1 border-t border-border-light" />
-            <span className="text-xs font-medium uppercase tracking-wider text-text-secondary">All runs</span>
+            <span className="text-xs font-medium uppercase tracking-wider text-text-secondary">Run History</span>
             <div className="flex-1 border-t border-border-light" />
           </div>
 

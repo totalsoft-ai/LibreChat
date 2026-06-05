@@ -67,8 +67,8 @@ export default function ModelScoresDashboard({ endpoint = '', repo = '' }: Props
               {pagedData.map((row) => {
                 return (
                   <div key={row.agent_model} className="flex items-start gap-3">
-                    <div className="w-36 shrink-0 text-right pt-1">
-                      <span className="text-xs text-text-secondary leading-snug">{row.agent_model}</span>
+                    <div className="w-44 shrink-0 pt-1">
+                      <span className="text-xs text-text-primary leading-snug font-medium">{row.agent_model}</span>
                       <span className="block text-xs text-text-secondary opacity-50">{row.test_count} tests</span>
                     </div>
                     <div className="flex flex-1 items-center gap-2 pt-1">
@@ -87,7 +87,7 @@ export default function ModelScoresDashboard({ endpoint = '', repo = '' }: Props
               })}
             </div>
             {/* Axis labels */}
-            <div className="mt-3 ml-[152px] flex justify-between text-xs text-text-secondary">
+            <div className="mt-3 ml-[188px] flex justify-between text-xs text-text-secondary">
               <span>0</span>
               <span>{(maxScore / 2).toFixed(2)}</span>
               <span>{Number(maxScore).toFixed(2)}</span>
