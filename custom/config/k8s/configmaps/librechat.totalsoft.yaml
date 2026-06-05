@@ -41,23 +41,22 @@ modelSpecs:
   addedEndpoints:
     - "agents"
   list:
+    - name: "Orchestrator"
+      label: "Orchestrator"
+      preset:
+        endpoint: "Orchestrator"
+        model: "orchestrator"
     - name: "assistant-with-knowledge"
       label: "Assistant with Knowledge"
       preset:
         endpoint: "Assistant-with-knowledge"
-        model: "us.anthropic.claude-3-5-haiku-20241022-v1:0"
+        model: "us.anthropic.claude-haiku-4-5-20251001-v1:0"
 
-    - name: "file-search"
-      label: "File Search"
-      preset:
-        endpoint: "Local Models"
-        model: "qwen3:8b"
-        
-    - name: "assistant"
-      label: "Assistant"
-      preset:
-        endpoint: "Assistant"
-        model: "qwen3:8b"
+ #   - name: "file-search"
+ #     label: "File Search"
+ #     preset:
+ #       endpoint: "Local Models"
+ #       model: "qwen3:8b"
 
  #   - name: "general-assistant"
  #     label: "General Assistant"
@@ -175,7 +174,7 @@ endpoints:
       baseURL: "${ASSISTANT_WITH_K_BASEURL}"
       apiKey: "${ASSISTANT_WITH_K_APIKEY}"
       models:
-        default: ["us.anthropic.claude-3-5-haiku-20241022-v1:0"]
+        default: ["us.anthropic.claude-haiku-4-5-20251001-v1:0"]
       addParams:
         namespaces: "{{LIBRECHAT_USER_NAMESPACES}}"
       titleModel: 'gemma4-e4b-base'
@@ -186,31 +185,10 @@ endpoints:
       titleModel: 'gemma4-e4b-base'
       titleEndpoint: "PPM"
       models:
-        default: [ "orieg/gemma3-tools:4b-it-qat", "qwen3:8b", "phi4-mini:latest", "gemma3:4b", "deepseek-r1:8b"]
+        default: [ "gemma4:26b"]
       streamRate: 35
       tokenConfig:
-        "orieg/gemma3-tools:4b-it-qat":
-          prompt: 0
-          completion: 0
-        "qwen3:8b":
-          prompt: 0
-          completion: 0
-        "phi4-mini:latest":
-          prompt: 0
-          completion: 0
-        "gemma3:4b":
-          prompt: 0
-          completion: 0
-        "gemma3:27b":
-          prompt: 0
-          completion: 0
-        "deepseek-r1:8b":
-          prompt: 0
-          completion: 0
-        "qwen2.5-coder:14b":
-          prompt: 0
-          completion: 0
-        "hf.co/totalsoft/ppm-qwen3-tool-calling-gguf:latest":
+        "gemma4:26b":
           prompt: 0
           completion: 0
 
@@ -230,34 +208,51 @@ endpoints:
           prompt: 0
           completion: 0
 
-          
-    - name: "Assistant"
+    - name: "Orchestrator"
+      apiKey: "${ORCHESTRATOR_API_KEY}"
       baseURL: "${ORCHESTRATOR_URL}"
-      apiKey: "$ORCHESTRATOR_API_KEY}"
+      models:
+        default: ["orchestrator"]
+        fetch: false
+      addParams:
+        namespaces: "{{LIBRECHAT_USER_NAMESPACES}}"
+      headers:
+        X-Access-Token: "{{LIBRECHAT_USER_ACCESS_TOKEN}}"
+      titleConvo: true
       titleModel: 'gemma4-e4b-base'
       titleEndpoint: "PPM"
-      titleMessageRole: "user"
-      models:
-        default: ["orieg/gemma3-tools:4b-it-qat", "qwen3:8b"]
-      maxContextTokens: 16000
-      contextStrategy: "refine" 
-      summarize: true
-      summaryModel: "phi4-mini:latest"
-      # Activează file search pentru acest endpoint
-      fileSearch: true
-      headers:
-        X-User-Email: "{{LIBRECHAT_USER_EMAIL}}"
-        X-User-Id: "{{LIBRECHAT_USER_ID}}"
-      tokenConfig:
-        "orieg/gemma3-tools:4b-it-qat":
-          prompt: 0
-          completion: 0
-        "qwen3:8b":
-          prompt: 0
-          completion: 0
-        "phi4-mini:latest":
-          prompt: 0
-          completion: 0
+      summarize: false
+      forcePrompt: false
+      capabilities: ["file_search", "context"]
+ 
+
+    # - name: "Assistant"
+    #   baseURL: "${ORCHESTRATOR_URL}"
+    #   apiKey: "$ORCHESTRATOR_API_KEY}"
+    #   titleModel: 'gemma4-e4b-base'
+    #   titleEndpoint: "PPM"
+    #   titleMessageRole: "user"
+    #   models:
+    #     default: ["orieg/gemma3-tools:4b-it-qat", "qwen3:8b"]
+    #   maxContextTokens: 16000
+    #   contextStrategy: "refine"
+    #   summarize: true
+    #   summaryModel: "phi4-mini:latest"
+    #   # Activează file search pentru acest endpoint
+    #   fileSearch: true
+    #   headers:
+    #     X-User-Email: "{{LIBRECHAT_USER_EMAIL}}"
+    #     X-User-Id: "{{LIBRECHAT_USER_ID}}"
+    #   tokenConfig:
+    #     "orieg/gemma3-tools:4b-it-qat":
+    #       prompt: 0
+    #       completion: 0
+    #     "qwen3:8b":
+    #       prompt: 0
+    #       completion: 0
+    #     "phi4-mini:latest":
+    #       prompt: 0
+    #       completion: 0
 
 
 #memory:
