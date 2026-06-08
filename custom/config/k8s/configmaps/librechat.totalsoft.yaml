@@ -231,6 +231,10 @@ endpoints:
       summarize: false
       forcePrompt: false
       capabilities: ["file_search", "context"]
+      tokenConfig:
+        "orchestrator":
+          prompt: 0
+          completion: 0
  
 
     # - name: "Assistant"
