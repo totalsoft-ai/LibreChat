@@ -41,16 +41,16 @@ modelSpecs:
   addedEndpoints:
     - "agents"
   list:
-    - name: "Orchestrator"
-      label: "Orchestrator"
+    - name: "Assistant"
+      label: "Assistant"
       preset:
         endpoint: "Orchestrator"
         model: "orchestrator"
-    - name: "assistant-with-knowledge"
-      label: "Assistant with Knowledge"
-      preset:
-        endpoint: "Assistant-with-knowledge"
-        model: "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+   # - name: "assistant-with-knowledge"
+    #  label: "Assistant with Knowledge"
+     ## preset:
+     #   endpoint: "Assistant-with-knowledge"
+      #  model: "us.anthropic.claude-haiku-4-5-20251001-v1:0"
 
     - name: "file-search"
       label: "File Search"
