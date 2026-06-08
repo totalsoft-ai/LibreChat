@@ -41,7 +41,14 @@ modelSpecs:
   addedEndpoints:
     - "agents"
     - "Local Models"
+    - "PPM"
   list:
+    - name: "Orchestrator"
+      label: "Orchestrator"
+      preset:
+        endpoint: "Orchestrator"
+        model: "orchestrator"
+
     - name: "assistant-with-knowledge"
       label: "Assistant with Knowledge"
       preset:
@@ -54,11 +61,11 @@ modelSpecs:
         endpoint: "Local Models"
         model: "qwen3:8b"
         
-    - name: "assistant"
-      label: "Assistant"
-      preset:
-        endpoint: "Assistant"
-        model: "qwen3:8b"
+#    - name: "assistant"
+#      label: "Assistant"
+#      preset:
+#        endpoint: "Assistant"
+#        model: "qwen3:8b"
 
  #   - name: "local-gemma3-4b"
  #     label: "Gemma 3 4B"
@@ -244,33 +251,66 @@ endpoints:
           prompt: 0
           completion: 0
 
-    - name: "Assistant"
-      baseURL: "${ORCHESTRATOR_URL}"
-      apiKey: "$ORCHESTRATOR_API_KEY}"
+    - name: "PPM Gemma"
+      label: "PPM Gemma (gemma4-e2b)"
+      baseURL: "${PPM_GEMMA_BASEURL}"
+      apiKey: "dff7002"
+      models:
+        default: ["gemma4-e4b-base"]
+        fetch: true
       titleModel: 'gemma4-e4b-base'
       titleEndpoint: "PPM"
-      titleMessageRole: "user"
-      models:
-        default: ["orieg/gemma3-tools:4b-it-qat", "qwen3:8b"]
-      maxContextTokens: 16000
-      contextStrategy: "refine" 
-      summarize: true
-      summaryModel: "phi4-mini:latest"
-      # Activează file search pentru acest endpoint
-      fileSearch: true
-      headers:
-        X-User-Email: "{{LIBRECHAT_USER_EMAIL}}"
-        X-User-Id: "{{LIBRECHAT_USER_ID}}"
       tokenConfig:
-        "orieg/gemma3-tools:4b-it-qat":
+        "gemma4-e4b-base":
           prompt: 0
           completion: 0
-        "qwen3:8b":
+
+    - name: "Orchestrator"
+      apiKey: "${ORCHESTRATOR_API_KEY}"
+      baseURL: "${ORCHESTRATOR_URL}"
+      models:
+        default: ["orchestrator"]
+        fetch: false
+      addParams:
+        namespaces: "{{LIBRECHAT_USER_NAMESPACES}}"
+      headers:
+        X-Access-Token: "{{LIBRECHAT_USER_ACCESS_TOKEN}}"
+      titleConvo: true
+      titleModel: 'gemma4-e4b-base'
+      titleEndpoint: "PPM"
+      summarize: false
+      forcePrompt: false
+      capabilities: ["file_search", "context"]
+      tokenConfig:
+        "orchestrator":
           prompt: 0
           completion: 0
-        "phi4-mini:latest":
-          prompt: 0
-          completion: 0
+
+#    - name: "Assistant"
+#      baseURL: "${ORCHESTRATOR_URL}"
+#      apiKey: "$ORCHESTRATOR_API_KEY}"
+#      titleMessageRole: "user"
+#      models:
+#        default: ["orieg/gemma3-tools:4b-it-qat", "qwen3:8b"]
+#      maxContextTokens: 16000
+#      contextStrategy: "refine"
+#      summarize: true
+#      summaryModel: "phi4-mini:latest"
+#      # Activează file search pentru acest endpoint
+#      fileSearch: true
+#      headers:
+#        X-User-Email: "{{LIBRECHAT_USER_EMAIL}}"
+#        X-User-Id: "{{LIBRECHAT_USER_ID}}"
+#      tokenConfig:
+#        "orieg/gemma3-tools:4b-it-qat":
+#          prompt: 0
+#          completion: 0
+#        "qwen3:8b":
+#          prompt: 0
+#          completion: 0
+#        "phi4-mini:latest":
+#          prompt: 0
+#          completion: 0
 
 
 #memory:

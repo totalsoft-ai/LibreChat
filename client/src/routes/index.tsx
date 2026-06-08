@@ -22,6 +22,7 @@ import ChatRoute from './ChatRoute';
 import Search from './Search';
 import Root from './Root';
 import Help from './Help';
+import Analytics from './Analytics';
 import Events from './Events';
 
 const AuthLayout = () => (
@@ -137,6 +138,10 @@ export const router = createBrowserRouter([
           {
             path: 'events',
             element: <Events />,
+          },
+          {
+            path: 'analytics',
+            element: <Analytics />,
           },
         ],
       },

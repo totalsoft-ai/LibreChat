@@ -28,14 +28,18 @@ const edit = require('./edit');
 const keys = require('./keys');
 const user = require('./user');
 const mcp = require('./mcp');
+const ppm = require('./ppm');
 const workspaces = require('./workspaces');
 const docs = require('./docs');
 const adminEvents = require('./admin/events');
+const adminAnalytics = require('./admin/analytics');
 
 module.exports = {
   adminEvents,
+  adminAnalytics,
   workspaces,
   mcp,
+  ppm,
   docs,
   edit,
   auth,

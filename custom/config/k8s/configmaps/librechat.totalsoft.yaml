@@ -214,6 +214,10 @@ endpoints:
     - name: "Orchestrator"
       apiKey: "${ORCHESTRATOR_API_KEY}"
       baseURL: "${ORCHESTRATOR_URL}"
+      apiKey: "$ORCHESTRATOR_API_KEY}"
+      titleModel: 'gemma4-e4b-base'
+      titleEndpoint: "PPM"
+      titleMessageRole: "user"
       models:
         default: ["orchestrator"]
         fetch: false

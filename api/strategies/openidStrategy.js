@@ -130,6 +130,11 @@ class CustomOpenIDStrategy extends OpenIDStrategy {
       logger.debug('[openidStrategy] Generated nonce for federated provider:', nonce);
     }
 
+    if (process.env.OPENID_PROMPT && !params.has('prompt')) {
+      params.set('prompt', process.env.OPENID_PROMPT);
+      logger.debug(`[openidStrategy] Setting prompt parameter: ${process.env.OPENID_PROMPT}`);
+    }
+
     return params;
   }
 }
