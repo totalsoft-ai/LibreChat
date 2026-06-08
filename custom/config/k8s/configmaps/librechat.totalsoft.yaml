@@ -52,11 +52,11 @@ modelSpecs:
         endpoint: "Assistant-with-knowledge"
         model: "us.anthropic.claude-haiku-4-5-20251001-v1:0"
 
- #   - name: "file-search"
- #     label: "File Search"
- #     preset:
- #       endpoint: "Local Models"
- #       model: "qwen3:8b"
+    - name: "file-search"
+      label: "File Search"
+      preset:
+        endpoint: "Local Models"
+        model: "qwen3:8b"
 
  #   - name: "general-assistant"
  #     label: "General Assistant"
@@ -185,10 +185,13 @@ endpoints:
       titleModel: 'gemma4-e4b-base'
       titleEndpoint: "PPM"
       models:
-        default: [ "gemma4:26b"]
+        default: [ "gemma4:26b", "qwen3:8b"]
       streamRate: 35
       tokenConfig:
         "gemma4:26b":
+          prompt: 0
+          completion: 0
+        "qwen3:8b":
           prompt: 0
           completion: 0
 
