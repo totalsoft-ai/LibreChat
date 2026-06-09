@@ -29,7 +29,7 @@ export default function ModelScoresDashboard({ endpoint = '', repo = '' }: Props
   const totalTests = data && data.length > 0 ? Math.max(...data.map((r) => Number(r.test_count))) : 0;
   const maxScore = 1;
 
-  const top10 = data ? [...data].sort((a, b) => Number(b.latest_score) - Number(a.latest_score)).slice(0, TOP_N) : [];
+  const top10 = data ? [...data].sort((a, b) => Number(b.avg_score) - Number(a.avg_score)).slice(0, TOP_N) : [];
   const totalPages = Math.ceil(top10.length / PAGE_SIZE);
   const pagedData = top10.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
@@ -74,12 +74,12 @@ export default function ModelScoresDashboard({ endpoint = '', repo = '' }: Props
                     <div className="flex flex-1 items-center gap-2 pt-1">
                       <div className="flex-1 rounded-full bg-gray-100 dark:bg-gray-800 h-2.5 overflow-hidden">
                         <div
-                          className={`h-full rounded-full transition-all duration-500 ${getScoreStyle(row.latest_score).bar}`}
-                          style={{ width: `${Math.round((Number(row.latest_score) / maxScore) * 100)}%` }}
+                          className={`h-full rounded-full transition-all duration-500 ${getScoreStyle(row.avg_score).bar}`}
+                          style={{ width: `${Math.round((Number(row.avg_score) / maxScore) * 100)}%` }}
                         />
                       </div>
-                      <span className={`w-10 shrink-0 text-right text-xs font-bold tabular-nums ${getScoreStyle(row.latest_score).text}`}>
-                        {row.latest_score}
+                      <span className={`w-10 shrink-0 text-right text-xs font-bold tabular-nums ${getScoreStyle(row.avg_score).text}`}>
+                        {row.avg_score}
                       </span>
                     </div>
                   </div>
