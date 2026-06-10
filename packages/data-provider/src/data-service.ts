@@ -1100,6 +1100,9 @@ export interface BaselineItem {
   timestamp: string;
   agent_model: string;
   test_name: string;
+  question: string | null;
+  expected_answer: string | null;
+  actual_response: string | null;
 }
 
 export interface EvalsResponse {

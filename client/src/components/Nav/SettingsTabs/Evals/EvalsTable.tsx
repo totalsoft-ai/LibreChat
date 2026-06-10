@@ -149,7 +149,7 @@ export default function EvalsTable({ endpoint: externalEndpoint = '', repo: exte
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-surface-secondary border-b border-border-light">
-                {['Test Name', 'Score', 'Endpoint', 'Model', 'Branch', 'PR', 'Date'].map((h) => (
+                {['Test Name', 'Question', 'Expected Answer', 'Actual Response', 'Score', 'Endpoint', 'Model', 'Branch', 'PR', 'Date'].map((h) => (
                   <th key={h} className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-secondary">
                     {h}
                   </th>
@@ -169,7 +169,7 @@ export default function EvalsTable({ endpoint: externalEndpoint = '', repo: exte
 
               {error && !isLoading && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center">
+                  <td colSpan={10} className="px-4 py-12 text-center">
                     <div className="flex flex-col items-center gap-2">
                       <svg className="h-8 w-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -183,7 +183,7 @@ export default function EvalsTable({ endpoint: externalEndpoint = '', repo: exte
 
               {!isLoading && !error && data?.data.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center">
+                  <td colSpan={10} className="px-4 py-12 text-center">
                     <div className="flex flex-col items-center gap-2">
                       <svg className="h-8 w-8 text-text-secondary opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -201,6 +201,15 @@ export default function EvalsTable({ endpoint: externalEndpoint = '', repo: exte
                 >
                   <td className="px-4 py-2.5 max-w-[220px]">
                     <span className="block truncate font-medium text-text-primary" title={row.test_name}>{row.test_name ?? '—'}</span>
+                  </td>
+                  <td className="px-4 py-2.5 max-w-[200px]">
+                    <span className="block truncate text-text-primary" title={row.question ?? ''}>{row.question ?? '—'}</span>
+                  </td>
+                  <td className="px-4 py-2.5 max-w-[200px]">
+                    <span className="block truncate text-text-primary" title={row.expected_answer ?? ''}>{row.expected_answer ?? '—'}</span>
+                  </td>
+                  <td className="px-4 py-2.5 max-w-[200px]">
+                    <span className="block truncate text-text-primary" title={row.actual_response ?? ''}>{row.actual_response ?? '—'}</span>
                   </td>
                   <td className="px-4 py-2.5"><ScoreBadge score={row.score} /></td>
                   <td className="px-4 py-2.5 whitespace-nowrap text-text-primary">{row.endpoint ?? '—'}</td>
