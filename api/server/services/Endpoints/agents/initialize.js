@@ -195,6 +195,7 @@ const initializeClient = async ({ req, res, signal, endpointOption }) => {
     spec: endpointOption.spec,
     iconURL: endpointOption.iconURL,
     attachments: primaryConfig.attachments,
+    /* debug: */ ...((() => { logger.debug('[initializeClient] attachments debug', { count: primaryConfig.attachments?.length, files: primaryConfig.attachments?.map(f => ({ file_id: f.file_id, type: f.type, height: f.height, source: f.source })) }); return {}; })()),
     endpointType: endpointOption.endpointType,
     resendFiles: primaryConfig.resendFiles ?? true,
     maxContextTokens: primaryConfig.maxContextTokens,

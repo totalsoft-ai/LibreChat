@@ -180,6 +180,7 @@ export enum AgentCapabilities {
   execute_code = 'execute_code',
   file_search = 'file_search',
   web_search = 'web_search',
+  image_vision = 'image_vision',
   artifacts = 'artifacts',
   actions = 'actions',
   context = 'context',

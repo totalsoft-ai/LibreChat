@@ -239,6 +239,15 @@ class OpenAIClient extends BaseClient {
 
     const availableModels = this.options.modelsConfig?.[this.options.endpoint];
     if (!availableModels) {
+      // For custom endpoints that declare image_vision capability, treat the current model as vision-capable
+      const caps = this.options.endpointCapabilities;
+      if (Array.isArray(caps) && caps.includes('image_vision')) {
+        const hasImage = attachments.some((f) => f?.type?.includes('image'));
+        if (hasImage) {
+          this.isVisionModel = true;
+          delete this.modelOptions.stop;
+        }
+      }
       return;
     }
 

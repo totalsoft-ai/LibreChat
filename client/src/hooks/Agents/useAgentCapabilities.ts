@@ -9,6 +9,7 @@ interface AgentCapabilitiesResult {
   contextEnabled: boolean;
   fileSearchEnabled: boolean;
   webSearchEnabled: boolean;
+  imageVisionEnabled: boolean;
   codeEnabled: boolean;
 }
 
@@ -50,6 +51,11 @@ export default function useAgentCapabilities(
     [capabilities],
   );
 
+  const imageVisionEnabled = useMemo(
+    () => capabilities?.includes(AgentCapabilities.image_vision) ?? false,
+    [capabilities],
+  );
+
   // Code Interpreter - Commented out to hide from interface
   // const codeEnabled = useMemo(
   //   () => capabilities?.includes(AgentCapabilities.execute_code) ?? false,
@@ -66,5 +72,6 @@ export default function useAgentCapabilities(
     artifactsEnabled,
     webSearchEnabled,
     fileSearchEnabled,
+    imageVisionEnabled,
   };
 }

@@ -76,10 +76,16 @@ export default function useAutoFileRoute(
       const canUseFileSearch = fileSearchEnabled && fileSearchAllowedByAgent;
 
       const codeFiles = files.filter(isCodeFile);
-      const ragFiles = files.filter((f) => !isCodeFile(f));
+      const imageFiles = files.filter((f) => f.type.startsWith('image/'));
+      const ragFiles = files.filter((f) => !isCodeFile(f) && !f.type.startsWith('image/'));
 
       if (codeFiles.length > 0) {
         handleFilesRef.current(codeFiles);
+      }
+
+      // Images are always sent as direct message attachments, never to RAG
+      if (imageFiles.length > 0) {
+        handleFilesRef.current(imageFiles);
       }
 
       if (ragFiles.length > 0) {
