@@ -1307,6 +1307,10 @@ class BaseClient {
   }
 
   async processAttachments(message, attachments) {
+    logger.debug('[BaseClient] processAttachments called', {
+      attachmentCount: attachments?.length,
+      attachments: attachments?.map((f) => ({ file_id: f.file_id, type: f.type, height: f.height, embedded: f.embedded, source: f.source, metadata: f.metadata, context: f.context })),
+    });
     const categorizedAttachments = {
       images: [],
       videos: [],
@@ -1323,11 +1327,14 @@ class BaseClient {
         allFiles.push(file);
         continue;
       }
-      // Feature flag to skip embedded check for testing/debugging RAG queries
-      const skipEmbeddedCheck = process.env.RAG_SKIP_EMBEDDED_CHECK === 'true';
-      if (file.embedded === true || file.metadata?.fileIdentifier != null || skipEmbeddedCheck) {
-        allFiles.push(file);
-        continue;
+      // Images are always categorized for vision — skip embedded/RAG checks
+      if (!file.type?.startsWith('image/')) {
+        // Feature flag to skip embedded check for testing/debugging RAG queries
+        const skipEmbeddedCheck = process.env.RAG_SKIP_EMBEDDED_CHECK === 'true';
+        if (file.embedded === true || file.metadata?.fileIdentifier != null || skipEmbeddedCheck) {
+          allFiles.push(file);
+          continue;
+        }
       }
 
       if (file.type.startsWith('image/')) {
@@ -1344,6 +1351,12 @@ class BaseClient {
       }
     }
 
+    logger.debug('[BaseClient] processAttachments categorized', {
+      images: categorizedAttachments.images.length,
+      documents: categorizedAttachments.documents.length,
+      videos: categorizedAttachments.videos.length,
+      audios: categorizedAttachments.audios.length,
+    });
     const [imageFiles] = await Promise.all([
       categorizedAttachments.images.length > 0
         ? this.addImageURLs(message, categorizedAttachments.images)

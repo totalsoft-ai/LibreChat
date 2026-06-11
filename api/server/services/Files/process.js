@@ -616,12 +616,16 @@ const processAgentFileUpload = async ({ req, res, metadata }) => {
     throw new Error('No tool resource provided for agent file upload');
   }
 
-  if (tool_resource === EToolResources.file_search && file.mimetype.startsWith('image')) {
-    throw new Error('Image uploads are not supported for file search tool resources');
-  }
-
   if (!messageAttachment && !agent_id) {
     throw new Error('No agent ID provided for agent file upload');
+  }
+
+  // Images cannot be indexed in RAG — process as regular message attachment instead
+  if (tool_resource === EToolResources.file_search && file.mimetype.startsWith('image')) {
+    logger.debug(
+      `[processAgentFileUpload] Redirecting image (${file.mimetype}) from file_search to message attachment`,
+    );
+    return await processImageFile({ req, res, metadata });
   }
 
   const isImage = file.mimetype.startsWith('image');
