@@ -54,7 +54,7 @@ async function uploadImageToS3({
       }
     }
 
-    const downloadURL = await saveBufferToS3({
+    await saveBufferToS3({
       userId,
       buffer: processedBuffer,
       fileName,
@@ -62,7 +62,12 @@ async function uploadImageToS3({
     });
     await fs.promises.unlink(inputFilePath);
     const bytes = Buffer.byteLength(processedBuffer);
-    return { filepath: downloadURL, bytes, width, height };
+    // Store a relative app path (not a signed S3 URL) so the browser loads images
+    // through LibreChat's /images route. This keeps MinIO/S3 internal (no public
+    // endpoint required) and avoids signed-URL expiry. The path doubles as the S3
+    // key: extractKeyFromS3Url('/images/{userId}/{file}') -> 'images/{userId}/{file}',
+    // so server-side streaming (vision encode, download, delete) still resolves it.
+    return { filepath: `/${basePath}/${userId}/${fileName}`, bytes, width, height };
   } catch (error) {
     logger.error('[uploadImageToS3] Error uploading image to S3:', error.message);
     throw error;
