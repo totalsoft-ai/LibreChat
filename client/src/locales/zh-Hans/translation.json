@@ -539,7 +539,6 @@
   "com_nav_mcp_status_connecting": "{{0}} - 连接中",
   "com_nav_mcp_vars_update_error": "更新 MCP 自定义用户变量时发生错误",
   "com_nav_mcp_vars_updated": "MCP 自定义用户变量更新成功。",
-  "com_nav_modular_chat": "启用在对话中切换端点",
   "com_nav_my_files": "我的文件",
   "com_nav_not_supported": "未支持",
   "com_nav_open_sidebar": "打开侧边栏",
