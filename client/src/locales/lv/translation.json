@@ -539,7 +539,6 @@
   "com_nav_mcp_status_connecting": "{{0}} - Savienojas",
   "com_nav_mcp_vars_update_error": "Kļūda atjauninot MCP pielāgotos lietotāja parametrus: {{0}}",
   "com_nav_mcp_vars_updated": "MCP pielāgotie lietotāja mainīgie ir veiksmīgi atjaunināti.",
-  "com_nav_modular_chat": "Iespējot galapunktu pārslēgšanu sarunas laikā",
   "com_nav_my_files": "Mani faili",
   "com_nav_not_supported": "Nav atbalstīts",
   "com_nav_open_sidebar": "Atvērt sānu joslu",

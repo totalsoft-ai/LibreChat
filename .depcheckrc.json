@@ -1,0 +1,7 @@
+{
+  "ignores": [
+    "@librechat/client",
+    "@smithy/eventstream-codec",
+    "@smithy/signature-v4"
+  ]
+}
