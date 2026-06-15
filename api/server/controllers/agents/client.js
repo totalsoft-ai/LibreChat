@@ -211,22 +211,12 @@ class AgentClient extends BaseClient {
    * @returns {Promise<Array<Partial<MongoFile>>>}
    */
   async addImageURLs(message, attachments) {
-    logger.debug('[AgentClient] addImageURLs called', {
-      attachmentCount: attachments?.length,
-      attachments: attachments?.map((f) => ({ file_id: f.file_id, type: f.type, height: f.height, width: f.width, source: f.source, filepath: f.filepath })),
-      provider: this.options.agent.provider,
-    });
     const { files, image_urls } = await encodeAndFormat(
       this.options.req,
       attachments,
       this.options.agent.provider,
       VisionModes.agents,
     );
-    logger.debug('[AgentClient] addImageURLs result', {
-      filesCount: files?.length,
-      imageUrlsCount: image_urls?.length,
-      hasImageUrls: image_urls?.length > 0,
-    });
     message.image_urls = image_urls.length ? image_urls : undefined;
     return files;
   }
@@ -253,14 +243,8 @@ class AgentClient extends BaseClient {
       .join('\n')
       .trim();
 
-    logger.debug('[AgentClient] buildMessages attachments check', {
-      hasAttachments: !!this.options.attachments,
-      attachmentsType: Array.isArray(this.options.attachments) ? 'array' : typeof this.options.attachments,
-      attachmentsLength: Array.isArray(this.options.attachments) ? this.options.attachments.length : null,
-    });
     if (this.options.attachments) {
       const attachments = await this.options.attachments;
-      logger.debug('[AgentClient] buildMessages processing attachments', { count: attachments?.length });
       const latestMessage = orderedMessages[orderedMessages.length - 1];
 
       if (this.message_file_map) {

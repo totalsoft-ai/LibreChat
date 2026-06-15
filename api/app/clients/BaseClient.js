@@ -1307,10 +1307,6 @@ class BaseClient {
   }
 
   async processAttachments(message, attachments) {
-    logger.debug('[BaseClient] processAttachments called', {
-      attachmentCount: attachments?.length,
-      attachments: attachments?.map((f) => ({ file_id: f.file_id, type: f.type, height: f.height, embedded: f.embedded, source: f.source, metadata: f.metadata, context: f.context })),
-    });
     const categorizedAttachments = {
       images: [],
       videos: [],
@@ -1351,12 +1347,6 @@ class BaseClient {
       }
     }
 
-    logger.debug('[BaseClient] processAttachments categorized', {
-      images: categorizedAttachments.images.length,
-      documents: categorizedAttachments.documents.length,
-      videos: categorizedAttachments.videos.length,
-      audios: categorizedAttachments.audios.length,
-    });
     const [imageFiles] = await Promise.all([
       categorizedAttachments.images.length > 0
         ? this.addImageURLs(message, categorizedAttachments.images)
