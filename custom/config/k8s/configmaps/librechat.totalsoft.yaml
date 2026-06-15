@@ -230,7 +230,7 @@ endpoints:
       titleEndpoint: "PPM"
       summarize: false
       forcePrompt: false
-      capabilities: ["file_search", "context"]
+      capabilities: ["file_search", "context", "image_vision"]
  
 
     # - name: "Assistant"
