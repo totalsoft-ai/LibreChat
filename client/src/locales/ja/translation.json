@@ -452,7 +452,6 @@
   "com_nav_mcp_status_connecting": "{{0}} - 接続中",
   "com_nav_mcp_vars_update_error": "MCPカスタムユーザー変数の更新エラー",
   "com_nav_mcp_vars_updated": "MCP カスタムユーザー変数が正常に更新されました。",
-  "com_nav_modular_chat": "会話の途中でのエンドポイント切替を有効化",
   "com_nav_my_files": "自分のファイル",
   "com_nav_not_supported": "サポートされていません",
   "com_nav_open_sidebar": "サイドバーを開く",

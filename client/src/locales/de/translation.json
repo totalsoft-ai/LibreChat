@@ -537,7 +537,6 @@
   "com_nav_mcp_status_connecting": "{{0}} - Verbinde...",
   "com_nav_mcp_vars_update_error": "Fehler beim Aktualisieren der benutzerdefinierten MCP-Variablen.",
   "com_nav_mcp_vars_updated": "Die MCP-Benutzervariablen wurden erfolgreich aktualisiert.",
-  "com_nav_modular_chat": "Ermöglicht das Wechseln der Endpunkte mitten im Gespräch",
   "com_nav_my_files": "Meine Dateien",
   "com_nav_not_supported": "Nicht unterstützt",
   "com_nav_open_sidebar": "Seitenleiste öffnen",

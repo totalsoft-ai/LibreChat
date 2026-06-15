@@ -535,7 +535,6 @@
   "com_nav_mcp_status_connecting": "{{0}} - Kobler til",
   "com_nav_mcp_vars_update_error": "Feil ved oppdatering av egendefinerte MCP-brukervariabler.",
   "com_nav_mcp_vars_updated": "Egendefinerte MCP-brukervariabler ble oppdatert.",
-  "com_nav_modular_chat": "Aktiver bytte av endepunkter midt i en samtale",
   "com_nav_my_files": "Mine filer",
   "com_nav_not_supported": "Ikke støttet",
   "com_nav_open_sidebar": "Åpne sidefelt",

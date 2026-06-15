@@ -1323,11 +1323,14 @@ class BaseClient {
         allFiles.push(file);
         continue;
       }
-      // Feature flag to skip embedded check for testing/debugging RAG queries
-      const skipEmbeddedCheck = process.env.RAG_SKIP_EMBEDDED_CHECK === 'true';
-      if (file.embedded === true || file.metadata?.fileIdentifier != null || skipEmbeddedCheck) {
-        allFiles.push(file);
-        continue;
+      // Images are always categorized for vision — skip embedded/RAG checks
+      if (!file.type?.startsWith('image/')) {
+        // Feature flag to skip embedded check for testing/debugging RAG queries
+        const skipEmbeddedCheck = process.env.RAG_SKIP_EMBEDDED_CHECK === 'true';
+        if (file.embedded === true || file.metadata?.fileIdentifier != null || skipEmbeddedCheck) {
+          allFiles.push(file);
+          continue;
+        }
       }
 
       if (file.type.startsWith('image/')) {

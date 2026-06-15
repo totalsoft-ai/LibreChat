@@ -20,6 +20,7 @@ const { connectDb, indexSync } = require('~/db');
 const initializeOAuthReconnectManager = require('./services/initializeOAuthReconnectManager');
 const { initializePool, createLogsTable } = require('./services/PostgresLogsService');
 const createValidateImageRequest = require('./middleware/validateImageRequest');
+const createServeImageFromStorage = require('./middleware/serveImageFromStorage');
 const { jwtLogin, ldapLogin, passportLogin } = require('~/strategies');
 const { updateInterfacePermissions } = require('~/models/interface');
 const { checkMigrations } = require('./services/start/migration');
@@ -137,7 +138,12 @@ const startServer = async () => {
   app.use('/api/config', routes.config);
   app.use('/api/assistants', routes.assistants);
   app.use('/api/files', await routes.files.initialize());
-  app.use('/images/', createValidateImageRequest(appConfig.secureImageLinks), routes.staticRoute);
+  app.use(
+    '/images/',
+    createValidateImageRequest(appConfig.secureImageLinks),
+    createServeImageFromStorage(appConfig.fileStrategy),
+    routes.staticRoute,
+  );
   app.use('/api/share', routes.share);
   app.use('/api/export', routes.exportRoute);
   app.use('/api/roles', routes.roles);

@@ -26,6 +26,7 @@ import AgentAvatar from './AgentAvatar';
 import FileContext from './FileContext';
 import SearchForm from './Search/Form';
 import FileSearch from './FileSearch';
+import ImageVision from './ImageVision';
 import Artifacts from './Artifacts';
 import AgentTool from './AgentTool';
 // import CodeForm from './Code/Form';
@@ -86,6 +87,7 @@ export default function AgentConfig({ createMutation }: Pick<AgentPanelProps, 'c
     artifactsEnabled,
     webSearchEnabled,
     fileSearchEnabled,
+    imageVisionEnabled,
   } = useAgentCapabilities(agentsConfig?.capabilities);
 
   const context_files = useMemo(() => {
@@ -293,7 +295,8 @@ export default function AgentConfig({ createMutation }: Pick<AgentPanelProps, 'c
           fileSearchEnabled ||
           artifactsEnabled ||
           contextEnabled ||
-          webSearchEnabled) && (
+          webSearchEnabled ||
+          imageVisionEnabled) && (
           <div className="mb-4 flex w-full flex-col items-start gap-3">
             <label className="text-token-text-primary block font-medium">
               {localize('com_assistants_capabilities')}
@@ -308,6 +311,8 @@ export default function AgentConfig({ createMutation }: Pick<AgentPanelProps, 'c
             {artifactsEnabled && <Artifacts />}
             {/* File Search */}
             {fileSearchEnabled && <FileSearch agent_id={agent_id} files={knowledge_files} />}
+            {/* Image Vision */}
+            {imageVisionEnabled && <ImageVision />}
           </div>
         )}
         {/* MCP Section */}

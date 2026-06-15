@@ -535,7 +535,6 @@
   "com_nav_mcp_status_connecting": "{{0}} - Підключення...",
   "com_nav_mcp_vars_update_error": "Помилка оновлення користувацьких змінних MCP",
   "com_nav_mcp_vars_updated": "Користувацькі змінні MCP успішно оновлено.",
-  "com_nav_modular_chat": "Дозволити змінювати точки підключення під час розмови",
   "com_nav_my_files": "Мої файли",
   "com_nav_not_supported": "Не підтримується",
   "com_nav_open_sidebar": "Відкрити бічну панель",
