@@ -75,6 +75,13 @@ const errorMessages = {
   },
   [ErrorTypes.GOOGLE_TOOL_CONFLICT]: 'com_error_google_tool_conflict',
   [ErrorTypes.CONTEXT_LENGTH_EXCEEDED]: 'com_error_context_length_exceeded',
+  [ErrorTypes.ENDPOINT_UNAVAILABLE]: (json: { endpoint?: string }, localize: LocalizeFunction) => {
+    const { endpoint } = json;
+    const provider = (alternateName[endpoint ?? ''] as string | undefined) ?? endpoint ?? '';
+    return provider
+      ? localize('com_error_endpoint_unavailable', { 0: provider })
+      : localize('com_error_endpoint_unavailable_generic');
+  },
   [ViolationTypes.BAN]:
     'Your account has been temporarily banned due to violations of our service.',
   [ViolationTypes.ILLEGAL_MODEL_REQUEST]: (json: TGenericError, localize: LocalizeFunction) => {

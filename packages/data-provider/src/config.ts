@@ -1276,6 +1276,10 @@ export enum CacheKeys {
    */
   BANS = 'BANS',
   /**
+   * Key for the endpoint health cache (circuit-breaker for unavailable AI endpoints).
+   */
+  ENDPOINT_HEALTH = 'ENDPOINT_HEALTH',
+  /**
    * Key for the encoded domains cache.
    * Used by Azure OpenAI Assistants.
    */
@@ -1456,6 +1460,11 @@ export enum ErrorTypes {
    * Context length exceeded - conversation too long for the model
    */
   CONTEXT_LENGTH_EXCEEDED = 'context_length_exceeded',
+  /**
+   * The AI endpoint is unreachable (connection refused/timeout/DNS), i.e. the
+   * underlying service is down or not responding.
+   */
+  ENDPOINT_UNAVAILABLE = 'endpoint_unavailable',
 }
 
 /**

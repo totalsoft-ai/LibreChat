@@ -891,6 +891,10 @@ export function getBanner(): Promise<t.TBannerResponse> {
   return request.get(endpoints.banner());
 }
 
+export function getEndpointHealth(): Promise<t.TEndpointHealthResponse> {
+  return request.get(endpoints.endpointHealth());
+}
+
 export function updateFeedback(
   conversationId: string,
   messageId: string,

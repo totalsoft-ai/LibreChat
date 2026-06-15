@@ -6,6 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   QueryKeys,
   Constants,
+  ErrorTypes,
   EndpointURLs,
   ContentTypes,
   tPresetSchema,
@@ -13,6 +14,8 @@ import {
   tConvoUpdateSchema,
   isAssistantsEndpoint,
 } from 'librechat-data-provider';
+import { useToastContext } from '@librechat/client';
+import useLocalize from '~/hooks/useLocalize';
 import type { TMessage, TConversation, EventSubmission } from 'librechat-data-provider';
 import type { TResData, TFinalResData, ConvoGenerator } from '~/common';
 import type { InfiniteData } from '@tanstack/react-query';
@@ -171,6 +174,8 @@ export default function useEventHandlers({
   resetLatestMessage,
 }: EventHandlerParams) {
   const queryClient = useQueryClient();
+  const localize = useLocalize();
+  const { showToast } = useToastContext();
   const { announcePolite } = useLiveAnnouncer();
   const applyAgentTemplate = useApplyNewAgentTemplate();
   const setAbortScroll = useSetRecoilState(store.abortScroll);
@@ -603,6 +608,23 @@ export default function useEventHandlers({
       const { messages, userMessage, initialResponse } = submission;
       setCompleted((prev) => new Set(prev.add(initialResponse.messageId)));
 
+      /* Surface a toast when the AI endpoint itself is unreachable (service down). */
+      try {
+        const errorText = (data?.['responseMessage']?.text ?? data?.['text'] ?? '') as string;
+        if (errorText.includes(ErrorTypes.ENDPOINT_UNAVAILABLE)) {
+          const parsed = JSON.parse(errorText) as { endpoint?: string };
+          const endpoint = parsed?.endpoint ?? '';
+          showToast({
+            message: endpoint
+              ? localize('com_ui_endpoint_unavailable_toast', { 0: endpoint })
+              : localize('com_ui_endpoint_timeout_toast'),
+            status: 'warning',
+          });
+        }
+      } catch {
+        /* not an endpoint_unavailable error; ignore */
+      }
+
       const conversationId =
         userMessage.conversationId ?? submission.conversation?.conversationId ?? '';
 
@@ -696,6 +718,8 @@ export default function useEventHandlers({
       setIsSubmitting,
       getMessages,
       queryClient,
+      showToast,
+      localize,
     ],
   );
 

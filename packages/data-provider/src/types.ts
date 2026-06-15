@@ -638,6 +638,15 @@ export type TAcceptTermsResponse = {
 
 export type TBannerResponse = TBanner | null;
 
+export type TUnavailableEndpoint = {
+  endpoint: string;
+  since: number;
+};
+
+export type TEndpointHealthResponse = {
+  unavailable: TUnavailableEndpoint[];
+};
+
 export type TUpdateFeedbackRequest = {
   feedback?: TMinimalFeedback;
 };

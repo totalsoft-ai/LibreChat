@@ -4,6 +4,7 @@ const { isAssistantsEndpoint, ErrorTypes, Constants } = require('librechat-data-
 const { truncateText, smartTruncateText } = require('~/app/clients/prompts');
 const clearPendingReq = require('~/cache/clearPendingReq');
 const { sendError } = require('~/server/middleware/error');
+const { markEndpointUnavailable } = require('~/server/services/EndpointHealth');
 const { spendTokens } = require('~/models/spendTokens');
 const abortControllers = require('./abortControllers');
 const { saveMessage, getConvo } = require('~/models');
@@ -348,6 +349,41 @@ const handleAbortError = async (res, req, error, data) => {
     error?.code === 'context_length_exceeded'
   ) {
     errorText = `{"type":"${ErrorTypes.CONTEXT_LENGTH_EXCEEDED}"}`;
+  }
+
+  // Detect that the AI endpoint itself is unreachable (service down / not responding).
+  // We deliberately exclude user-initiated aborts (handled elsewhere).
+  const connectionErrorCodes = [
+    'ECONNREFUSED',
+    'ETIMEDOUT',
+    'ENOTFOUND',
+    'ECONNRESET',
+    'EHOSTUNREACH',
+    'ENETUNREACH',
+    'EAI_AGAIN',
+    'EPIPE',
+  ];
+  const isConnectionError =
+    connectionErrorCodes.includes(error?.code) ||
+    connectionErrorCodes.includes(error?.cause?.code) ||
+    errorMsg.includes('socket hang up') ||
+    errorMsg.includes('fetch failed') ||
+    errorMsg.includes('network error') ||
+    errorMsg.includes('econnrefused') ||
+    errorMsg.includes('etimedout') ||
+    errorMsg.includes('connect timeout') ||
+    errorMsg.includes('request timed out');
+
+  if (isConnectionError) {
+    const endpoint = req.body?.endpoint || req.body?.endpointOption?.endpoint || '';
+    errorText = JSON.stringify({ type: ErrorTypes.ENDPOINT_UNAVAILABLE, endpoint });
+    // Only flag the endpoint as globally unavailable on a true connection failure.
+    // If a partial response was already streamed, the endpoint was reachable and this is
+    // likely a transient mid-stream drop, so we avoid alarming all users with a banner.
+    const hasPartialResponse = partialText && partialText.length > 5;
+    if (!hasPartialResponse) {
+      await markEndpointUnavailable(endpoint);
+    }
   }
 
   /**

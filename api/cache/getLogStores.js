@@ -51,6 +51,7 @@ const namespaces = {
     CacheKeys.OPENID_EXCHANGED_TOKENS,
     Time.TEN_MINUTES,
   ),
+  [CacheKeys.ENDPOINT_HEALTH]: standardCache(CacheKeys.ENDPOINT_HEALTH, Time.ONE_MINUTE),
 };
 
 /**

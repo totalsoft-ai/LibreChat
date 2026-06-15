@@ -13,9 +13,12 @@ import {
 import type { TMessage, TPayload, TSubmission, EventSubmission } from 'librechat-data-provider';
 import type { EventHandlerParams } from './useEventHandlers';
 import type { TResData } from '~/common';
+import { useToastContext } from '@librechat/client';
 import { useGenTitleMutation, useGetStartupConfig, useGetUserBalance } from '~/data-provider';
 import { useAuthContext } from '~/hooks/AuthContext';
+import useLocalize from '~/hooks/useLocalize';
 import useEventHandlers from './useEventHandlers';
+import { logger } from '~/utils';
 import store from '~/store';
 
 const clearDraft = (conversationId?: string | null) => {
@@ -45,6 +48,8 @@ export default function useSSE(
   runIndex = 0,
 ) {
   const genTitle = useGenTitleMutation();
+  const localize = useLocalize();
+  const { showToast } = useToastContext();
   const setActiveRunId = useSetRecoilState(store.activeRunFamily(runIndex));
 
   const { token, isAuthenticated } = useAuthContext();
@@ -102,6 +107,9 @@ export default function useSSE(
     payload = removeNullishValues(payload) as TPayload;
 
     let textIndex = null;
+    /* Tracks whether a terminal event (final/error/cancel) already arrived, so the
+     * failsafe timeout below doesn't fire a spurious toast after a normal response. */
+    let isStreamSettled = false;
     clearStepMaps();
 
     const sse = new SSE(payloadData.server, {
@@ -122,6 +130,7 @@ export default function useSSE(
       const data = JSON.parse(e.data);
 
       if (data.final != null) {
+        isStreamSettled = true;
         clearDraft(submission.conversation?.conversationId);
         const { plugins } = data;
         finalHandler(data, { ...submission, plugins } as EventSubmission);
@@ -174,6 +183,7 @@ export default function useSSE(
     });
 
     sse.addEventListener('cancel', async () => {
+      isStreamSettled = true;
       const streamKey = (submission as TSubmission | null)?.['initialResponse']?.messageId;
       if (completed.has(streamKey)) {
         setIsSubmitting(false);
@@ -221,6 +231,8 @@ export default function useSSE(
         }
       }
 
+      /* Past the 401-refresh retry path: this is a terminal error for the stream. */
+      isStreamSettled = true;
       console.log('error in server stream.');
       (startupConfig?.balance?.enabled ?? false) && balanceQuery.refetch();
 
@@ -238,11 +250,19 @@ export default function useSSE(
 
     setIsSubmitting(true);
 
-    // Failsafe timeout - prevent infinite loading if backend fails silently
+    // Failsafe timeout - prevent infinite loading if backend fails silently.
+    // No-op if a terminal event already arrived (avoids a spurious toast after a normal response).
     const failsafeTimeout = setTimeout(() => {
+      if (isStreamSettled) {
+        return;
+      }
       logger.error('[useSSE] Request timed out after 60 seconds - clearing submitting state');
       setIsSubmitting(false);
       setShowStopButton(false);
+      showToast({
+        message: localize('com_ui_endpoint_timeout_toast'),
+        status: 'warning',
+      });
     }, 60000);
 
     sse.stream();

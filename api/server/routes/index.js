@@ -12,6 +12,7 @@ const balance = require('./balance');
 const plugins = require('./plugins');
 const actions = require('./actions');
 const banner = require('./banner');
+const health = require('./health');
 const search = require('./search');
 const models = require('./models');
 const convos = require('./convos');
@@ -51,6 +52,7 @@ module.exports = {
   files,
   share,
   banner,
+  health,
   agents,
   convos,
   search,

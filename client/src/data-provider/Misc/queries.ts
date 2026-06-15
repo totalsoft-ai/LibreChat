@@ -18,6 +18,24 @@ export const useGetBannerQuery = (
   });
 };
 
+export const useGetEndpointHealthQuery = (
+  config?: UseQueryOptions<t.TEndpointHealthResponse>,
+): QueryObserverResult<t.TEndpointHealthResponse> => {
+  const queriesEnabled = useRecoilValue<boolean>(store.queriesEnabled);
+  return useQuery<t.TEndpointHealthResponse>(
+    [QueryKeys.endpointHealth],
+    () => dataService.getEndpointHealth(),
+    {
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
+      refetchOnMount: true,
+      refetchInterval: 60000,
+      ...config,
+      enabled: (config?.enabled ?? true) === true && queriesEnabled,
+    },
+  );
+};
+
 export const useGetUserBalance = (
   config?: UseQueryOptions<t.TBalanceResponse>,
 ): QueryObserverResult<t.TBalanceResponse> => {
