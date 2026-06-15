@@ -149,8 +149,8 @@ endpoints:
     capabilities: ["execute_code", "file_search", "actions", "tools", "artifacts"]
   azureOpenAI:
     # Endpoint-level configuration
-    titleModel: 'gemma4-e4b-base'
-    titleEndpoint: "PPM"
+    titleModel: 'gemma4:26b'
+    titleEndpoint: "Local Models"
     plugins: true
     assistants: false
     groups:
@@ -167,8 +167,8 @@ endpoints:
     availableRegions:
       - "${BEDROCK_AWS_DEFAULT_REGION}"
     streamRate: 35
-    titleModel: 'gemma4-e4b-base'
-    titleEndpoint: "PPM"
+    titleModel: 'gemma4:26b'
+    titleEndpoint: "Local Models"
   custom:
     - name: "Assistant-with-knowledge"
       baseURL: "${ASSISTANT_WITH_K_BASEURL}"
@@ -177,13 +177,13 @@ endpoints:
         default: ["us.anthropic.claude-haiku-4-5-20251001-v1:0"]
       addParams:
         namespaces: "{{LIBRECHAT_USER_NAMESPACES}}"
-      titleModel: 'gemma4-e4b-base'
-      titleEndpoint: "PPM"
+      titleModel: 'gemma4:26b'
+      titleEndpoint: "Local Models"
     - name: "Local Models"
       baseURL: "${LOCAL_MODELS_BASEURL}"
       apiKey: "dummy"
-      titleModel: 'gemma4-e4b-base'
-      titleEndpoint: "PPM"
+      titleModel: 'gemma4:26b'
+      titleEndpoint: "Local Models"
       models:
         default: [ "gemma4:26b", "qwen3:8b"]
       streamRate: 35
@@ -201,8 +201,8 @@ endpoints:
       models:
         default: ["ppm"]
         fetch: false
-      titleModel: 'gemma4-e4b-base'
-      titleEndpoint: "PPM"
+      titleModel: 'gemma4:26b'
+      titleEndpoint: "Local Models"
       tokenConfig:
         "ppm":
           prompt: 0
@@ -222,8 +222,8 @@ endpoints:
       headers:
         X-Access-Token: "{{LIBRECHAT_USER_ACCESS_TOKEN}}"
       titleConvo: true
-      titleModel: 'gemma4-e4b-base'
-      titleEndpoint: "PPM"
+      titleModel: 'gemma4:26b'
+      titleEndpoint: "Local Models"
       summarize: false
       forcePrompt: false
       capabilities: ["file_search", "context", "image_vision"]
