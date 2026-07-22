@@ -16,8 +16,9 @@ import type {
 
 const SEVERITY: Record<ComponentStatus, number> = { ok: 0, unknown: 1, degraded: 2, down: 3 };
 
-const GROUPS: { key: 'core' | 'ai'; label: string }[] = [
+const GROUPS: { key: 'core' | 'ai' | 'orchestrator'; label: string }[] = [
   { key: 'core', label: 'Core Services' },
+  { key: 'orchestrator', label: 'Orchestrator' },
   { key: 'ai', label: 'AI Endpoints' },
 ];
 

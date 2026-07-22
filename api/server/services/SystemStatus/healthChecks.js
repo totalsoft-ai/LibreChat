@@ -92,6 +92,15 @@ async function checkRagApi() {
   return { status: 'ok', reason: '' };
 }
 
+function buildEndpointAuthHeaders(endpoint) {
+  const headers = {};
+  const apiKey = extractEnvVariable(endpoint.apiKey ?? '');
+  if (apiKey && !isUserProvided(apiKey)) {
+    headers.Authorization = `Bearer ${apiKey}`;
+  }
+  return headers;
+}
+
 async function checkAiEndpoint(endpoint) {
   const baseURL = extractEnvVariable(endpoint.baseURL);
   if (!baseURL || baseURL.includes('${')) {
@@ -99,13 +108,9 @@ async function checkAiEndpoint(endpoint) {
     return { status: 'unknown', reason: 'No baseURL configured' };
   }
 
-  const headers = {};
-  const apiKey = extractEnvVariable(endpoint.apiKey ?? '');
-  if (apiKey && !isUserProvided(apiKey)) {
-    headers.Authorization = `Bearer ${apiKey}`;
-  }
-
-  const result = await httpProbe(`${baseURL.replace(/\/$/, '')}/models`, { headers });
+  const result = await httpProbe(`${baseURL.replace(/\/$/, '')}/models`, {
+    headers: buildEndpointAuthHeaders(endpoint),
+  });
   if (result.error || result.status >= 500) {
     return { status: 'down', reason: probeFailureReason(result) };
   }
@@ -118,6 +123,75 @@ async function checkAiEndpoint(endpoint) {
     details.modelCount = modelCount;
   }
   return { status: 'ok', reason: '', details };
+}
+
+// "Orchestrator" is a custom endpoint that itself fans out to several real
+// dependencies (LLM, Mongo, RAG, MCP tool server, tool-calling LLM). Hardcoded
+// by name rather than a librechat.yaml config flag: endpointSchema in
+// packages/data-provider/src/config.ts has no passthrough, so a new YAML key
+// would silently strip at parse time unless the shared schema is extended too
+// — not worth it for the one endpoint that needs this today.
+const ORCHESTRATOR_ENDPOINT_NAME = 'Orchestrator';
+const ORCHESTRATOR_SUBCOMPONENTS = [
+  { id: 'ollama', label: 'Ollama (Router & Chat)' },
+  { id: 'mongodb', label: 'Conversation History (MongoDB)' },
+  { id: 'rag', label: 'Knowledge Base (RAG)' },
+  { id: 'mcp_server', label: 'PPM Tools (MCP)' },
+  { id: 'mcp_llm', label: 'Tool-Calling LLM' },
+];
+const VALID_HEALTH_STATUSES = new Set(['ok', 'degraded', 'down', 'unknown']);
+
+/**
+ * Fetches the Orchestrator's multi-component health breakdown once per check
+ * cycle; the 5 sub-checks share this same in-flight promise instead of each
+ * making their own HTTP call.
+ */
+function createOrchestratorHealthFetcher(endpoint) {
+  let cached = null;
+  return function fetchDetailedHealth() {
+    if (!cached) {
+      cached = (async () => {
+        const baseURL = extractEnvVariable(endpoint.baseURL);
+        if (!baseURL || baseURL.includes('${')) {
+          throw new Error('No baseURL configured');
+        }
+        const result = await httpProbe(`${baseURL.replace(/\/$/, '')}/health/detailed`, {
+          headers: buildEndpointAuthHeaders(endpoint),
+        });
+        if (result.error || result.status >= 500) {
+          throw new Error(probeFailureReason(result));
+        }
+        if (result.status !== 200 || !Array.isArray(result.data?.components)) {
+          throw new Error(`Unexpected response (HTTP ${result.status})`);
+        }
+        return result.data.components;
+      })();
+    }
+    return cached;
+  };
+}
+
+/**
+ * One of the Orchestrator's sub-components. Falls back to 'unknown' instead
+ * of throwing so an older Orchestrator deploy (no /health/detailed yet) or a
+ * malformed response degrades this one row gracefully rather than breaking
+ * the whole check cycle or collapsing back to a single aggregate row.
+ */
+function checkOrchestratorSubcomponent(fetchDetailedHealth, subComponentId) {
+  return async () => {
+    let components;
+    try {
+      components = await fetchDetailedHealth();
+    } catch (error) {
+      return { status: 'unknown', reason: `Detailed health unavailable: ${error.message}` };
+    }
+    const sub = components.find((c) => c.component === subComponentId);
+    if (!sub) {
+      return { status: 'unknown', reason: 'Component missing from health response' };
+    }
+    const status = VALID_HEALTH_STATUSES.has(sub.status) ? sub.status : 'unknown';
+    return { status, reason: sub.reason || '', details: sub.details || {} };
+  };
 }
 
 /**
@@ -138,6 +212,18 @@ async function getComponents() {
     if (Array.isArray(customEndpoints)) {
       for (const endpoint of customEndpoints) {
         if (!endpoint?.name || !endpoint?.baseURL) {
+          continue;
+        }
+        if (endpoint.name === ORCHESTRATOR_ENDPOINT_NAME) {
+          const fetchDetailedHealth = createOrchestratorHealthFetcher(endpoint);
+          for (const { id, label } of ORCHESTRATOR_SUBCOMPONENTS) {
+            components.push({
+              component: `endpoint:${endpoint.name}:${id}`,
+              label,
+              group: 'orchestrator',
+              check: checkOrchestratorSubcomponent(fetchDetailedHealth, id),
+            });
+          }
           continue;
         }
         components.push({
