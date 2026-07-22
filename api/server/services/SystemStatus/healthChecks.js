@@ -195,6 +195,52 @@ function checkOrchestratorSubcomponent(fetchDetailedHealth, subComponentId) {
 }
 
 /**
+ * Endpoint names a user can actually reach from the model picker, per
+ * modelSpecs — either referenced by a preset or added wholesale via
+ * addedEndpoints. Returns null when modelSpecs isn't configured at all, so
+ * deployments without it keep seeing every custom endpoint (prior behavior).
+ * Endpoints that only back internal wiring (e.g. a titleEndpoint no spec
+ * points at) are otherwise dropped from the status page — they're not part
+ * of what a user experiences as "a model".
+ */
+function getUserFacingEndpointNames(appConfig) {
+  const specs = appConfig?.modelSpecs?.list;
+  const added = appConfig?.modelSpecs?.addedEndpoints;
+  if (!Array.isArray(specs) && !Array.isArray(added)) {
+    return null;
+  }
+  const names = new Set();
+  for (const spec of Array.isArray(specs) ? specs : []) {
+    if (spec?.preset?.endpoint) {
+      names.add(spec.preset.endpoint);
+    }
+  }
+  for (const name of Array.isArray(added) ? added : []) {
+    names.add(name);
+  }
+  return names;
+}
+
+/**
+ * The label a user actually sees in the model picker for a given custom
+ * endpoint, from its modelSpecs.list entry (e.g. "Orchestrator" shows up as
+ * "Assistant" on prod). Only meaningful for endpoints a single spec speaks
+ * for end-to-end — not applied generally, since an endpoint referenced by an
+ * unrelated preset (e.g. "Local Models" via the "file-search" spec) would be
+ * mislabeled.
+ */
+function getModelSpecLabel(appConfig, endpointName) {
+  const specs = appConfig?.modelSpecs?.list;
+  if (Array.isArray(specs)) {
+    const match = specs.find((spec) => spec?.preset?.endpoint === endpointName);
+    if (match?.label) {
+      return match.label;
+    }
+  }
+  return endpointName;
+}
+
+/**
  * Component registry: static core services plus one component per custom
  * endpoint from librechat.yaml, enumerated at check time so config changes
  * are picked up without a restart.
@@ -209,18 +255,25 @@ async function getComponents() {
   try {
     const appConfig = await getAppConfig();
     const customEndpoints = appConfig?.endpoints?.[EModelEndpoint.custom];
+    const userFacingEndpointNames = getUserFacingEndpointNames(appConfig);
     if (Array.isArray(customEndpoints)) {
       for (const endpoint of customEndpoints) {
         if (!endpoint?.name || !endpoint?.baseURL) {
           continue;
         }
+        if (userFacingEndpointNames && !userFacingEndpointNames.has(endpoint.name)) {
+          // Not reachable from the model picker (e.g. a titleEndpoint-only
+          // wiring) — not part of what a user experiences as "a model".
+          continue;
+        }
         if (endpoint.name === ORCHESTRATOR_ENDPOINT_NAME) {
+          const displayLabel = getModelSpecLabel(appConfig, endpoint.name);
           const fetchDetailedHealth = createOrchestratorHealthFetcher(endpoint);
           for (const { id, label } of ORCHESTRATOR_SUBCOMPONENTS) {
             components.push({
               component: `endpoint:${endpoint.name}:${id}`,
-              label,
-              group: 'orchestrator',
+              label: `${displayLabel} – ${label}`,
+              group: 'ai',
               check: checkOrchestratorSubcomponent(fetchDetailedHealth, id),
             });
           }

@@ -4,7 +4,7 @@ import type { UseQueryOptions, QueryObserverResult } from '@tanstack/react-query
 
 export type ComponentStatus = 'ok' | 'degraded' | 'down' | 'unknown';
 export type UptimeDayStatus = ComponentStatus | 'empty';
-export type ComponentGroup = 'core' | 'ai' | 'orchestrator';
+export type ComponentGroup = 'core' | 'ai';
 
 export type StatusComponent = {
   component: string;
