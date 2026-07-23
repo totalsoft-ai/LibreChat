@@ -1,14 +1,31 @@
 import { useState } from 'react';
 import * as Tabs from '@radix-ui/react-tabs';
 import EventsTable from './EventsTable';
+import SystemStatusSection from './SystemStatusSection';
 
 export default function Events() {
-  const [activeTab, setActiveTab] = useState('auth');
+  const [activeTab, setActiveTab] = useState('status');
 
   return (
     <div className="flex flex-col gap-5">
       <Tabs.Root value={activeTab} onValueChange={setActiveTab} className="w-full">
         <Tabs.List className="inline-flex w-full items-center rounded-lg border border-border-light bg-surface-primary p-1 shadow-sm">
+          <Tabs.Trigger
+            value="status"
+            className="flex-1 rounded-md px-4 py-2.5 text-sm font-medium text-text-secondary transition-all hover:text-text-primary data-[state=active]:bg-surface-secondary data-[state=active]:text-text-primary data-[state=active]:shadow-sm"
+          >
+            <div className="flex items-center justify-center gap-2">
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M22 12h-4l-3 9L9 3l-3 9H2"
+                />
+              </svg>
+              <span>System Status</span>
+            </div>
+          </Tabs.Trigger>
           <Tabs.Trigger
             value="auth"
             className="flex-1 rounded-md px-4 py-2.5 text-sm font-medium text-text-secondary transition-all hover:text-text-primary data-[state=active]:bg-surface-secondary data-[state=active]:text-text-primary data-[state=active]:shadow-sm"
@@ -60,7 +77,11 @@ export default function Events() {
           </Tabs.Trigger>
         </Tabs.List>
 
-        <Tabs.Content value="auth" className="mt-5">
+        <Tabs.Content value="status" className="mt-5 data-[state=inactive]:hidden" forceMount>
+          <SystemStatusSection />
+        </Tabs.Content>
+
+        <Tabs.Content value="auth" className="mt-5 data-[state=inactive]:hidden" forceMount>
           <EventsTable type="auth" />
         </Tabs.Content>
 
@@ -69,7 +90,7 @@ export default function Events() {
           <EventsTable type="internal" />
         </Tabs.Content> */}
 
-        <Tabs.Content value="logs" className="mt-5">
+        <Tabs.Content value="logs" className="mt-5 data-[state=inactive]:hidden" forceMount>
           <EventsTable type="logs" />
         </Tabs.Content>
       </Tabs.Root>

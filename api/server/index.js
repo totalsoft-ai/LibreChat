@@ -25,6 +25,7 @@ const { jwtLogin, ldapLogin, passportLogin } = require('~/strategies');
 const { updateInterfacePermissions } = require('~/models/interface');
 const { checkMigrations } = require('./services/start/migration');
 const { startAutoRefillCron } = require('./services/AutoRefillCron');
+const { startSystemStatusChecks } = require('./services/SystemStatus/scheduler');
 const initializeMCPs = require('./services/initializeMCPs');
 const configureSocialLogins = require('./socialLogins');
 const { getAppConfig } = require('./services/Config');
@@ -159,6 +160,7 @@ const startServer = async () => {
   app.use('/api/docs', routes.docs);
   app.use('/api/admin/events', routes.adminEvents);
   app.use('/api/admin/analytics', routes.adminAnalytics);
+  app.use('/api/admin/system-status', routes.adminSystemStatus);
 
   app.use(ErrorController);
 
@@ -204,6 +206,8 @@ const startServer = async () => {
     if (isEnabled(process.env.CHECK_BALANCE) && isEnabled(process.env.AUTO_REFILL_ENABLED)) {
       startAutoRefillCron();
     }
+
+    startSystemStatusChecks();
 
     // Initialize PostgreSQL logs database
     if (process.env.POSTGRES_LOGS_URI) {
