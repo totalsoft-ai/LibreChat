@@ -1,6 +1,7 @@
 const { logger } = require('@librechat/data-schemas');
 const { isEnabled } = require('@librechat/api');
 const { runAndPersistChecks } = require('./healthChecks');
+const { checkAndSendAlerts } = require('./alerts');
 
 const DEFAULT_INTERVAL_MINUTES = 5;
 
@@ -18,9 +19,16 @@ async function runCycle() {
   }
   isRunning = true;
   try {
-    await runAndPersistChecks();
-  } catch (error) {
-    logger.error('[SystemStatus] Health check cycle failed:', error);
+    try {
+      await runAndPersistChecks();
+    } catch (error) {
+      logger.error('[SystemStatus] Health check cycle failed:', error);
+    }
+    try {
+      await checkAndSendAlerts();
+    } catch (error) {
+      logger.error('[SystemStatus] Status alert cycle failed:', error);
+    }
   } finally {
     isRunning = false;
   }

@@ -5,6 +5,7 @@ const { isEnabled, isUserProvided } = require('@librechat/api');
 const { EModelEndpoint, extractEnvVariable } = require('librechat-data-provider');
 const { getAppConfig } = require('~/server/services/Config/app');
 const ServiceHealthCheck = require('~/models/ServiceHealthCheck');
+const { groupIncidents } = require('./statusLogic');
 
 const HTTP_TIMEOUT_MS = 5000;
 const RETRY_DELAY_MS = 2000;
@@ -300,6 +301,23 @@ async function listComponents() {
   return components.map(({ component, label, group }) => ({ component, label, group }));
 }
 
+/** Grouped incidents (with labels) over the last `days`, newest first. */
+async function getRecentIncidents(days) {
+  const start = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  const registry = await listComponents();
+  const labelMap = new Map(registry.map(({ component, label }) => [component, label]));
+
+  const rows = await ServiceHealthCheck.find({ checkedAt: { $gte: start } })
+    .select('component status reason checkedAt')
+    .sort({ checkedAt: 1 })
+    .lean();
+
+  return groupIncidents(rows).map((incident) => ({
+    ...incident,
+    label: labelMap.get(incident.component) || incident.component,
+  }));
+}
+
 /** Runs every check and persists one document per component. */
 async function runAndPersistChecks() {
   const components = await getComponents();
@@ -341,5 +359,6 @@ module.exports = {
   httpProbe,
   getComponents,
   listComponents,
+  getRecentIncidents,
   runAndPersistChecks,
 };

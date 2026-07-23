@@ -5,6 +5,8 @@ const {
   groupIncidents,
   dominantReason,
   ageText,
+  alertKey,
+  incidentsNeedingAlert,
 } = require('./statusLogic');
 
 describe('overallStatus', () => {
@@ -163,6 +165,61 @@ describe('dominantReason', () => {
   it('returns empty string when there are no reasons', () => {
     expect(dominantReason([])).toBe('');
     expect(dominantReason(['', ''])).toBe('');
+  });
+});
+
+describe('incidentsNeedingAlert', () => {
+  const T0 = new Date(Date.UTC(2026, 6, 15, 8, 0, 0));
+  const t = (minutesFromT0) => new Date(T0.getTime() + minutesFromT0 * 60000);
+  const THRESHOLD = 60;
+  const NOW = T0;
+
+  const incident = (minutesAgo, { status = 'down', endedAt = null } = {}) => ({
+    component: 'comp_a',
+    label: 'Component A',
+    status,
+    reason: 'r',
+    startedAt: t(-minutesAgo),
+    endedAt,
+  });
+
+  const due = (incidents, { alerted = [], minStartedAt = null } = {}) =>
+    incidentsNeedingAlert(incidents, new Set(alerted), THRESHOLD, NOW, minStartedAt);
+
+  it('flags an ongoing down incident past the threshold', () => {
+    expect(due([incident(90)])).toHaveLength(1);
+  });
+
+  it('leaves a younger-than-threshold incident alone', () => {
+    expect(due([incident(30)])).toEqual([]);
+  });
+
+  it('treats exactly-at-threshold as crossed', () => {
+    expect(due([incident(60)])).toHaveLength(1);
+  });
+
+  it('ignores incidents that already ended', () => {
+    expect(due([incident(90, { endedAt: t(-10) })])).toEqual([]);
+  });
+
+  it('ignores non-down incidents (degraded, unknown)', () => {
+    expect(due([incident(90, { status: 'degraded' })])).toEqual([]);
+  });
+
+  it('deduplicates an already-alerted (component, startedAt) key', () => {
+    const inc = incident(90);
+    const alerted = [alertKey(inc.component, inc.startedAt)];
+    expect(due([inc], { alerted })).toEqual([]);
+  });
+
+  it('skips a start clipped at the query-window edge', () => {
+    const inc = incident(90);
+    expect(due([inc], { minStartedAt: t(-90) })).toEqual([]);
+  });
+
+  it('only blocks starts at or before the edge margin', () => {
+    const inc = incident(90);
+    expect(due([inc], { minStartedAt: t(-200) })).toHaveLength(1);
   });
 });
 

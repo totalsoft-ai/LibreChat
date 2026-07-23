@@ -1,12 +1,11 @@
 const { logger } = require('@librechat/data-schemas');
 const ServiceHealthCheck = require('~/models/ServiceHealthCheck');
-const { listComponents } = require('~/server/services/SystemStatus/healthChecks');
+const { listComponents, getRecentIncidents } = require('~/server/services/SystemStatus/healthChecks');
 const { getCheckIntervalMinutes } = require('~/server/services/SystemStatus/scheduler');
 const {
   overallStatus,
   redThreshold,
   bucketDayStatus,
-  groupIncidents,
   dominantReason,
 } = require('~/server/services/SystemStatus/statusLogic');
 
@@ -148,21 +147,7 @@ const getHistory = async (req, res) => {
 const getIncidents = async (req, res) => {
   try {
     const days = clampDays(req.query.days, 7, 90);
-    const start = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-
-    const registry = await listComponents();
-    const labelMap = new Map(registry.map(({ component, label }) => [component, label]));
-
-    const rows = await ServiceHealthCheck.find({ checkedAt: { $gte: start } })
-      .select('component status reason checkedAt')
-      .sort({ checkedAt: 1 })
-      .lean();
-
-    const incidents = groupIncidents(rows).map((incident) => ({
-      ...incident,
-      label: labelMap.get(incident.component) || incident.component,
-    }));
-
+    const incidents = await getRecentIncidents(days);
     res.json({ days, incidents });
   } catch (err) {
     logger.error('[SystemStatusController] getIncidents error:', err);

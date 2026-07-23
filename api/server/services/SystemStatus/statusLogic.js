@@ -156,6 +156,44 @@ function ageText(ms) {
   return `${Math.floor(totalHours / 24)} days`;
 }
 
+/** Stable dedup key for a (component, startedAt) incident. */
+function alertKey(component, startedAt) {
+  return `${component}|${new Date(startedAt).toISOString()}`;
+}
+
+/**
+ * Ongoing 'down' incidents that crossed the alert threshold, unannounced.
+ *
+ * `alertedKeys` holds keys (see alertKey) already claimed for a sent alert.
+ * `minStartedAt` guards against incidents whose start is clipped at the
+ * query-window edge: their apparent startedAt shifts on every cycle, which
+ * would mint a fresh key (and a fresh email) each time — anything at or
+ * before the margin is skipped instead.
+ */
+function incidentsNeedingAlert(incidents, alertedKeys, thresholdMinutes, now, minStartedAt) {
+  const due = [];
+  for (const incident of incidents) {
+    if (incident.endedAt != null) {
+      continue;
+    }
+    if (incident.status !== 'down') {
+      continue;
+    }
+    const startedAt = new Date(incident.startedAt);
+    if (minStartedAt != null && startedAt <= minStartedAt) {
+      continue;
+    }
+    if ((now - startedAt) / 60000 < thresholdMinutes) {
+      continue;
+    }
+    if (alertedKeys.has(alertKey(incident.component, startedAt))) {
+      continue;
+    }
+    due.push(incident);
+  }
+  return due;
+}
+
 module.exports = {
   SEVERITY,
   overallStatus,
@@ -164,4 +202,6 @@ module.exports = {
   groupIncidents,
   dominantReason,
   ageText,
+  alertKey,
+  incidentsNeedingAlert,
 };
