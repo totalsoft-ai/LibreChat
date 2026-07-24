@@ -21,6 +21,7 @@ export interface IMessage extends Document {
   unfinished?: boolean;
   error?: boolean;
   finish_reason?: string;
+  orchestratorBranch?: string;
   feedback?: {
     rating: TFeedbackRating;
     tag: TFeedbackTag | undefined;

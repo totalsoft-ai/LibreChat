@@ -62,6 +62,14 @@ export type CategoryDistributionRow = {
 
 export type CategoryDistributionStats = { data: CategoryDistributionRow[]; pagination: Pagination };
 
+export type BranchDistributionRow = {
+  branch: string;
+  label: string;
+  messageCount: number;
+};
+
+export type BranchDistributionStats = { data: BranchDistributionRow[]; pagination: Pagination };
+
 export const useGetAnalyticsStats = (
   period: Period,
   page: number,
@@ -123,6 +131,19 @@ export const useGetCategoryDistribution = (
   return useQuery<CategoryDistributionStats>(
     ['analytics-category-distribution', window, page, pageSize],
     () => request.get(`/api/admin/analytics/category-distribution?window=${window}&page=${page}&pageSize=${pageSize}`),
+    { refetchOnWindowFocus: false, ...config },
+  );
+};
+
+export const useGetBranchDistribution = (
+  window: ExtendedWindow,
+  page: number,
+  pageSize: number,
+  config?: UseQueryOptions<BranchDistributionStats>,
+): QueryObserverResult<BranchDistributionStats> => {
+  return useQuery<BranchDistributionStats>(
+    ['analytics-branch-distribution', window, page, pageSize],
+    () => request.get(`/api/admin/analytics/branch-distribution?window=${window}&page=${page}&pageSize=${pageSize}`),
     { refetchOnWindowFocus: false, ...config },
   );
 };
