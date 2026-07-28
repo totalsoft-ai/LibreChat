@@ -143,7 +143,10 @@ export const useGetBranchDistribution = (
 ): QueryObserverResult<BranchDistributionStats> => {
   return useQuery<BranchDistributionStats>(
     ['analytics-branch-distribution', window, page, pageSize],
-    () => request.get(`/api/admin/analytics/branch-distribution?window=${window}&page=${page}&pageSize=${pageSize}`),
+    () =>
+      request.get(
+        `/api/admin/analytics/branch-distribution?window=${window}&page=${page}&pageSize=${pageSize}`,
+      ),
     { refetchOnWindowFocus: false, ...config },
   );
 };
