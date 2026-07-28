@@ -75,6 +75,10 @@ const messageSchema: Schema<IMessage> = new Schema(
     finish_reason: {
       type: String,
     },
+    orchestratorBranch: {
+      type: String,
+      index: true,
+    },
     feedback: {
       type: {
         rating: {

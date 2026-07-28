@@ -15,9 +15,12 @@ import { sendEvent } from './events';
 export function createFetch({
   directEndpoint = false,
   reverseProxyUrl = '',
+  onResponse,
 }: {
   directEndpoint?: boolean;
   reverseProxyUrl?: string;
+  /** Called with the raw response as soon as it's received, before the caller consumes its body. */
+  onResponse?: (response: fetch.Response) => void;
 }) {
   /**
    * Makes an HTTP request and logs the process.
@@ -34,10 +37,9 @@ export function createFetch({
       url = reverseProxyUrl;
     }
     logger.debug(`Making request to ${url}`);
-    if (typeof Bun !== 'undefined') {
-      return await fetch(url, init);
-    }
-    return await fetch(url, init);
+    const response = await fetch(url, init);
+    onResponse?.(response);
+    return response;
   };
 }
 

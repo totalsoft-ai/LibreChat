@@ -1177,11 +1177,19 @@ ${convo}
       }
 
       let chatCompletion;
+      /** Branch reported by the Orchestrator custom endpoint via `X-Orchestrator-Branch`, if present */
+      let orchestratorBranch;
       /** @type {OpenAI} */
       const openai = new OpenAI({
         fetch: createFetch({
           directEndpoint: this.options.directEndpoint,
           reverseProxyUrl: this.options.reverseProxyUrl,
+          onResponse: (response) => {
+            const branch = response.headers?.get?.('x-orchestrator-branch');
+            if (branch) {
+              orchestratorBranch = branch;
+            }
+          },
         }),
         apiKey: this.apiKey,
         ...opts,
@@ -1429,7 +1437,7 @@ ${convo}
       }
 
       const { message, finish_reason } = choices[0] ?? {};
-      this.metadata = { finish_reason };
+      this.metadata = { finish_reason, ...(orchestratorBranch && { orchestratorBranch }) };
 
       logger.debug('[OpenAIClient] chatCompletion response', chatCompletion);
 

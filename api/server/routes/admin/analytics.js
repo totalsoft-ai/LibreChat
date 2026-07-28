@@ -14,5 +14,6 @@ router.get('/health', AnalyticsController.getHealthStats);
 router.get('/active-users', AnalyticsController.getActiveUsers);
 router.get('/feedback', AnalyticsController.getFeedbackStats);
 router.get('/category-distribution', AnalyticsController.getCategoryDistribution);
+router.get('/branch-distribution', AnalyticsController.getBranchDistribution);
 
 module.exports = router;

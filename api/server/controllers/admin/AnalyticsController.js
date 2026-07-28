@@ -370,7 +370,7 @@ const getCategoryDistribution = async (req, res) => {
       },
       {
         $lookup: {
-          from: 'categories',
+          from: 'agentcategories',
           localField: '_id',
           foreignField: 'value',
           as: 'categoryInfo',
@@ -395,4 +395,63 @@ const getCategoryDistribution = async (req, res) => {
   }
 };
 
-module.exports = { getStats, getTokenUsage, getHealthStats, getActiveUsers, getFeedbackStats, getCategoryDistribution };
+const getBranchDistribution = async (req, res) => {
+  try {
+    const Message = mongoose.model('Message');
+    const { page, pageSize } = getPagination(req);
+    const win = req.query.window || 'week';
+    const now = new Date();
+
+    const matchStage = { orchestratorBranch: { $exists: true, $nin: [null, ''] } };
+    if (win !== 'all') {
+      const matchDate = new Date(now);
+      if (win === 'week') {
+        matchDate.setDate(matchDate.getDate() - 7);
+      } else if (win === 'month') {
+        matchDate.setMonth(matchDate.getMonth() - 1);
+      } else {
+        matchDate.setDate(matchDate.getDate() - 1);
+      }
+      matchStage.createdAt = { $gte: matchDate };
+    }
+
+    const pipeline = [
+      { $match: matchStage },
+      { $group: { _id: '$orchestratorBranch', messageCount: { $sum: 1 } } },
+      {
+        $project: {
+          _id: 0,
+          branch: '$_id',
+          label: {
+            $switch: {
+              branches: [
+                { case: { $eq: ['$_id', 'rag'] }, then: 'Knowledge Base (RAG)' },
+                { case: { $eq: ['$_id', 'mcp_agent'] }, then: 'PPM Tools (MCP)' },
+                { case: { $eq: ['$_id', 'chat'] }, then: 'General Chat' },
+                { case: { $eq: ['$_id', 'capabilities'] }, then: 'Capabilities' },
+              ],
+              default: '$_id',
+            },
+          },
+          messageCount: 1,
+        },
+      },
+      { $sort: { messageCount: -1 } },
+    ];
+
+    res.json(await paginate(Message, pipeline, page, pageSize));
+  } catch (err) {
+    logger.error('[AnalyticsController] getBranchDistribution error:', err);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
+module.exports = {
+  getStats,
+  getTokenUsage,
+  getHealthStats,
+  getActiveUsers,
+  getFeedbackStats,
+  getCategoryDistribution,
+  getBranchDistribution,
+};

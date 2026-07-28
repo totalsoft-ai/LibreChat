@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuthContext } from '~/hooks';
 import {
@@ -8,6 +9,7 @@ import {
   useGetActiveUsersStats,
   useGetFeedbackStats,
   useGetCategoryDistribution,
+  useGetBranchDistribution,
 } from '~/data-provider/Analytics';
 import type { Period, Window, ExtendedWindow, Pagination } from '~/data-provider/Analytics';
 
@@ -65,6 +67,7 @@ export default function AnalyticsPage() {
           <MessagesCard />
           <ActiveUsersCard />
           <CategoryDistributionCard />
+          <BranchDistributionCard />
           <FeedbackCard />
           <HealthCard />
           <TokenUsageCard />
@@ -436,6 +439,87 @@ function CategoryDistributionCard() {
         isLoading={isLoading}
         onPageChange={setPage}
         onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}
+      />
+    </div>
+  );
+}
+
+function BranchDistributionCard() {
+  const [win, setWin] = useState<ExtendedWindow>('week');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  const { data, isLoading, isError } = useGetBranchDistribution(win, page, pageSize);
+
+  const maxCount = Math.max(1, ...(data?.data ?? []).map((r) => r.messageCount));
+  const pageTotal = (data?.data ?? []).reduce((s, r) => s + r.messageCount, 0);
+
+  let rows: ReactNode;
+  if (isLoading) {
+    rows = (
+      <div className="space-y-5 px-6 py-4">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="space-y-2">
+            <div className="h-4 w-28 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+            <div
+              className="h-2 animate-pulse rounded-full bg-gray-200 dark:bg-gray-700"
+              style={{ width: `${40 + ((i * 13) % 55)}%` }}
+            />
+          </div>
+        ))}
+      </div>
+    );
+  } else if (isError || !data) {
+    rows = <p className="px-6 py-4 text-center text-red-500">Failed to load data.</p>;
+  } else if (data.data.length === 0) {
+    rows = <p className="px-6 py-4 text-center text-text-secondary">No data</p>;
+  } else {
+    rows = data.data.map((row) => (
+      <div key={row.branch} className="flex items-center gap-4 px-6 py-3 hover:bg-surface-hover">
+        <div
+          className="w-40 flex-shrink-0 truncate text-sm font-medium text-text-primary"
+          title={row.label}
+        >
+          {row.label}
+        </div>
+        <div className="flex-1">
+          <HorizontalBar value={row.messageCount} max={maxCount} colorClass="bg-purple-500" />
+        </div>
+        <div className="w-14 flex-shrink-0 text-right text-sm text-text-primary">
+          {row.messageCount.toLocaleString()}
+        </div>
+        <div className="w-14 flex-shrink-0 text-right text-xs text-text-secondary">
+          {pageTotal > 0 ? ((row.messageCount / pageTotal) * 100).toFixed(1) : '0.0'}%
+        </div>
+      </div>
+    ));
+  }
+
+  return (
+    <div className="rounded-lg border border-border-light bg-surface-primary shadow-sm">
+      <div className="flex items-center justify-between border-b border-border-light px-6 py-4">
+        <h2 className="text-lg font-semibold text-text-primary">Messages by Orchestrator Branch</h2>
+        <ExtendedWindowToggle
+          window={win}
+          onChange={(w) => {
+            setWin(w);
+            setPage(1);
+          }}
+        />
+      </div>
+
+      <div className="divide-y divide-border-light">{rows}</div>
+
+      <TableFooter
+        page={page}
+        pageSize={pageSize}
+        pagination={data?.pagination}
+        isLoading={isLoading}
+        onPageChange={setPage}
+        onPageSizeChange={(s) => {
+          setPageSize(s);
+          setPage(1);
+        }}
       />
     </div>
   );
