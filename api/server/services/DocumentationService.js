@@ -16,7 +16,7 @@ function isNoiseLine(line) {
 }
 
 const SOURCE_QUERY = `
-  SELECT DISTINCT ON (source) source, namespace, text
+  SELECT DISTINCT ON (source) source, namespace, text, created_at
   FROM qna.embeddings
   WHERE source ILIKE '%wiki.logo.com.tr%'
      OR source ILIKE '%coda.io%'
@@ -144,53 +144,85 @@ async function resolveCodaTitles(codaRows) {
     const pageKey = getCodaPageKey(row.source);
     const apiTitle = docId && pageKey ? titlesByDocId.get(docId)?.get(pageKey) : null;
     if (!apiTitle) {
-      return { title: extractCodaTitle(row.text, row.namespace), link: row.source };
+      return {
+        title: extractCodaTitle(row.text, row.namespace),
+        link: row.source,
+        date: row.created_at,
+      };
     }
     const title =
       apiTitle.length > MAX_TITLE_LENGTH ? `${apiTitle.slice(0, MAX_TITLE_LENGTH)}…` : apiTitle;
-    return { title, link: row.source };
+    return { title, link: row.source, date: row.created_at };
   });
 }
 
-/**
- * Fetches distinct Confluence/Coda documents that were ingested into the RAG vector store,
- * grouped by source category. Coda titles are resolved via the Coda API when CODA_API_TOKEN
- * is configured, falling back to a best-effort heuristic over the ingested text otherwise.
- */
-async function getIngestedDocuments() {
+async function queryDistinctSources() {
   if (!pool) {
     throw new Error('RAG_DB_CONNECTION_STRING is not configured');
   }
-
   const { rows } = await pool.query(SOURCE_QUERY);
+  return rows;
+}
 
-  const confluence = [];
+function splitByCategory(rows) {
+  const confluenceRows = [];
   const codaRows = [];
-
   for (const row of rows) {
     const category = classifySource(row.source);
     if (category === 'confluence') {
-      confluence.push({ title: extractConfluenceTitle(row.source), link: row.source });
+      confluenceRows.push(row);
     } else if (category === 'coda') {
       codaRows.push(row);
     }
   }
+  return { confluenceRows, codaRows };
+}
 
-  const coda = process.env.CODA_API_TOKEN
-    ? await resolveCodaTitles(codaRows)
-    : codaRows.map((row) => ({
-        title: extractCodaTitle(row.text, row.namespace),
-        link: row.source,
-      }));
+/**
+ * Fetches distinct Confluence/Coda documents that were ingested into the RAG vector store,
+ * grouped by source category. Coda titles use the cheap text heuristic here so the page can
+ * render immediately; call getCodaDocumentsWithApiTitles separately to upgrade them in the
+ * background via the (much slower) Coda API.
+ */
+async function getIngestedDocuments() {
+  const rows = await queryDistinctSources();
+  const { confluenceRows, codaRows } = splitByCategory(rows);
 
-  confluence.sort((a, b) => a.title.localeCompare(b.title));
-  coda.sort((a, b) => a.title.localeCompare(b.title));
+  const confluence = confluenceRows.map((row) => ({
+    title: extractConfluenceTitle(row.source),
+    link: row.source,
+    date: row.created_at,
+  }));
+  const coda = codaRows.map((row) => ({
+    title: extractCodaTitle(row.text, row.namespace),
+    link: row.source,
+    date: row.created_at,
+  }));
 
   logger.info(
-    `[DocumentationService] fetched ${confluence.length} confluence, ${coda.length} coda documents`,
+    `[DocumentationService] fetched ${confluence.length} confluence, ${coda.length} coda documents (heuristic titles)`,
   );
 
   return { confluence, coda };
 }
 
-module.exports = { getIngestedDocuments };
+/**
+ * Resolves real Coda page titles via the Coda API. Slower than getIngestedDocuments (one API
+ * call per unique Coda doc, cached 30 min) — intended to be fetched in the background and used
+ * to upgrade the heuristic titles once ready.
+ */
+async function getCodaDocumentsWithApiTitles() {
+  if (!process.env.CODA_API_TOKEN) {
+    throw new Error('CODA_API_TOKEN is not configured');
+  }
+
+  const rows = await queryDistinctSources();
+  const { codaRows } = splitByCategory(rows);
+  const coda = await resolveCodaTitles(codaRows);
+
+  logger.info(`[DocumentationService] resolved ${coda.length} coda documents via Coda API`);
+
+  return { coda };
+}
+
+module.exports = { getIngestedDocuments, getCodaDocumentsWithApiTitles };

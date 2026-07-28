@@ -5,6 +5,7 @@ import type { UseQueryOptions, QueryObserverResult } from '@tanstack/react-query
 export type DocumentationItem = {
   title: string;
   link: string;
+  date: string | null;
 };
 
 export type DocumentationList = {
@@ -19,5 +20,18 @@ export const useGetDocumentationList = (
     ['documentation-list'],
     () => request.get('/api/documentation'),
     { refetchOnWindowFocus: false, ...config },
+  );
+};
+
+export type CodaTitles = { coda: DocumentationItem[] };
+
+/** Resolves real Coda page titles in the background; slower, meant to upgrade the heuristic titles. */
+export const useGetCodaTitles = (
+  config?: UseQueryOptions<CodaTitles>,
+): QueryObserverResult<CodaTitles> => {
+  return useQuery<CodaTitles>(
+    ['documentation-coda-titles'],
+    () => request.get('/api/documentation/coda-titles'),
+    { refetchOnWindowFocus: false, retry: false, ...config },
   );
 };

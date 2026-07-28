@@ -1,98 +1,72 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Spinner } from '@librechat/client';
-import { useGetDocumentationList } from '~/data-provider/Documentation';
+import { useGetDocumentationList, useGetCodaTitles } from '~/data-provider/Documentation';
 import type { DocumentationItem } from '~/data-provider/Documentation';
 import { useLocalize } from '~/hooks';
 
 const PAGE_SIZE = 25;
 
-function filterItems(items: DocumentationItem[], query: string) {
-  if (!query.trim()) {
-    return items;
-  }
-  const normalized = query.trim().toLowerCase();
-  return items.filter((item) => item.title.toLowerCase().includes(normalized));
+type SourceLabel = 'Confluence' | 'Coda';
+type SourceFilter = 'all' | SourceLabel;
+type MergedItem = DocumentationItem & { sourceLabel: SourceLabel };
+
+function buildMergedList(confluence: DocumentationItem[], coda: DocumentationItem[]): MergedItem[] {
+  const merged: MergedItem[] = [
+    ...confluence.map((item) => ({ ...item, sourceLabel: 'Confluence' as const })),
+    ...coda.map((item) => ({ ...item, sourceLabel: 'Coda' as const })),
+  ];
+  merged.sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
+  return merged;
 }
 
-function DocumentationSection({ title, items }: { title: string; items: DocumentationItem[] }) {
-  const localize = useLocalize();
-  const [page, setPage] = useState(1);
+function filterMergedList(items: MergedItem[], query: string, sourceFilter: SourceFilter) {
+  let filtered = items;
+  if (sourceFilter !== 'all') {
+    filtered = filtered.filter((item) => item.sourceLabel === sourceFilter);
+  }
+  const normalized = query.trim().toLowerCase();
+  if (normalized) {
+    filtered = filtered.filter((item) => item.title.toLowerCase().includes(normalized));
+  }
+  return filtered;
+}
 
-  useEffect(() => {
-    setPage(1);
-  }, [items]);
-
-  const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
-  const currentPage = Math.min(page, totalPages);
-  const start = (currentPage - 1) * PAGE_SIZE;
-  const pageItems = items.slice(start, start + PAGE_SIZE);
-
-  return (
-    <div className="rounded-lg border border-border-light bg-surface-primary p-4">
-      <h2 className="mb-3 text-lg font-semibold text-text-primary">
-        {title} <span className="text-sm font-normal text-text-secondary">({items.length})</span>
-      </h2>
-      {items.length === 0 ? (
-        <p className="text-sm text-text-secondary">{localize('com_nav_documentation_empty')}</p>
-      ) : (
-        <>
-          <ul className="space-y-2">
-            {pageItems.map((item) => (
-              <li key={item.link}>
-                <a
-                  href={item.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-blue-600 hover:underline dark:text-blue-400"
-                >
-                  {item.title}
-                </a>
-              </li>
-            ))}
-          </ul>
-          {totalPages > 1 && (
-            <div className="mt-4 flex items-center justify-between border-t border-border-light pt-3">
-              <span className="text-xs text-text-secondary">
-                {start + 1}–{Math.min(start + PAGE_SIZE, items.length)} {localize('com_ui_of')}{' '}
-                {items.length}
-              </span>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="rounded px-2 py-1 text-sm text-text-secondary hover:bg-surface-hover disabled:opacity-40"
-                >
-                  ‹
-                </button>
-                <span className="px-2 text-sm text-text-primary">
-                  {currentPage} / {totalPages}
-                </span>
-                <button
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={currentPage >= totalPages}
-                  className="rounded px-2 py-1 text-sm text-text-secondary hover:bg-surface-hover disabled:opacity-40"
-                >
-                  ›
-                </button>
-              </div>
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  );
+function formatDate(date: string | null) {
+  if (!date) {
+    return '—';
+  }
+  const parsed = new Date(date);
+  return Number.isNaN(parsed.getTime()) ? '—' : parsed.toLocaleDateString();
 }
 
 export default function Documentation() {
   const localize = useLocalize();
   const [query, setQuery] = useState('');
-  const { data, isLoading, isError } = useGetDocumentationList();
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
+  const [page, setPage] = useState(1);
 
-  const filteredConfluence = useMemo(
-    () => filterItems(data?.confluence ?? [], query),
-    [data?.confluence, query],
+  const { data, isLoading, isError } = useGetDocumentationList();
+  // Background upgrade: swaps in real Coda page titles once the (slower) Coda API resolves.
+  const { data: codaTitles } = useGetCodaTitles({ enabled: !isLoading && !isError });
+
+  const coda = useMemo(() => codaTitles?.coda ?? data?.coda ?? [], [codaTitles?.coda, data?.coda]);
+  const merged = useMemo(
+    () => buildMergedList(data?.confluence ?? [], coda),
+    [data?.confluence, coda],
   );
-  const filteredCoda = useMemo(() => filterItems(data?.coda ?? [], query), [data?.coda, query]);
+  const filtered = useMemo(
+    () => filterMergedList(merged, query, sourceFilter),
+    [merged, query, sourceFilter],
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [filtered]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const pageItems = filtered.slice(start, start + PAGE_SIZE);
 
   return (
     <div className="flex h-screen flex-col">
@@ -107,13 +81,24 @@ export default function Documentation() {
             </p>
           </div>
 
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={localize('com_nav_documentation_search_placeholder')}
-            className="w-full rounded-md border border-border-light bg-surface-primary px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={localize('com_nav_documentation_search_placeholder')}
+              className="flex-1 rounded-md border border-border-light bg-surface-primary px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <select
+              value={sourceFilter}
+              onChange={(e) => setSourceFilter(e.target.value as SourceFilter)}
+              className="rounded-md border border-border-light bg-surface-primary px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">{localize('com_nav_documentation_source_all')}</option>
+              <option value="Confluence">{'Confluence'}</option>
+              <option value="Coda">{'Coda'}</option>
+            </select>
+          </div>
 
           {isLoading && (
             <div className="flex items-center justify-center py-12">
@@ -124,9 +109,73 @@ export default function Documentation() {
             <p className="text-sm text-red-500">{localize('com_nav_documentation_error')}</p>
           )}
           {!isLoading && !isError && (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <DocumentationSection title="Confluence" items={filteredConfluence} />
-              <DocumentationSection title="Coda" items={filteredCoda} />
+            <div className="overflow-hidden rounded-lg border border-border-light bg-surface-primary">
+              {filtered.length === 0 ? (
+                <p className="p-4 text-sm text-text-secondary">
+                  {localize('com_nav_documentation_empty')}
+                </p>
+              ) : (
+                <>
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border-light text-left text-text-secondary">
+                        <th className="px-4 py-3 font-medium">
+                          {localize('com_nav_documentation_column_title')}
+                        </th>
+                        <th className="w-32 px-4 py-3 font-medium">
+                          {localize('com_nav_documentation_column_source')}
+                        </th>
+                        <th className="w-32 px-4 py-3 font-medium">
+                          {localize('com_nav_documentation_column_date')}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border-light">
+                      {pageItems.map((item) => (
+                        <tr key={item.link} className="hover:bg-surface-hover">
+                          <td className="px-4 py-3">
+                            <a
+                              href={item.link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline dark:text-blue-400"
+                            >
+                              {item.title}
+                            </a>
+                          </td>
+                          <td className="px-4 py-3 text-text-secondary">{item.sourceLabel}</td>
+                          <td className="px-4 py-3 text-text-secondary">{formatDate(item.date)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <div className="flex items-center justify-between border-t border-border-light px-4 py-3">
+                    <span className="text-xs text-text-secondary">
+                      {start + 1}–{Math.min(start + PAGE_SIZE, filtered.length)}{' '}
+                      {localize('com_ui_of')} {filtered.length}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        className="rounded px-2 py-1 text-sm text-text-secondary hover:bg-surface-hover disabled:opacity-40"
+                      >
+                        ‹
+                      </button>
+                      <span className="px-2 text-sm text-text-primary">
+                        {currentPage} / {totalPages}
+                      </span>
+                      <button
+                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                        disabled={currentPage >= totalPages}
+                        className="rounded px-2 py-1 text-sm text-text-secondary hover:bg-surface-hover disabled:opacity-40"
+                      >
+                        ›
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>
