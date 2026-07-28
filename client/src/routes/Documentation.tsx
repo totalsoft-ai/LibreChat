@@ -1,8 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Spinner } from '@librechat/client';
 import { useGetDocumentationList } from '~/data-provider/Documentation';
 import type { DocumentationItem } from '~/data-provider/Documentation';
 import { useLocalize } from '~/hooks';
+
+const PAGE_SIZE = 25;
 
 function filterItems(items: DocumentationItem[], query: string) {
   if (!query.trim()) {
@@ -14,6 +16,17 @@ function filterItems(items: DocumentationItem[], query: string) {
 
 function DocumentationSection({ title, items }: { title: string; items: DocumentationItem[] }) {
   const localize = useLocalize();
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    setPage(1);
+  }, [items]);
+
+  const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const pageItems = items.slice(start, start + PAGE_SIZE);
+
   return (
     <div className="rounded-lg border border-border-light bg-surface-primary p-4">
       <h2 className="mb-3 text-lg font-semibold text-text-primary">
@@ -22,20 +35,49 @@ function DocumentationSection({ title, items }: { title: string; items: Document
       {items.length === 0 ? (
         <p className="text-sm text-text-secondary">{localize('com_nav_documentation_empty')}</p>
       ) : (
-        <ul className="space-y-2">
-          {items.map((item) => (
-            <li key={item.link}>
-              <a
-                href={item.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-blue-600 hover:underline dark:text-blue-400"
-              >
-                {item.title}
-              </a>
-            </li>
-          ))}
-        </ul>
+        <>
+          <ul className="space-y-2">
+            {pageItems.map((item) => (
+              <li key={item.link}>
+                <a
+                  href={item.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-blue-600 hover:underline dark:text-blue-400"
+                >
+                  {item.title}
+                </a>
+              </li>
+            ))}
+          </ul>
+          {totalPages > 1 && (
+            <div className="mt-4 flex items-center justify-between border-t border-border-light pt-3">
+              <span className="text-xs text-text-secondary">
+                {start + 1}–{Math.min(start + PAGE_SIZE, items.length)} {localize('com_ui_of')}{' '}
+                {items.length}
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="rounded px-2 py-1 text-sm text-text-secondary hover:bg-surface-hover disabled:opacity-40"
+                >
+                  ‹
+                </button>
+                <span className="px-2 text-sm text-text-primary">
+                  {currentPage} / {totalPages}
+                </span>
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage >= totalPages}
+                  className="rounded px-2 py-1 text-sm text-text-secondary hover:bg-surface-hover disabled:opacity-40"
+                >
+                  ›
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

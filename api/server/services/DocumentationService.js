@@ -6,9 +6,14 @@ const pool = process.env.RAG_DB_CONNECTION_STRING
   : null;
 
 // The ingestion pipeline inserts structural markers like "--- Text ---", "=== Pagina 1 ===",
-// or "=== Table: Table 1 ===" as the first line of a chunk; these aren't real titles.
+// "=== Table: Table 1 ===", or a bare "/" breadcrumb as the first line of a chunk; skip these.
 const STRUCTURAL_MARKER = /^[-=]{3,}.*[-=]{3,}$/;
+const HAS_READABLE_TEXT = /[a-zA-Z0-9]/;
 const MAX_TITLE_LENGTH = 100;
+
+function isNoiseLine(line) {
+  return STRUCTURAL_MARKER.test(line) || !HAS_READABLE_TEXT.test(line);
+}
 
 const SOURCE_QUERY = `
   SELECT DISTINCT ON (source) source, namespace, text
@@ -46,7 +51,7 @@ function extractCodaTitle(text, namespace) {
     .split('\n')
     .map((line) => line.trim())
     .filter(Boolean);
-  const titleLine = lines.find((line) => !STRUCTURAL_MARKER.test(line));
+  const titleLine = lines.find((line) => !isNoiseLine(line));
   if (!titleLine) {
     return namespace;
   }
