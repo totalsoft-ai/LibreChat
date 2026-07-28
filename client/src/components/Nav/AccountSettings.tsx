@@ -2,7 +2,7 @@ import { useState, memo } from 'react';
 import { useRecoilState } from 'recoil';
 import { useNavigate } from 'react-router-dom';
 import * as Select from '@ariakit/react/select';
-import { FileText, LogOut, BookOpen, ClipboardList, BarChart2 } from 'lucide-react';
+import { FileText, LogOut, BookOpen, ClipboardList, BarChart2, Library } from 'lucide-react';
 import { LinkIcon, GearIcon, DropdownMenuSeparator, Avatar } from '@librechat/client';
 import { useGetStartupConfig, useGetUserBalance } from '~/data-provider';
 import FilesView from '~/components/Chat/Input/Files/FilesView';
@@ -88,6 +88,14 @@ function AccountSettings() {
             {localize('com_nav_help_faq')}
           </Select.SelectItem>
         )}
+        <Select.SelectItem
+          value=""
+          onClick={() => navigate('/documentation')}
+          className="select-item text-sm"
+        >
+          <Library className="icon-md" aria-hidden="true" />
+          {localize('com_nav_documentation_list')}
+        </Select.SelectItem>
         {user?.role === 'ADMIN' && (
           <Select.SelectItem
             value=""
