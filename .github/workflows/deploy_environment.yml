@@ -107,6 +107,7 @@ jobs:
           "KC_CONNECTOR_API_KEY" = '${{ secrets.KC_CONNECTOR_API_KEY }}'
           "POSTGRES_LOGS_URI" = '${{ secrets.POSTGRES_LOGS_URI }}'
           "PG_CONNECTION_STRING" = '${{ secrets.PG_CONNECTION_STRING }}'
+          "RAG_DB_CONNECTION_STRING" = '${{ secrets.RAG_DB_CONNECTION_STRING }}'
           "MEILI_MASTER_KEY" = "${{ secrets.MEILI_MASTER_KEY }}"
         }
 
