@@ -23,6 +23,10 @@ function buildMergedList(confluence: DocumentationItem[], coda: DocumentationIte
   return merged;
 }
 
+// A query is treated as a link search if it looks like a URL/domain (e.g. "https://...",
+// "www...." or "wiki.logo.com.tr/..."), otherwise it searches the title.
+const LINK_QUERY_PATTERN = /^(https?:\/\/|www\.)|\.[a-z]{2,}(\/|$)/i;
+
 function filterMergedList(items: MergedItem[], query: string, sourceFilter: SourceFilter) {
   let filtered = items;
   if (sourceFilter !== 'all') {
@@ -30,7 +34,12 @@ function filterMergedList(items: MergedItem[], query: string, sourceFilter: Sour
   }
   const normalized = query.trim().toLowerCase();
   if (normalized) {
-    filtered = filtered.filter((item) => item.title.toLowerCase().includes(normalized));
+    const searchByLink = LINK_QUERY_PATTERN.test(normalized);
+    filtered = filtered.filter((item) =>
+      searchByLink
+        ? item.link.toLowerCase().includes(normalized)
+        : item.title.toLowerCase().includes(normalized),
+    );
   }
   return filtered;
 }
