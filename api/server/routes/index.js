@@ -31,6 +31,7 @@ const mcp = require('./mcp');
 const ppm = require('./ppm');
 const workspaces = require('./workspaces');
 const docs = require('./docs');
+const documentation = require('./documentation');
 const adminEvents = require('./admin/events');
 const adminAnalytics = require('./admin/analytics');
 const adminSystemStatus = require('./admin/systemStatus');
@@ -43,6 +44,7 @@ module.exports = {
   mcp,
   ppm,
   docs,
+  documentation,
   edit,
   auth,
   keys,
