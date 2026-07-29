@@ -482,7 +482,7 @@
   "com_nav_hide_panel": "Hide right-most side panel",
   "com_nav_documentation_list": "Documentation List",
   "com_nav_documentation_description": "Browse documents ingested from Confluence and Coda.",
-  "com_nav_documentation_search_placeholder": "Filter by keyword...",
+  "com_nav_documentation_search_placeholder": "Search by title, or paste a link to search by source...",
   "com_nav_documentation_empty": "No documents found.",
   "com_nav_documentation_error": "Failed to load documentation list.",
   "com_nav_documentation_source_all": "All sources",
