@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Spinner } from '@librechat/client';
-import { useGetDocumentationList, useGetCodaTitles } from '~/data-provider/Documentation';
+import {
+  useGetDocumentationList,
+  useGetCodaTitles,
+  useGetConfluenceTitles,
+} from '~/data-provider/Documentation';
 import type { DocumentationItem } from '~/data-provider/Documentation';
 import { useLocalize } from '~/hooks';
 
@@ -46,14 +50,16 @@ export default function Documentation() {
   const [page, setPage] = useState(1);
 
   const { data, isLoading, isError } = useGetDocumentationList();
-  // Background upgrade: swaps in real Coda page titles once the (slower) Coda API resolves.
+  // Background upgrade: swaps in real Coda/Confluence page titles once the (slower) APIs resolve.
   const { data: codaTitles } = useGetCodaTitles({ enabled: !isLoading && !isError });
+  const { data: confluenceTitles } = useGetConfluenceTitles({ enabled: !isLoading && !isError });
 
   const coda = useMemo(() => codaTitles?.coda ?? data?.coda ?? [], [codaTitles?.coda, data?.coda]);
-  const merged = useMemo(
-    () => buildMergedList(data?.confluence ?? [], coda),
-    [data?.confluence, coda],
+  const confluence = useMemo(
+    () => confluenceTitles?.confluence ?? data?.confluence ?? [],
+    [confluenceTitles?.confluence, data?.confluence],
   );
+  const merged = useMemo(() => buildMergedList(confluence, coda), [confluence, coda]);
   const filtered = useMemo(
     () => filterMergedList(merged, query, sourceFilter),
     [merged, query, sourceFilter],

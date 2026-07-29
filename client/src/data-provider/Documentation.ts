@@ -35,3 +35,16 @@ export const useGetCodaTitles = (
     { refetchOnWindowFocus: false, retry: false, ...config },
   );
 };
+
+export type ConfluenceTitles = { confluence: DocumentationItem[] };
+
+/** Resolves real Confluence page titles in the background; slower, meant to upgrade the heuristic titles. */
+export const useGetConfluenceTitles = (
+  config?: UseQueryOptions<ConfluenceTitles>,
+): QueryObserverResult<ConfluenceTitles> => {
+  return useQuery<ConfluenceTitles>(
+    ['documentation-confluence-titles'],
+    () => request.get('/api/documentation/confluence-titles'),
+    { refetchOnWindowFocus: false, retry: false, ...config },
+  );
+};

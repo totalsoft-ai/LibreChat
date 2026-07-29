@@ -45,6 +45,28 @@ function extractConfluenceTitle(source) {
   }
 }
 
+/**
+ * Confluence URLs are of the form https://wiki.logo.com.tr/display/{spaceKey}/{urlTitle}; the
+ * urlTitle is only a snapshot of the title at ingestion time (e.g. diacritics get stripped, and
+ * it goes stale if the page is later renamed), so it's used only as a lookup key / fallback.
+ */
+function parseConfluenceUrl(source) {
+  try {
+    const { origin, pathname } = new URL(source);
+    const match = pathname.match(/\/display\/([^/]+)\/([^/?#]+)/i);
+    if (!match) {
+      return null;
+    }
+    return {
+      origin,
+      spaceKey: match[1],
+      urlTitle: decodeURIComponent(match[2].replace(/\+/g, ' ')),
+    };
+  } catch {
+    return null;
+  }
+}
+
 /** Coda URLs are opaque IDs; used only as a fallback when the Coda API is unavailable. */
 function extractCodaTitle(text, namespace) {
   const lines = (text || '')
@@ -156,6 +178,76 @@ async function resolveCodaTitles(codaRows) {
   });
 }
 
+async function fetchConfluencePageTitle(origin, spaceKey, title) {
+  const url = `${origin}/rest/api/content?${new URLSearchParams({ spaceKey, title, limit: '1' })}`;
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${process.env.CONFLUENCE_API_TOKEN}` },
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!response.ok) {
+    throw new Error(`Confluence API returned ${response.status} for ${spaceKey}/${title}`);
+  }
+  const body = await response.json();
+  return body.results?.[0]?.title || null;
+}
+
+const CONFLUENCE_CACHE_TTL_MS = 30 * 60 * 1000;
+const CONFLUENCE_ERROR_CACHE_TTL_MS = 5 * 60 * 1000;
+const confluenceTitleCache = new Map();
+
+/** Fetches (and caches) the current title for a Confluence page; returns null on error or no match. */
+async function getConfluencePageTitle(source, origin, spaceKey, urlTitle) {
+  const cached = confluenceTitleCache.get(source);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.title;
+  }
+
+  try {
+    const title = await fetchConfluencePageTitle(origin, spaceKey, urlTitle);
+    confluenceTitleCache.set(source, { title, expiresAt: Date.now() + CONFLUENCE_CACHE_TTL_MS });
+    return title;
+  } catch (error) {
+    logger.error(`[DocumentationService] Failed to fetch Confluence title for ${source}`, error);
+    confluenceTitleCache.set(source, {
+      title: null,
+      expiresAt: Date.now() + CONFLUENCE_ERROR_CACHE_TTL_MS,
+    });
+    return null;
+  }
+}
+
+const CONFLUENCE_FETCH_CONCURRENCY = 5;
+
+/** Resolves real titles for Confluence rows via the Confluence API, falling back to the URL-slug heuristic. */
+async function resolveConfluenceTitles(confluenceRows) {
+  const results = [];
+
+  for (let i = 0; i < confluenceRows.length; i += CONFLUENCE_FETCH_CONCURRENCY) {
+    const batch = confluenceRows.slice(i, i + CONFLUENCE_FETCH_CONCURRENCY);
+    const batchResults = await Promise.all(
+      batch.map(async (row) => {
+        const parsed = parseConfluenceUrl(row.source);
+        const apiTitle = parsed
+          ? await getConfluencePageTitle(
+              row.source,
+              parsed.origin,
+              parsed.spaceKey,
+              parsed.urlTitle,
+            )
+          : null;
+        return {
+          title: apiTitle || extractConfluenceTitle(row.source),
+          link: row.source,
+          date: row.created_at,
+        };
+      }),
+    );
+    results.push(...batchResults);
+  }
+
+  return results;
+}
+
 async function queryDistinctSources() {
   if (!pool) {
     throw new Error('RAG_DB_CONNECTION_STRING is not configured');
@@ -180,9 +272,9 @@ function splitByCategory(rows) {
 
 /**
  * Fetches distinct Confluence/Coda documents that were ingested into the RAG vector store,
- * grouped by source category. Coda titles use the cheap text heuristic here so the page can
- * render immediately; call getCodaDocumentsWithApiTitles separately to upgrade them in the
- * background via the (much slower) Coda API.
+ * grouped by source category. Both use cheap heuristic titles here so the page can render
+ * immediately; call getConfluenceDocumentsWithApiTitles / getCodaDocumentsWithApiTitles
+ * separately to upgrade them in the background via the (much slower) real APIs.
  */
 async function getIngestedDocuments() {
   const rows = await queryDistinctSources();
@@ -225,4 +317,29 @@ async function getCodaDocumentsWithApiTitles() {
   return { coda };
 }
 
-module.exports = { getIngestedDocuments, getCodaDocumentsWithApiTitles };
+/**
+ * Resolves real Confluence page titles via the Confluence API. Slower than getIngestedDocuments
+ * (one API call per Confluence page, cached 30 min) — intended to be fetched in the background
+ * and used to upgrade the heuristic titles once ready.
+ */
+async function getConfluenceDocumentsWithApiTitles() {
+  if (!process.env.CONFLUENCE_API_TOKEN) {
+    throw new Error('CONFLUENCE_API_TOKEN is not configured');
+  }
+
+  const rows = await queryDistinctSources();
+  const { confluenceRows } = splitByCategory(rows);
+  const confluence = await resolveConfluenceTitles(confluenceRows);
+
+  logger.info(
+    `[DocumentationService] resolved ${confluence.length} confluence documents via Confluence API`,
+  );
+
+  return { confluence };
+}
+
+module.exports = {
+  getIngestedDocuments,
+  getCodaDocumentsWithApiTitles,
+  getConfluenceDocumentsWithApiTitles,
+};

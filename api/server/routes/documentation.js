@@ -4,6 +4,7 @@ const { logger } = require('~/config');
 const {
   getIngestedDocuments,
   getCodaDocumentsWithApiTitles,
+  getConfluenceDocumentsWithApiTitles,
 } = require('~/server/services/DocumentationService');
 
 const router = express.Router();
@@ -38,6 +39,24 @@ router.get('/coda-titles', async (req, res) => {
   } catch (error) {
     logger.error('[GET /api/documentation/coda-titles] Failed to resolve Coda titles', error);
     res.status(500).json({ error: 'Failed to resolve Coda titles' });
+  }
+});
+
+/**
+ * GET /api/documentation/confluence-titles
+ * Resolves real Confluence page titles via the Confluence API (slower, cached). Meant to be
+ * fetched in the background after the initial page render, to upgrade the heuristic titles.
+ */
+router.get('/confluence-titles', async (req, res) => {
+  try {
+    const { confluence } = await getConfluenceDocumentsWithApiTitles();
+    res.json({ confluence });
+  } catch (error) {
+    logger.error(
+      '[GET /api/documentation/confluence-titles] Failed to resolve Confluence titles',
+      error,
+    );
+    res.status(500).json({ error: 'Failed to resolve Confluence titles' });
   }
 });
 
