@@ -102,12 +102,12 @@ export default function Documentation() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={localize('com_nav_documentation_search_placeholder')}
-              className="w-full rounded-md border border-border-light bg-surface-primary px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 sm:w-56"
+              className="w-full rounded-md border border-border-light bg-surface-primary px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 sm:flex-[3_3_0%]"
             />
             <select
               value={sourceFilter}
               onChange={(e) => setSourceFilter(e.target.value as SourceFilter)}
-              className="flex-1 rounded-md border border-border-light bg-surface-primary px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-md border border-border-light bg-surface-primary px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 sm:flex-[1_1_0%]"
             >
               <option value="all">{localize('com_nav_documentation_source_all')}</option>
               <option value="Confluence">{'Confluence'}</option>
