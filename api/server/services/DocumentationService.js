@@ -34,11 +34,19 @@ function classifySource(source) {
   return null;
 }
 
-/** Confluence URLs end with the page title (e.g. .../display/EFS/BCRSF+Proiecte). */
+/**
+ * Confluence URLs come in two shapes: pretty ones ending with the page title
+ * (.../display/EFS/BCRSF+Proiecte) and permalinks with no title in the path at all
+ * (.../pages/viewpage.action?pageId=123456), for which the raw slug is useless as a title.
+ */
 function extractConfluenceTitle(source) {
   try {
-    const { pathname } = new URL(source);
-    const slug = pathname.split('/').filter(Boolean).pop();
+    const url = new URL(source);
+    const pageId = url.searchParams.get('pageId');
+    if (pageId) {
+      return `Confluence page ${pageId}`;
+    }
+    const slug = url.pathname.split('/').filter(Boolean).pop();
     return slug ? decodeURIComponent(slug.replace(/\+/g, ' ')) : source;
   } catch {
     return source;
@@ -46,19 +54,24 @@ function extractConfluenceTitle(source) {
 }
 
 /**
- * Confluence URLs are of the form https://wiki.logo.com.tr/display/{spaceKey}/{urlTitle}; the
+ * Parses a Confluence URL into whatever the API needs to resolve its real title: a direct
+ * pageId when present (permalinks), or a spaceKey/urlTitle pair to look up otherwise. The
  * urlTitle is only a snapshot of the title at ingestion time (e.g. diacritics get stripped, and
  * it goes stale if the page is later renamed), so it's used only as a lookup key / fallback.
  */
 function parseConfluenceUrl(source) {
   try {
-    const { origin, pathname } = new URL(source);
-    const match = pathname.match(/\/display\/([^/]+)\/([^/?#]+)/i);
+    const url = new URL(source);
+    const pageId = url.searchParams.get('pageId');
+    if (pageId) {
+      return { origin: url.origin, pageId };
+    }
+    const match = url.pathname.match(/\/display\/([^/]+)\/([^/?#]+)/i);
     if (!match) {
       return null;
     }
     return {
-      origin,
+      origin: url.origin,
       spaceKey: match[1],
       urlTitle: decodeURIComponent(match[2].replace(/\+/g, ' ')),
     };
@@ -178,7 +191,19 @@ async function resolveCodaTitles(codaRows) {
   });
 }
 
-async function fetchConfluencePageTitle(origin, spaceKey, title) {
+async function fetchConfluencePageTitleById(origin, pageId) {
+  const response = await fetch(`${origin}/rest/api/content/${pageId}`, {
+    headers: { Authorization: `Bearer ${process.env.CONFLUENCE_API_TOKEN}` },
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!response.ok) {
+    throw new Error(`Confluence API returned ${response.status} for page ${pageId}`);
+  }
+  const body = await response.json();
+  return body.title || null;
+}
+
+async function fetchConfluencePageTitleBySpaceAndTitle(origin, spaceKey, title) {
   const url = `${origin}/rest/api/content?${new URLSearchParams({ spaceKey, title, limit: '1' })}`;
   const response = await fetch(url, {
     headers: { Authorization: `Bearer ${process.env.CONFLUENCE_API_TOKEN}` },
@@ -191,19 +216,25 @@ async function fetchConfluencePageTitle(origin, spaceKey, title) {
   return body.results?.[0]?.title || null;
 }
 
+function fetchConfluencePageTitle(parsed) {
+  return parsed.pageId
+    ? fetchConfluencePageTitleById(parsed.origin, parsed.pageId)
+    : fetchConfluencePageTitleBySpaceAndTitle(parsed.origin, parsed.spaceKey, parsed.urlTitle);
+}
+
 const CONFLUENCE_CACHE_TTL_MS = 30 * 60 * 1000;
 const CONFLUENCE_ERROR_CACHE_TTL_MS = 5 * 60 * 1000;
 const confluenceTitleCache = new Map();
 
 /** Fetches (and caches) the current title for a Confluence page; returns null on error or no match. */
-async function getConfluencePageTitle(source, origin, spaceKey, urlTitle) {
+async function getConfluencePageTitle(source, parsed) {
   const cached = confluenceTitleCache.get(source);
   if (cached && cached.expiresAt > Date.now()) {
     return cached.title;
   }
 
   try {
-    const title = await fetchConfluencePageTitle(origin, spaceKey, urlTitle);
+    const title = await fetchConfluencePageTitle(parsed);
     confluenceTitleCache.set(source, { title, expiresAt: Date.now() + CONFLUENCE_CACHE_TTL_MS });
     return title;
   } catch (error) {
@@ -218,7 +249,7 @@ async function getConfluencePageTitle(source, origin, spaceKey, urlTitle) {
 
 const CONFLUENCE_FETCH_CONCURRENCY = 5;
 
-/** Resolves real titles for Confluence rows via the Confluence API, falling back to the URL-slug heuristic. */
+/** Resolves real titles for Confluence rows via the Confluence API, falling back to the URL heuristic. */
 async function resolveConfluenceTitles(confluenceRows) {
   const results = [];
 
@@ -227,14 +258,7 @@ async function resolveConfluenceTitles(confluenceRows) {
     const batchResults = await Promise.all(
       batch.map(async (row) => {
         const parsed = parseConfluenceUrl(row.source);
-        const apiTitle = parsed
-          ? await getConfluencePageTitle(
-              row.source,
-              parsed.origin,
-              parsed.spaceKey,
-              parsed.urlTitle,
-            )
-          : null;
+        const apiTitle = parsed ? await getConfluencePageTitle(row.source, parsed) : null;
         return {
           title: apiTitle || extractConfluenceTitle(row.source),
           link: row.source,
