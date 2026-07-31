@@ -159,6 +159,7 @@ const startServer = async () => {
   app.use('/api/workspaces', routes.workspaces);
   app.use('/api/docs', routes.docs);
   app.use('/api/documentation', routes.documentation);
+  app.use('/api/feedback', routes.feedback);
   app.use('/api/admin/events', routes.adminEvents);
   app.use('/api/admin/analytics', routes.adminAnalytics);
   app.use('/api/admin/system-status', routes.adminSystemStatus);
