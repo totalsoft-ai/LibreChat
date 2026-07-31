@@ -1,13 +1,17 @@
 /* eslint-disable react-hooks/rules-of-hooks */
-import { ArrowUpDown, Database } from 'lucide-react';
+import { useRecoilValue } from 'recoil';
+import { ArrowUpDown, Database, Download } from 'lucide-react';
 import { FileSources, FileContext } from 'librechat-data-provider';
 import {
   Button,
   Checkbox,
   OpenAIMinimalIcon,
   AzureMinimalIcon,
+  TooltipAnchor,
+  useToastContext,
   useMediaQuery,
 } from '@librechat/client';
+import type { MouseEvent } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { TFile } from 'librechat-data-provider';
 import ImagePreview from '~/components/Chat/Input/Files/ImagePreview';
@@ -15,6 +19,8 @@ import FilePreview from '~/components/Chat/Input/Files/FilePreview';
 import { TranslationKeys, useLocalize } from '~/hooks';
 import { SortFilterHeader } from './SortFilterHeader';
 import { formatDate, getFileType } from '~/utils';
+import { useFileDownload } from '~/data-provider';
+import store from '~/store';
 
 const contextMap: Record<any, TranslationKeys> = {
   [FileContext.avatar]: 'com_ui_avatar',
@@ -216,6 +222,63 @@ export const columns: ColumnDef<TFile>[] = [
       }
 
       return `${value}${suffix}`;
+    },
+  },
+  {
+    id: 'actions',
+    header: () => null,
+    enableSorting: false,
+    enableHiding: false,
+    cell: ({ row }) => {
+      const localize = useLocalize();
+      const { showToast } = useToastContext();
+      const user = useRecoilValue(store.user);
+      const file = row.original;
+      const { refetch: downloadFile } = useFileDownload(user?.id ?? '', file.file_id);
+
+      const handleDownload = async (event: MouseEvent) => {
+        event.preventDefault();
+        event.stopPropagation();
+        try {
+          const stream = await downloadFile();
+          if (stream.data == null || stream.data === '') {
+            showToast({
+              status: 'error',
+              message: localize('com_ui_download_error'),
+            });
+            return;
+          }
+          const link = document.createElement('a');
+          link.href = stream.data;
+          link.setAttribute('download', file.filename);
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(stream.data);
+        } catch (error) {
+          console.error('Error downloading file:', error);
+          showToast({
+            status: 'error',
+            message: localize('com_ui_download_error'),
+          });
+        }
+      };
+
+      return (
+        <TooltipAnchor
+          description={localize('com_ui_download')}
+          render={
+            <Button
+              variant="ghost"
+              onClick={handleDownload}
+              aria-label={localize('com_ui_download')}
+              className="h-8 w-8 p-0"
+            >
+              <Download className="size-4" />
+            </Button>
+          }
+        />
+      );
     },
   },
 ];
