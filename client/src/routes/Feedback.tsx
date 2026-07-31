@@ -2,68 +2,72 @@ import { useRef, useState, useCallback } from 'react';
 import { v4 } from 'uuid';
 import { Paperclip } from 'lucide-react';
 import { useToastContext } from '@librechat/client';
-import { imageMimeTypes, mbToBytes, FileSources } from 'librechat-data-provider';
-import { useUploadFileMutation, useDeleteFilesMutation } from '~/data-provider';
+import { imageMimeTypes } from 'librechat-data-provider';
 import Image from '~/components/Chat/Input/Files/Image';
 import { useSubmitFeedback } from '~/data-provider/Feedback';
-import type { FeedbackCategory } from '~/data-provider/Feedback';
-import type { ExtendedFile } from '~/common';
+import type { FeedbackCategory, FeedbackImage } from '~/data-provider/Feedback';
 import { useLocalize } from '~/hooks';
 
 const MAX_MESSAGE_LENGTH = 5000;
-const MAX_FILES = 3;
-const MAX_FILE_SIZE = mbToBytes(10);
+const MAX_IMAGES = 3;
+// Original file size sanity cap, before client-side compression kicks in.
+const MAX_SOURCE_FILE_BYTES = 20 * 1024 * 1024;
+// Post-compression cap: keeps a full submit (message + images) safely under
+// the app's 3mb JSON body limit, since images are sent inline as base64.
+const MAX_IMAGE_BYTES = 600 * 1024;
+const CANVAS_MAX_DIMENSION = 1600;
+const JPEG_QUALITY = 0.82;
+
+type Attachment = FeedbackImage & { id: string; preview: string };
+
+function loadImageFromFile(file: File): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new window.Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(img);
+    };
+    img.onerror = (error) => {
+      URL.revokeObjectURL(url);
+      reject(error);
+    };
+    img.src = url;
+  });
+}
+
+/** Downscales and re-encodes an image as JPEG so it stays small enough to store inline. */
+async function compressImage(file: File): Promise<{ dataUrl: string; contentType: string }> {
+  const img = await loadImageFromFile(file);
+  const scale = Math.min(1, CANVAS_MAX_DIMENSION / Math.max(img.width, img.height));
+  const width = Math.max(1, Math.round(img.width * scale));
+  const height = Math.max(1, Math.round(img.height * scale));
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    throw new Error('Canvas not supported');
+  }
+  ctx.drawImage(img, 0, 0, width, height);
+
+  return { dataUrl: canvas.toDataURL('image/jpeg', JPEG_QUALITY), contentType: 'image/jpeg' };
+}
 
 export default function Feedback() {
   const localize = useLocalize();
   const { showToast } = useToastContext();
   const [category, setCategory] = useState<FeedbackCategory>('suggestion');
   const [message, setMessage] = useState('');
-  const [attachments, setAttachments] = useState<Map<string, ExtendedFile>>(new Map());
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const uploadFile = useUploadFileMutation({
-    onSuccess: (data, formData) => {
-      // Keyed by the client-generated temp id; the server assigns its own
-      // canonical `file_id` (returned here), so we must adopt it for any
-      // later reference (submit/delete) to this attachment.
-      const tempId = formData.get('file_id') as string;
-      setAttachments((prev) => {
-        if (!prev.has(tempId)) {
-          return prev;
-        }
-        const next = new Map(prev);
-        const current = next.get(tempId) as ExtendedFile;
-        next.set(tempId, {
-          ...current,
-          progress: 1,
-          file_id: data.file_id,
-          filepath: data.filepath,
-          filename: data.filename,
-          type: data.type,
-          source: data.source,
-        });
-        return next;
-      });
-    },
-    onError: (_error, formData) => {
-      const tempId = formData.get('file_id') as string;
-      setAttachments((prev) => {
-        const next = new Map(prev);
-        next.delete(tempId);
-        return next;
-      });
-      showToast({ message: localize('com_nav_feedback_attachment_error'), status: 'error' });
-    },
-  });
-
-  const deleteFile = useDeleteFilesMutation();
 
   const submitFeedback = useSubmitFeedback({
     onSuccess: () => {
       setMessage('');
       setCategory('suggestion');
-      setAttachments(new Map());
+      setAttachments([]);
       showToast({ message: localize('com_nav_feedback_success'), status: 'success' });
     },
     onError: () => {
@@ -73,17 +77,16 @@ export default function Feedback() {
 
   const trimmedLength = message.trim().length;
   const canSubmit = trimmedLength > 0 && trimmedLength <= MAX_MESSAGE_LENGTH;
-  const isUploading = Array.from(attachments.values()).some((file) => file.progress < 1);
 
   const handleFileChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
       const selected = Array.from(e.target.files ?? []);
       e.target.value = '';
 
       for (const file of selected) {
-        if (attachments.size >= MAX_FILES) {
+        if (attachments.length >= MAX_IMAGES) {
           showToast({
-            message: localize('com_nav_feedback_attachment_limit', { 0: MAX_FILES }),
+            message: localize('com_nav_feedback_attachment_limit', { 0: MAX_IMAGES }),
             status: 'warning',
           });
           break;
@@ -92,69 +95,47 @@ export default function Feedback() {
           showToast({ message: localize('com_nav_feedback_attachment_type'), status: 'error' });
           continue;
         }
-        if (file.size > MAX_FILE_SIZE) {
+        if (file.size > MAX_SOURCE_FILE_BYTES) {
           showToast({ message: localize('com_nav_feedback_attachment_size'), status: 'error' });
           continue;
         }
 
-        const file_id = v4();
-        const preview = URL.createObjectURL(file);
-        setAttachments((prev) => {
-          const next = new Map(prev);
-          next.set(file_id, {
-            file_id,
-            file,
-            preview,
-            size: file.size,
-            type: file.type,
-            progress: 0,
-          });
-          return next;
-        });
+        try {
+          const { dataUrl, contentType } = await compressImage(file);
+          const data = dataUrl.slice(dataUrl.indexOf(',') + 1);
+          const approxBytes = Math.ceil((data.length * 3) / 4);
+          if (approxBytes > MAX_IMAGE_BYTES) {
+            showToast({ message: localize('com_nav_feedback_attachment_size'), status: 'error' });
+            continue;
+          }
 
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('file_id', file_id);
-        formData.append('endpoint', 'default');
-        uploadFile.mutate(formData);
+          setAttachments((prev) => [
+            ...prev,
+            { id: v4(), preview: dataUrl, data, contentType, filename: file.name },
+          ]);
+        } catch {
+          showToast({ message: localize('com_nav_feedback_attachment_error'), status: 'error' });
+        }
       }
     },
-    [attachments.size, localize, showToast, uploadFile],
+    [attachments.length, localize, showToast],
   );
 
-  const handleRemoveAttachment = useCallback(
-    (tempId: string) => {
-      const attachment = attachments.get(tempId);
-      setAttachments((prev) => {
-        const next = new Map(prev);
-        next.delete(tempId);
-        return next;
-      });
-      if (attachment?.filepath && attachment.file_id) {
-        deleteFile.mutate({
-          files: [
-            {
-              file_id: attachment.file_id,
-              filepath: attachment.filepath,
-              embedded: false,
-              source: attachment.source ?? FileSources.local,
-            },
-          ],
-        });
-      }
-    },
-    [attachments, deleteFile],
-  );
+  const handleRemoveAttachment = useCallback((id: string) => {
+    setAttachments((prev) => prev.filter((attachment) => attachment.id !== id));
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canSubmit || submitFeedback.isLoading || isUploading) {
+    if (!canSubmit || submitFeedback.isLoading) {
       return;
     }
-    const files = Array.from(attachments.values())
-      .filter((file) => file.progress === 1)
-      .map((file) => file.file_id);
-    submitFeedback.mutate({ message: message.trim(), category, files });
+    const images = attachments.map(({ data, contentType, filename }) => ({
+      data,
+      contentType,
+      filename,
+    }));
+    submitFeedback.mutate({ message: message.trim(), category, images });
   };
 
   return (
@@ -223,21 +204,21 @@ export default function Feedback() {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                disabled={attachments.size >= MAX_FILES}
+                disabled={attachments.length >= MAX_IMAGES}
                 className="flex items-center gap-1.5 rounded-md border border-border-light px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-hover disabled:opacity-40"
               >
                 <Paperclip className="icon-sm" aria-hidden="true" />
                 {localize('com_nav_feedback_attach_image')}
               </button>
 
-              {attachments.size > 0 && (
+              {attachments.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {Array.from(attachments.entries()).map(([tempId, attachment]) => (
+                  {attachments.map((attachment) => (
                     <Image
-                      key={tempId}
+                      key={attachment.id}
                       imageBase64={attachment.preview}
-                      progress={attachment.progress}
-                      onDelete={() => handleRemoveAttachment(tempId)}
+                      progress={1}
+                      onDelete={() => handleRemoveAttachment(attachment.id)}
                     />
                   ))}
                 </div>
@@ -246,7 +227,7 @@ export default function Feedback() {
 
             <button
               type="submit"
-              disabled={!canSubmit || submitFeedback.isLoading || isUploading}
+              disabled={!canSubmit || submitFeedback.isLoading}
               className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-40"
             >
               {submitFeedback.isLoading

@@ -498,7 +498,7 @@
   "com_nav_feedback_attach_image": "Attach image",
   "com_nav_feedback_attachment_limit": "You can attach up to {{0}} images",
   "com_nav_feedback_attachment_type": "Only image files can be attached",
-  "com_nav_feedback_attachment_size": "Image is too large (max 10MB)",
+  "com_nav_feedback_attachment_size": "Image is too large, even after compression",
   "com_nav_feedback_attachment_error": "Failed to upload image",
   "com_nav_feedback_message_label": "Message",
   "com_nav_feedback_message_placeholder": "Tell us what's on your mind...",

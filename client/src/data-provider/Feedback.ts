@@ -4,10 +4,16 @@ import type { UseMutationOptions, UseMutationResult } from '@tanstack/react-quer
 
 export type FeedbackCategory = 'bug' | 'suggestion' | 'other';
 
+export type FeedbackImage = {
+  data: string;
+  contentType: string;
+  filename?: string;
+};
+
 export type FeedbackPayload = {
   message: string;
   category: FeedbackCategory;
-  files?: string[];
+  images?: FeedbackImage[];
 };
 
 export type FeedbackResponse = {

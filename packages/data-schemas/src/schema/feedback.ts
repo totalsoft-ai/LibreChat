@@ -1,8 +1,8 @@
 import { Schema, Document } from 'mongoose';
 
-export interface IFeedbackFile {
-  file_id: string;
-  filepath: string;
+export interface IFeedbackImage {
+  data: string;
+  contentType: string;
   filename?: string;
 }
 
@@ -11,7 +11,7 @@ export interface IFeedback extends Document {
   message: string;
   category?: 'bug' | 'suggestion' | 'other';
   status: 'new' | 'reviewed';
-  files?: IFeedbackFile[];
+  images?: IFeedbackImage[];
 }
 
 const feedback = new Schema<IFeedback>(
@@ -35,11 +35,13 @@ const feedback = new Schema<IFeedback>(
       enum: ['new', 'reviewed'],
       default: 'new',
     },
-    files: [
+    // Stored inline (base64) rather than via the shared file-upload/storage
+    // pipeline, so feedback attachments never leave MongoDB (no S3/MinIO).
+    images: [
       {
         _id: false,
-        file_id: { type: String, required: true },
-        filepath: { type: String, required: true },
+        data: { type: String, required: true },
+        contentType: { type: String, required: true },
         filename: { type: String },
       },
     ],
