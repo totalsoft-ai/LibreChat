@@ -158,6 +158,9 @@ export default function DataTable<TData, TValue>({ columns, data }: DataTablePro
                     style.minWidth = '35px';
                   } else if (header.id === 'filename') {
                     style.width = isSmallScreen ? '60%' : '40%';
+                  } else if (header.id === 'actions') {
+                    style.width = '48px';
+                    style.minWidth = '48px';
                   } else {
                     style.width = isSmallScreen ? '20%' : '15%';
                   }

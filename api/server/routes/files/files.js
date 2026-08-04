@@ -457,7 +457,7 @@ router.get('/download/:userId/:file_id', fileAccess, async (req, res) => {
 
       stream.pipe(res);
     } else {
-      const fileStream = await getDownloadStream(req, file.filepath);
+      const fileStream = await getDownloadStream(req, file.filepath, file.workspace);
 
       fileStream.on('error', (streamError) => {
         logger.error('[DOWNLOAD ROUTE] Stream error:', streamError);
