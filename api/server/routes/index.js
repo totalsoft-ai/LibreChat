@@ -36,11 +36,13 @@ const feedback = require('./feedback');
 const adminEvents = require('./admin/events');
 const adminAnalytics = require('./admin/analytics');
 const adminSystemStatus = require('./admin/systemStatus');
+const adminFeedback = require('./admin/feedback');
 
 module.exports = {
   adminEvents,
   adminAnalytics,
   adminSystemStatus,
+  adminFeedback,
   workspaces,
   mcp,
   ppm,

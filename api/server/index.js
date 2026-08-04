@@ -163,6 +163,7 @@ const startServer = async () => {
   app.use('/api/admin/events', routes.adminEvents);
   app.use('/api/admin/analytics', routes.adminAnalytics);
   app.use('/api/admin/system-status', routes.adminSystemStatus);
+  app.use('/api/admin/feedback', routes.adminFeedback);
 
   app.use(ErrorController);
 
