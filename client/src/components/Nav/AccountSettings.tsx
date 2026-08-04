@@ -10,7 +10,6 @@ import {
   BarChart2,
   Library,
   MessageSquare,
-  Inbox,
 } from 'lucide-react';
 import { LinkIcon, GearIcon, DropdownMenuSeparator, Avatar } from '@librechat/client';
 import { useGetStartupConfig, useGetUserBalance } from '~/data-provider';
@@ -131,16 +130,6 @@ function AccountSettings() {
           >
             <BarChart2 className="icon-md" aria-hidden="true" />
             Analytics
-          </Select.SelectItem>
-        )}
-        {user?.role === 'ADMIN' && (
-          <Select.SelectItem
-            value=""
-            onClick={() => navigate('/feedback-admin')}
-            className="select-item text-sm"
-          >
-            <Inbox className="icon-md" aria-hidden="true" />
-            {localize('com_nav_feedback_admin')}
           </Select.SelectItem>
         )}
         <Select.SelectItem

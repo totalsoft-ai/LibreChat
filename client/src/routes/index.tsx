@@ -26,7 +26,6 @@ import Analytics from './Analytics';
 import Events from './Events';
 import Documentation from './Documentation';
 import Feedback from './Feedback';
-import FeedbackAdmin from './FeedbackAdmin';
 
 const AuthLayout = () => (
   <AuthContextProvider>
@@ -153,10 +152,6 @@ export const router = createBrowserRouter([
           {
             path: 'feedback',
             element: <Feedback />,
-          },
-          {
-            path: 'feedback-admin',
-            element: <FeedbackAdmin />,
           },
         ],
       },

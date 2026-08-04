@@ -518,8 +518,6 @@
   "com_nav_feedback_admin_empty": "No feedback found.",
   "com_nav_feedback_admin_error": "Failed to load feedback.",
   "com_nav_feedback_admin_total": "{{0}} total",
-  "com_nav_feedback_admin_access_denied_title": "Access Denied",
-  "com_nav_feedback_admin_access_denied_body": "This page is only accessible to administrators.",
   "com_nav_info_balance": "Balance shows how many token credits you have left to use. Token credits translate to monetary value (e.g., 1000 credits = $0.001 USD)",
   "com_nav_info_code_artifacts": "Enables the display of experimental code artifacts next to the chat",
   "com_nav_info_code_artifacts_agent": "Enables the use of code artifacts for this agent. By default, additional instructions specific to the use of artifacts are added, unless \"Custom Prompt Mode\" is enabled.",
