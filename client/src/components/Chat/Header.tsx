@@ -11,6 +11,7 @@ import ExportAndShareMenu from './ExportAndShareMenu';
 import BookmarkMenu from './Menus/BookmarkMenu';
 import { TemporaryChat } from './TemporaryChat';
 import AddMultiConvo from './AddMultiConvo';
+import HeaderFeedback from './HeaderFeedback';
 import { useHasAccess } from '~/hooks';
 import { currentWorkspaceAtom } from '~/store/workspaces';
 
@@ -60,6 +61,7 @@ export default function Header() {
             } ${!navVisible ? 'translate-x-0' : 'translate-x-[-100px]'}`}
           >
             <ModelSelector startupConfig={startupConfig} />
+            <HeaderFeedback />
             {currentWorkspace && (
               <div className="dark:bg-surface-tertiary-dark flex items-center gap-1 rounded-md bg-surface-tertiary px-2 py-1 text-xs text-text-secondary">
                 <svg
