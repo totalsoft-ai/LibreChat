@@ -32,19 +32,23 @@ const ppm = require('./ppm');
 const workspaces = require('./workspaces');
 const docs = require('./docs');
 const documentation = require('./documentation');
+const feedback = require('./feedback');
 const adminEvents = require('./admin/events');
 const adminAnalytics = require('./admin/analytics');
 const adminSystemStatus = require('./admin/systemStatus');
+const adminFeedback = require('./admin/feedback');
 
 module.exports = {
   adminEvents,
   adminAnalytics,
   adminSystemStatus,
+  adminFeedback,
   workspaces,
   mcp,
   ppm,
   docs,
   documentation,
+  feedback,
   edit,
   auth,
   keys,

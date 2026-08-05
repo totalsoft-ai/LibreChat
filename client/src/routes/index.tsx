@@ -25,6 +25,7 @@ import Help from './Help';
 import Analytics from './Analytics';
 import Events from './Events';
 import Documentation from './Documentation';
+import Feedback from './Feedback';
 
 const AuthLayout = () => (
   <AuthContextProvider>
@@ -147,6 +148,10 @@ export const router = createBrowserRouter([
           {
             path: 'documentation',
             element: <Documentation />,
+          },
+          {
+            path: 'feedback',
+            element: <Feedback />,
           },
         ],
       },

@@ -20,6 +20,7 @@ import { TermsAndConditionsModal } from '~/components/ui';
 import { Nav, MobileNav } from '~/components/Nav';
 import { useHealthCheck } from '~/data-provider';
 import { Banner } from '~/components/Banners';
+import FeedbackButton from '~/components/FeedbackButton';
 
 export default function Root() {
   const [showTerms, setShowTerms] = useState(false);
@@ -80,6 +81,7 @@ export default function Root() {
                   </div>
                 </div>
               </div>
+              <FeedbackButton />
             </PromptGroupsProvider>
           </AgentsMapContext.Provider>
           {config?.interface?.termsOfService?.modalAcceptance === true && (
