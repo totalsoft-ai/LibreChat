@@ -5,6 +5,7 @@ import { Spinner, useToastContext } from '@librechat/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { imageMimeTypes } from 'librechat-data-provider';
 import Image from '~/components/Chat/Input/Files/Image';
+import ImagePreview from '~/components/Chat/Input/Files/ImagePreview';
 import {
   useSubmitFeedback,
   useGetFeedbackList,
@@ -81,16 +82,7 @@ function userLabel(user: FeedbackListItem['user']) {
 
 function ImageThumbnail({ image }: { image: FeedbackImage }) {
   const src = `data:${image.contentType};base64,${image.data}`;
-  return (
-    <button
-      type="button"
-      onClick={() => window.open(src, '_blank', 'noopener,noreferrer')}
-      className="h-12 w-12 overflow-hidden rounded-md border border-border-light"
-      title={image.filename}
-    >
-      <img src={src} alt={image.filename ?? 'attachment'} className="h-full w-full object-cover" />
-    </button>
-  );
+  return <ImagePreview imageBase64={src} alt={image.filename ?? 'attachment'} />;
 }
 
 export default function Feedback() {
