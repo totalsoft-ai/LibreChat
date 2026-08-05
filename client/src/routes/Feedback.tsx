@@ -1,11 +1,14 @@
 import { useRef, useState, useCallback } from 'react';
 import { v4 } from 'uuid';
 import { Paperclip } from 'lucide-react';
+import { useOutletContext } from 'react-router-dom';
 import { Spinner, useToastContext } from '@librechat/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { imageMimeTypes } from 'librechat-data-provider';
+import type { ContextType } from '~/common';
 import Image from '~/components/Chat/Input/Files/Image';
 import ImagePreview from '~/components/Chat/Input/Files/ImagePreview';
+import { OpenSidebar } from '~/components/Chat/Menus';
 import {
   useSubmitFeedback,
   useGetFeedbackList,
@@ -90,6 +93,7 @@ export default function Feedback() {
   const { user } = useAuthContext();
   const { showToast } = useToastContext();
   const queryClient = useQueryClient();
+  const { setNavVisible } = useOutletContext<ContextType>();
   const isAdmin = user?.role === 'ADMIN';
 
   const [category, setCategory] = useState<FeedbackCategory>('suggestion');
@@ -203,6 +207,9 @@ export default function Feedback() {
 
   return (
     <div className="flex h-screen flex-col">
+      <div className="sticky top-0 z-10 flex h-14 w-full flex-shrink-0 items-center bg-white p-2 dark:bg-gray-800">
+        <OpenSidebar setNavVisible={setNavVisible} />
+      </div>
       <div className="flex-1 overflow-auto bg-white dark:bg-gray-800">
         <div className="mx-auto max-w-5xl space-y-10 px-4 py-8 sm:px-6 lg:px-8">
           <div className="max-w-2xl space-y-6">
