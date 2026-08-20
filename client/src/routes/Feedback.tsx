@@ -1,8 +1,8 @@
 import { useRef, useState, useCallback } from 'react';
 import { v4 } from 'uuid';
-import { Paperclip } from 'lucide-react';
-import { useOutletContext } from 'react-router-dom';
-import { Spinner, useToastContext } from '@librechat/client';
+import { Paperclip, X } from 'lucide-react';
+import { useOutletContext, useNavigate } from 'react-router-dom';
+import { Button, Spinner, TooltipAnchor, useToastContext } from '@librechat/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { imageMimeTypes } from 'librechat-data-provider';
 import type { ContextType } from '~/common';
@@ -90,6 +90,7 @@ function ImageThumbnail({ image }: { image: FeedbackImage }) {
 
 export default function Feedback() {
   const localize = useLocalize();
+  const navigate = useNavigate();
   const { user } = useAuthContext();
   const { showToast } = useToastContext();
   const queryClient = useQueryClient();
@@ -205,10 +206,32 @@ export default function Feedback() {
   const items = data?.data ?? [];
   const pagination = data?.pagination;
 
+  const handleClose = () => {
+    if (window.history.state?.idx > 0) {
+      navigate(-1);
+    } else {
+      navigate('/c/new');
+    }
+  };
+
   return (
     <div className="flex h-screen flex-col">
-      <div className="sticky top-0 z-10 flex h-14 w-full flex-shrink-0 items-center bg-white p-2 dark:bg-gray-800">
+      <div className="sticky top-0 z-10 flex h-14 w-full flex-shrink-0 items-center justify-between bg-white p-2 dark:bg-gray-800">
         <OpenSidebar setNavVisible={setNavVisible} />
+        <TooltipAnchor
+          description={localize('com_ui_close')}
+          render={
+            <Button
+              size="icon"
+              variant="outline"
+              aria-label={localize('com_ui_close')}
+              className="rounded-xl border border-border-light bg-surface-secondary p-2 hover:bg-surface-hover"
+              onClick={handleClose}
+            >
+              <X className="icon-md" />
+            </Button>
+          }
+        />
       </div>
       <div className="flex-1 overflow-auto bg-white dark:bg-gray-800">
         <div className="mx-auto max-w-5xl space-y-10 px-4 py-8 sm:px-6 lg:px-8">
