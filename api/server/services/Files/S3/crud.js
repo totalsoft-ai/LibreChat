@@ -368,6 +368,13 @@ async function getS3FileStream(_req, filePath, workspace) {
  * @returns {boolean} True if the URL needs refreshing
  */
 function needsRefresh(signedUrl, bufferSeconds) {
+  // Relative proxy paths (e.g. "/images/{userId}/{filename}") are never signed URLs
+  // and never expire — `new URL()` would throw on these, so check first to avoid
+  // falling into the catch block below and being wrongly treated as needing a refresh.
+  if (!signedUrl || signedUrl.startsWith('/')) {
+    return false;
+  }
+
   try {
     // Parse the URL
     const url = new URL(signedUrl);
