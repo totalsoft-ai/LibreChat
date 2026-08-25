@@ -280,6 +280,46 @@ async function queryDistinctSources() {
   return rows;
 }
 
+/**
+ * The same page can be ingested under different exact `source` strings (e.g. Confluence's
+ * pretty URL vs. its permalink, see extractConfluenceTitle/parseConfluenceUrl above), which
+ * DISTINCT ON (source) in SOURCE_QUERY can't catch since it compares raw strings. This derives
+ * a stable identity per page/doc so those variants collapse into a single row.
+ */
+function canonicalKey(category, source) {
+  if (category === 'confluence') {
+    const parsed = parseConfluenceUrl(source);
+    if (parsed?.pageId) {
+      return `confluence:pageId:${parsed.pageId}`;
+    }
+    if (parsed?.spaceKey) {
+      return `confluence:space:${parsed.spaceKey.toLowerCase()}:${parsed.urlTitle.toLowerCase()}`;
+    }
+    return `confluence:raw:${source}`;
+  }
+  if (category === 'coda') {
+    const docId = getCodaDocId(source);
+    const pageKey = getCodaPageKey(source);
+    if (docId && pageKey) {
+      return `coda:${docId}:${pageKey}`;
+    }
+    return `coda:raw:${source}`;
+  }
+  return source;
+}
+
+function dedupeByCanonicalKey(rows, category) {
+  const byKey = new Map();
+  for (const row of rows) {
+    const key = canonicalKey(category, row.source);
+    const existing = byKey.get(key);
+    if (!existing || new Date(row.created_at) > new Date(existing.created_at)) {
+      byKey.set(key, row);
+    }
+  }
+  return [...byKey.values()];
+}
+
 function splitByCategory(rows) {
   const confluenceRows = [];
   const codaRows = [];
@@ -291,7 +331,10 @@ function splitByCategory(rows) {
       codaRows.push(row);
     }
   }
-  return { confluenceRows, codaRows };
+  return {
+    confluenceRows: dedupeByCanonicalKey(confluenceRows, 'confluence'),
+    codaRows: dedupeByCanonicalKey(codaRows, 'coda'),
+  };
 }
 
 /**
