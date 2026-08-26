@@ -24,7 +24,7 @@ function calculateCutoffDate(retentionDays) {
  * @returns {Promise<{ processed: number, errors: number, cutoffDate: Date }>}
  */
 async function sweepExpiredImageAttachments(retentionDays) {
-  const days = retentionDays ?? parseInt(process.env.IMAGE_ATTACHMENT_RETENTION_DAYS, 10) || 15;
+  const days = retentionDays ?? (parseInt(process.env.IMAGE_ATTACHMENT_RETENTION_DAYS, 10) || 15);
   const cutoffDate = calculateCutoffDate(days);
 
   const expiredFiles = await getFiles({
