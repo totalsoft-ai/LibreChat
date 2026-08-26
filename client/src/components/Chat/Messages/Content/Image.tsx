@@ -1,6 +1,8 @@
 import React, { useState, useRef, useMemo } from 'react';
+import { ImageOff } from 'lucide-react';
 import { Skeleton } from '@librechat/client';
 import { LazyLoadImage } from 'react-lazy-load-image-component';
+import { useLocalize } from '~/hooks';
 import { cn, scaleImage } from '~/utils';
 import DialogImage from './DialogImage';
 
@@ -30,11 +32,14 @@ const Image = ({
     [key: string]: unknown;
   };
 }) => {
+  const localize = useLocalize();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isError, setIsError] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const handleImageLoad = () => setIsLoaded(true);
+  const handleImageError = () => setIsError(true);
 
   const { width: scaledWidth, height: scaledHeight } = useMemo(
     () =>
@@ -83,37 +88,48 @@ const Image = ({
           className,
         )}
       >
-        <button
-          type="button"
-          aria-label={`View ${altText} in dialog`}
-          onClick={() => setIsOpen(true)}
-          className="cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-        >
-          <LazyLoadImage
-            alt={altText}
-            onLoad={handleImageLoad}
-            visibleByDefault={true}
-            className={cn(
-              'opacity-100 transition-opacity duration-100',
-              isLoaded ? 'opacity-100' : 'opacity-0',
-            )}
-            src={imagePath}
-            style={{
-              width: `${scaledWidth}`,
-              height: 'auto',
-              color: 'transparent',
-              display: 'block',
-            }}
-            placeholder={
-              <Skeleton
-                className={cn('h-auto w-full', `h-[${scaledHeight}] w-[${scaledWidth}]`)}
-                aria-label="Loading image"
-                aria-busy="true"
-              />
-            }
-          />
-        </button>
-        {isLoaded && (
+        {isError ? (
+          <div
+            className="flex w-full flex-col items-center justify-center gap-2 p-6 text-text-secondary-alt"
+            style={{ height: 'auto', minHeight: `${scaledHeight}` }}
+          >
+            <ImageOff className="h-6 w-6" aria-hidden="true" />
+            <span className="text-sm">{localize('com_ui_image_unavailable')}</span>
+          </div>
+        ) : (
+          <button
+            type="button"
+            aria-label={`View ${altText} in dialog`}
+            onClick={() => setIsOpen(true)}
+            className="cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            <LazyLoadImage
+              alt={altText}
+              onLoad={handleImageLoad}
+              onError={handleImageError}
+              visibleByDefault={true}
+              className={cn(
+                'opacity-100 transition-opacity duration-100',
+                isLoaded ? 'opacity-100' : 'opacity-0',
+              )}
+              src={imagePath}
+              style={{
+                width: `${scaledWidth}`,
+                height: 'auto',
+                color: 'transparent',
+                display: 'block',
+              }}
+              placeholder={
+                <Skeleton
+                  className={cn('h-auto w-full', `h-[${scaledHeight}] w-[${scaledWidth}]`)}
+                  aria-label="Loading image"
+                  aria-busy="true"
+                />
+              }
+            />
+          </button>
+        )}
+        {isLoaded && !isError && (
           <DialogImage
             isOpen={isOpen}
             onOpenChange={setIsOpen}
