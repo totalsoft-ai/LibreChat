@@ -156,9 +156,10 @@ async function deleteFileFromS3(req, file) {
     throw new Error(message);
   }
 
-  // Always attempt to delete from RAG if RAG_API_URL is configured
-  // This handles files that may have been embedded but webhook wasn't called
-  if (process.env.RAG_API_URL) {
+  // Attempt to delete from RAG if RAG_API_URL is configured and the file was actually
+  // embedded — this handles files that may have been embedded but webhook wasn't called,
+  // without asking the RAG API to delete documents (e.g. images) that were never indexed.
+  if (process.env.RAG_API_URL && file.embedded) {
     const axios = require('axios');
     const { generateShortLivedToken } = require('@librechat/api');
     const { getNamespace } = require('../VectorDB/crud');

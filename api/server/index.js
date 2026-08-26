@@ -25,6 +25,7 @@ const { jwtLogin, ldapLogin, passportLogin } = require('~/strategies');
 const { updateInterfacePermissions } = require('~/models/interface');
 const { checkMigrations } = require('./services/start/migration');
 const { startAutoRefillCron } = require('./services/AutoRefillCron');
+const { startImageRetentionCron } = require('./services/ImageRetentionCron');
 const { startSystemStatusChecks } = require('./services/SystemStatus/scheduler');
 const initializeMCPs = require('./services/initializeMCPs');
 const configureSocialLogins = require('./socialLogins');
@@ -208,6 +209,11 @@ const startServer = async () => {
     // Initialize auto-refill cron job
     if (isEnabled(process.env.CHECK_BALANCE) && isEnabled(process.env.AUTO_REFILL_ENABLED)) {
       startAutoRefillCron();
+    }
+
+    // Initialize image attachment retention cron job (disabled unless explicitly enabled)
+    if (isEnabled(process.env.IMAGE_ATTACHMENT_RETENTION_ENABLED)) {
+      startImageRetentionCron();
     }
 
     startSystemStatusChecks();
