@@ -1,7 +1,7 @@
 #!/bin/bash
 # Generate help documentation from Word documents.
-# Run this whenever docs/Tessa_User_Manual_v2.docx or
-# docs/Manual de utilizare Tessa_V2.docx are updated.
+# Run this whenever custom/docs/Tessa_User_manual_EN_V4.docx or
+# custom/docs/Manual de utilizare Tessa_V4.docx are updated.
 #
 # Requirements: pip install python-docx Pillow
 # Usage: bash custom/scripts/generate_help.sh
@@ -11,8 +11,8 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
 
-EN_MANUAL="$PROJECT_ROOT/custom/docs/Tessa_User_Manual_v2.docx"
-RO_MANUAL="$PROJECT_ROOT/custom/docs/Manual de utilizare Tessa_V2.docx"
+EN_MANUAL="$PROJECT_ROOT/custom/docs/Tessa_User_manual_EN_V4.docx"
+RO_MANUAL="$PROJECT_ROOT/custom/docs/Manual de utilizare Tessa_V4.docx"
 
 OUTPUT_BASE="$PROJECT_ROOT/docs/user-guide"
 IMAGES_DIR="$PROJECT_ROOT/client/public/help-images"

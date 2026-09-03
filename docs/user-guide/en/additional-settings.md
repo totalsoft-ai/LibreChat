@@ -1,54 +1,55 @@
 # Additional Settings
 
-The assistant configuration menu is located on the right side of the screen and provides control over AI parameters. Each user can create agents that provide personalised, shorter or more elaborate responses.
+The assistant configuration menu is located on the right side of the screen and provides control over AI parameters. Each user can create agents that offer personalized responses, either shorter or more elaborate.
 
-![image](/help-images/en_0068.png)
+![image](/help-images/en_0079.png)
 
-![image](/help-images/en_0069.png)
+![image](/help-images/en_0080.png)
 
-## Define Agents
+## Defining Agents
 
-The Agent Builder functionality allows the creation of personalised AI agents with specific instructions, configured model and extended capabilities.
+The Agent Builder feature allows the creation of customized AI agents with specific instructions, a configured model and extended capabilities.
 
-![image](/help-images/en_0070.png)
+![image](/help-images/en_0081.png)
 
-Fields required to create an agent:
+**Fields required to create an agent:**
 
 
 | Field | Description and Purpose |
 | --- | --- |
 | Name | Descriptive name of the agent. Allows quick identification of the agent in the list of available agents. |
-| Description | Detailed description of the agent. Clarifies the agent’s specialisation and the domain in which it operates. |
-| Category | Functional category to which the agent belongs. Allows thematic grouping of agents for easier navigation. |
-| Instructions | Prompt and specific instructions for the agent. They define the AI behaviour, response mode and action limits. |
-| Model | Modelul AI utilizat de agent. Allows selection of the required capabilities based on task complexity. |
+| Description | Detailed description of the agent. Clarifies the agent’s specialization and the domain in which it operates. |
+| Category | Functional category the agent belongs to. Allows thematic grouping of agents for easier navigation. |
+| Instructions | Prompt and specific instructions for the agent. Defines the AI’s behavior, response mode, and action limits. |
+| Model | The AI model is used by the agent. Allows selection of capabilities necessary depending on task complexity. |
 
 
-![image](/help-images/en_0071.png)
+![image](/help-images/en_0082.png)
 
 **Advanced AI Settings**
 
-![image](/help-images/en_0072.png)
+![image](/help-images/en_0083.png)
 
 ### Temperature
 
-Temperature affects the responses provided by the agent. It can be modified and should be tested at each level to verify that responses are adequate in length and relevance.
+Temperature affects the responses provided by the agent. It can be modified and should be tested at each level to verify whether the responses are adequate in length and relevance.
 
-Range: 0.0 to 2.0
+**Range: 0.0 until to 2.0**
 
-0.0 - 0.3: specific, consistent
 
-0.4 - 0.7: balanced (default setting is 1.0)
+| Range | Recommended Value | Effect |
+| --- | --- | --- |
+| 0.0–0.3 | Technical/precise | Ideal for code review, FAQ |
+| 0.4–0.7 | Balanced | Suitable for general conversations |
+| 0.8–1.5 | Creative | Useful for brainstorming, creative texts |
+| 1.6–2.0 | Random | Experimental, not recommended in production |
 
-0.8 - 1.5: creative, varied
 
-1.6 - 2.0: random, experimental
-
-***Note:*** *Test different levels to identify the optimal setting for your case.*
+***Note:*** *Test different levels to identify the optimal setting for your use case.*
 
 ### Top P (Nucleus Sampling)
 
-Alternative method of controlling response diversity by selecting probable tokens.
+An alternative method for controlling response diversity through the selection of probable tokens.
 Range: 0.0 to 1.0
 
 0.1: Very focused
@@ -61,43 +62,43 @@ Range: 0.0 to 1.0
 
 Alternative to temperature
 
-Smaller values = more focused responses
+Lower values = more focused responses
 
-Larger values = more diverse responses
+Higher values = more diverse responses
 
-***Note: Simultaneous use of temperature and Top P can lead to unexpected results. It is recommended to adjust only one parameter at a time.***
+***Note: Simultaneously adjusting Temperature and Top P can lead to unexpected results. It is recommended to adjust only one parameter at a time.***
 
 ### Max Tokens (Output Length)
 
-Controls the maximum length of the AI response, varies depending on the model (usually 256 to 4096+)
+Controls the maximum length of the AI response; varies depending on the model (typically from 256 to 4096+)
 
 
-| Interval | Response Type | Use Cases |
+| Range | Tip Response | Cazuri of Usage |
 | --- | --- | --- |
-| 256 - 512 | Short | Quick, simple responses; Resource optimisation |
-| 1024 | Medium (defaut) | Standard conversations; Most use cases |
-| 2048 - 4096 | Long, detalied | Complex explanations; Elaborate code; Articles |
+| 256 - 512 | Short | Quick, simple responses; resource optimization |
+| 1024 | Medium (default) | Standard conversations; most use cases |
+| 2048 - 4096 | Long, detailed | Complex explanations; elaborate code; articles |
 
 
 ### Frequency Penalty
 
-Reduces repetition of words and expressions already used in the response.
-Range: 0.0 to 2.0
+Reduces the repetition of words and expressions that already appear frequently in the response.
+Range: 0.0 until to 2.0
 
-0.0:         No penalty (default)
+0.0:         Without penalty (default)
 
 0.5 - 1.0: Moderate reduction of repetition
 
 1.0 - 2.0: Strong reduction, encourages variety
 
-It is recommended to increase the value if responses seem repetitive or monotone.
+Increasing the value is recommended if responses appear repetitive or monotonous.
 
 ### Presence Penalty
 
-Encourages the model to address new topics and avoid returning to already discussed themes.
+Encourages the model to address new topics and avoid returning to previously discussed themes.
 Range: -2.0 to 2.0
 
-0.0:         No penalty (default)
+0.0:         Without penalty (default)
 
 0.5 - 1.0: Encourages exploration of new topics
 
@@ -109,235 +110,227 @@ Higher values for more diverse discussions
 
 Lower values for focused, on-topic responses
 
-### Delete Agents
+### Deleting agents
 
-To delete an agent, you must identify which workspace it was created in. Select the desired workspace and from the My Agents tab, select the agent to be deleted.
+To delete an agent, you must first identify which workspace it was created in. Select the desired workspace and, from the My Agents tab, select the agent you wish to delete.
 
-![image](/help-images/en_0073.png)
+![image](/help-images/en_0084.png)
 
-On the desired agent, open the right panel and press the ''Delete'' button at the bottom of the screen.
+On the desired agent, the right-side screen opens and you click the "Delete" button at the bottom of the screen. 
 
-![image](/help-images/en_0074.png)
+![image](/help-images/en_0085.png)
 
 ## Prompt Library
 
-The Prompt Library allows quick creation and reuse of frequent instruction templates. Prompts can contain variables and can be called through a short command directly from the message field.
+The Prompt Library allows the quick creation and reuse of frequently used instruction templates. Prompts can contain variables and can be invoked with a short command directly from the message field.
 
-![image](/help-images/en_0075.png)
+![image](/help-images/en_0086.png)
 
 Examples of useful prompts:
 
-/trad – “Translate into {{limba}}:" → usable for any language
+/trad – "Translate into {{language}}:" → callable for any language
 
-/email – “Draft a professional email for {{client}} about {{subiect}}"
+/email – "Write a professional email for {{client}} about {{subject}}"
 
-/cr – „Code review pentru cod {{limbaj}}"
+/cr – "Code review for {{language}} code"
 
-/rezumat – “Summarise the text below in Romanian"
+/summary – "Summarize the following text in Romanian"
 
 ### Creating Prompts
 
 Steps for creating a prompt:
 
-Access Prompts: click on "Prompts" in the side panel or use the shortcut "/" → the prompt library opens
+Access Prompts: click on "Prompts" in the side panel or use the quick command "/" → the prompt library opens
 
-Create a new prompt: press "+ Create Prompt" → the prompt editor opens
+Create a new prompt: click "+ Create Prompt" → the prompt editor opens
 
 Enter a descriptive name in the "Prompt Name" field
 
 Write the prompt content in the "Text" field
 
-Configure additional settings:
+Configure the additional settings:
 
-Quick command: Create a short command starting with "/" (e.g.: /email)
+Quick command: Create a short command starting with "/" (e.g., /email)
 
-Variables: Automatically detected from {{variable_name}}, with the option to define default values
+Variables: Automatically detected from {{variable_name}}, with the ability to define default values
 
-Press "Save" or "Create" → the prompt appears in the library
+Click "Save" or "Create" → the prompt appears in the library
 
-![image](/help-images/en_0076.png)
+![image](/help-images/en_0087.png)
 
 ### Using Prompts
 
 Steps for using a created prompt:
 
-Return to the chat interface by pressing "Back to Chat"
+Return to the chat interface by clicking "Back to Chat"
 
-In the message field, type "/" followed by the command or prompt name (e.g.: "/ef")
+In the message field, type "/" followed by the command or prompt name (e.g., "/ef")
 
-A dropdown with corresponding prompts appears; select the desired prompt
+A dropdown appears with the corresponding prompts; select the desired prompt
 
 The prompt text is automatically populated in the message field
 
 Press Enter or the send button to send the prompt
 
-![image](/help-images/en_0077.png)
+![image](/help-images/en_0088.png)
 
-![image](/help-images/en_0078.png)
+![image](/help-images/en_0089.png)
 
 ### Variables in Prompts – Detailed Guide with Examples
 
-Variables are dynamic elements inserted into a prompt, marked by the syntax **{{nume_variabila}}**. When using the prompt, the system automatically detects the variables and replaces them with the values entered by the user at sending time. This allows the creation of flexible prompts, reusable in different contexts.
+Variables are dynamic elements inserted into a prompt, marked using the syntax {{variable_name}}. When using a prompt, the system automatically detects the variables and replaces them with the values entered by the user at the time of sending. This allows the creation of flexible, reusable prompts in different contexts.
 
 
-| Variable in prompt | What the user enters at sending |
+| Variable in prompt | What the user enters |
 | --- | --- |
-| {{limba}} | “english", “french", “german" etc. |
-| {{nume_client}} | „Alfa SRL", „Beta SA" etc. |
-| {{tip_document}} | “SRS", “PRD", “Analysis Report" etc. |
-| {{cod_sursa}} | Codul copiat din IDE (C#, SQL, JS etc.) |
+| {{language}} | "English", "French", "German" etc. |
+| {{client_name}} | "Alfa SRL", "Beta SA" etc. |
+| {{tip_document}} | "SRS", "PRD", "Analysis Report", etc. |
+| {{source_code}} | Code copied from IDE (C#, SQL, JS, etc.) |
 
 
-#### Variable syntax
+#### Variable Syntax
 
-A variable is declared by surrounding the name with double curly braces. The variable name must be descriptive, without spaces (use underscore “_” instead of spaces):
+A variable is declared by surrounding its name with double curly braces. The variable name must be descriptive and without spaces (use underscores “_” instead of spaces):
 
-**{{limba}}** – simple variable for a translation language
+{{language}} – simple variable for a translation language
 
-**{{nume_client}}** – variable for a client name
+{{client_name}} – variable for a client's name
 
-**{{tip_document}}** – variable for the type of document to generate
+{{tip_document}} – variable for the type of document to be generated
 
-**{{text_de_procesat}}** – variable for long content (text, code, etc.)
+{{text_to_process}} – variable for long content (text, code, etc.)
 
-***Example 1 – Translation prompt with variables.***
+#### Example 1 – Translation prompt with variables
 
-Scenario: You want a reusable prompt for translations, where you can quickly change both the text and the target language without rewriting the instruction each time.
+Scenario: You want a reusable prompt for translations, where you can quickly change both the text and the target language, without rewriting the instructions each time.
 
 **Prompt text (entered at creation):**
 
-*Translate the following text into the language {{limba}}. Respond only with the translated text, without additional explanations:*
+"Translate the following text into {{language}}.
 
-*{{text_de_tradus}}*
+Respond only with the translated text, without additional explanations: {{text_to_translate}}"
 
-**Associated quick command:** /trad
+**Associated quick command: /trad**
 
-**How to use it:**
+**How to use:**
 
-In the message field type **/trad** and select the prompt from the dropdown.
+In the message field, type /trad and select the prompt from the dropdown.
 
-The system displays a form with two fields: **limba** and **text_de_tradus**.
+The system displays a form with two fields: language and text_to_translate.
 
-Enter: ***limba*** = “English” and ***text_de_tradus*** = desired text, then press Enter.
-
-The complete prompt automatically sent to the AI will be: “Translate the following text into English. Respond only with the translated text, without additional explanations: [your text]”
+Enter: ***language*** = “English” and ***text_to_translate*** = textul desired, then press Enter.
 
 **⚠️ Advantage:** ***The same /trad prompt can be used for any language (French, Spanish, German, etc.) without creating a separate prompt for each.***
 
-***Example 2 – Professional email prompt***
+#### Example 2 – Professional email prompt
 
-Scenario: A consultant who frequently sends formal emails to different clients wants a standard template, quickly filled in with the client name and specific subject.
-
-**Prompt text (entered at creation):**
-
-*Draft a professional email in Romanian to the client {{nume_client}}, regarding the subject: {{subiect_email}}. The tone must be formal, concise and friendly. Sign with “TotalSoft Support Team”.*
-
-**Associated quick command:** /email
-
-**Fill-in example:**
-
-**Client_name** = “Alfa SRL”
-
-**subiect_email** = “payroll module delivery delay”
-
-**AI auto-generated result:**
-
-*Dear Alfa SRL,*
-
-*We are contacting you regarding the delay in delivering the payroll module. We would like to inform you that our team is actively working to resolve the situation and we will communicate a revised deadline as soon as possible. Thank you for your understanding.*
-
-*Sincerely, TotalSoft Support Team*
-
-#### Example 3 – Prompt for generating technical documentation
-
-Scenario: A business analyst frequently generates specification documents. They want a prompt with three variables: the document type, the targeted system and the target audience.
+Scenario: A consultant who frequently sends formal emails to various clients wants a standard template that can be quickly filled in with the client's name and the specific subject.
 
 **Prompt text (entered at creation):**
 
-*Generate a {{tip_document}} for the {{sistem}} system, intended for the {{audienta}} audience. The document must include: objectives, functional requirements, non-functional requirements and identified risks. Language: Romanian, formal style.*
+"Write a professional email in Romanian to the client {{client_name}}, regarding the subject: {{email_subject}}. The tone must be formal, concise, and friendly. Sign with 'TotalSoft Support Team'."
 
-**Associated quick command:** /doc
+**Associated quick command: /email**
 
-**Fill-in examples:**
+**Completion example:**
 
-**document_type** = “System Specification (SRS)”
+**client_name** = “Alfa SRL”
 
-**system** = “Charisma HR – the timesheet module”
+**email_subject** = “delay in delivery of payroll module”
 
-**audience** = “development team and end client”
+**Result automatically generated by AI:**
 
-Result: The AI automatically generates a complete SRS specification, adapted to the Charisma HR timesheet module, addressed simultaneously to the technical team and the client.
+Dear Alfa SRL,
 
-#### Example 4 – Prompt for code analysis with language variable
+We are contacting you regarding the delay in the delivery of the payroll module. We wish to inform you that our team is actively working to resolve the situation and will communicate a revised timeline as soon as possible. Thank you for your understanding. Kind regards, TotalSoft Support Team.
 
-Scenario: A developer performs code review for multiple programming languages and wants a single adaptable prompt.
+#### Example 3 – Technical documentation generation prompt
 
-*You are an expert in {{limbaj_programare}}. Analyse the following code, identify errors, propose optimisations and provide the corrected version with explanatory comments. Give a final rating (Excellent / Good / Needs Improvement):*
+Scenario: A business analyst who frequently generates specification documents wants a prompt with three variables: the document type, the target system, and the target audience.
 
-*{{cod_sursa}}*
+Prompt text (entered at creation): "Generate a {{tip_document}} for the {{system}} system, intended for the {{audience}} audience. The document must include: objectives, functional requirements, non-functional requirements, and identified risks. Language: Romanian, formal style."
 
-**Quick command:** /cr (code review)
+**Command quick associated:** /doc
 
-**Fill-in examples:**
+**Completion examples:**
 
-**limbaj_programare** = “SQL / Python” (depending on current context)
+**tip_document = "System Specification (SRS)"**
 
-**cod_sursa** = code copied from IDE/editor
+**system = "Charisma HR – timesheet module"**
 
-***Best practices for variables***
+**audience = "development team and end client"**
 
-**Use descriptive names:** {{lingua_target}} is clearer than {{l}} or {{x}}.
+Result: AI automatically generates a complete SRS specification, adapted to the timesheet module of Charisma HR, simultaneously addressing the technical team and the client.
 
-**Do not use spaces in the variable name:** {{nume_client}} ✅ vs {{nume client}} ❌.
+#### Example 4 – Code Analysis Prompt with Language Variable
 
-**You can use the same variable multiple times** in the same prompt: “Hello {{nume_client}}! We are sending you the offer for {{nume_client}}...” – the value is filled in once and propagates automatically.
+Scenario: A developer who performs code reviews for multiple programming languages wants a single adaptable prompt.
 
-**Combine variables with fixed instructions** to maintain consistency of style and response format, regardless of the values entered.
+"You are a {{programming_language}} expert. Analyze the following code, identify errors, propose optimizations, and provide the corrected version with explanatory comments. Assign a final rating (Excellent / Good / Needs Improvement): {{source_code}}"
 
-**Note:** ***Variables transform a static prompt into a dynamic tool, reusable in dozens of different scenarios, without having to rewrite the instructions each time. They represent the key element for building an efficient prompt library at the team level.***
+**Command quick:** /cr (code review)
 
-## AI Memory Management (Memories)
+**Completion examples:**
 
-The Memories functionality allows persistent storage of information about the user or context, which the agent will automatically use in all future conversations. If you set that you are a “business consultant specialised in Charisma HR", the agent will take this into account at every interaction.
+programming_language = "SQL / Python" (depending on the current context)
 
-![image](/help-images/en_0079.png)
+source_code = code copied from IDE/editor
 
-Memory is made up of key-value pairs (Key-Value), where Key represents the label under which the information is stored, and Value contains the actual information.
+#### Best Practices for Variables
 
-![image](/help-images/en_0080.png)
+Use descriptive names: {{target_language}} is clearer than {{l}} or {{x}}
 
-Steps for creating a memory:
+Do not use spaces in variable names: {{client_name}} ✅ vs {{client name}} ❌
+
+You can use the same variable multiple times in the same prompt: "Hello {{client_name}}! We are sending you the offer for {{client_name}}..." – the value is filled in once and propagates automatically
+
+Combine variables with fixed instructions to maintain consistency of style and format regardless of the values entered
+
+***Note: Variables transform a static prompt into a dynamic, reusable instrument applicable in dozens of different scenarios, without needing to rewrite the instructions each time. They are the key element for building an efficient prompt library at the team level.***
+
+## AI Memory Management
+
+The Memories feature allows storing persistent information about the user or context, which the agent will automatically use in all future conversations. If you specify that you are a "business consultant specialized in Charisma HR", the agent will take this into account at every interaction.
+
+![image](/help-images/en_0090.png)
+
+Memory is composed of key-value pairs, where the Key is the label under which the information is stored, and the Value contains the actual information.
+
+![image](/help-images/en_0091.png)
+
+Steps for creating a memory entry:
 
 Access the right side panel and click on "Memories"
 
 Press the "+ Create Memory" button
 
-Enter an identifier in the "Key" field (e.g.: "user_role")
+Enter an identifier in the "Key" field (e.g., "user_role")
 
-Enter the information to be memorised in the "Value" field (e.g.: "I am a business consultant and I use Charisma ERP")
+Enter the information to be stored in the "Value" field (e.g., "I am a business consultant and I use Charisma ERP")
 
-Verify that the "Use memory" toggle is enabled (ON) so that the agent uses the memory in conversations
+Ensure the "Use memory" toggle is enabled (ON) so that the agent uses the memory in conversations
 
-The memory appears in the Memories list. You can edit or delete any entry at any time
+The memory entry appears in the Memories list; you can edit or delete any entry at any time
 
-**Note:** ***Active memories are indicated by the "Usage" indicator and can be edited or deleted anytime.***
+**Note: Active memories are indicated through the "Usage" indicator and can be edited or deleted at any time.**
 
-## Parameters –Model Parameters Configuration
+## Parameters – Configuring Model Parameters
 
-The Parameters functionality allows detailed configuration of the AI model behaviour: temperature, response length, personalised instructions and saving configurations as reusable presets.
+The Parameters feature allows detailed configuration of the AI model's behavior: temperature, response length, custom instructions, and saving configurations as reusable presets.
 
-![image](/help-images/en_0081.png)
+![image](/help-images/en_0092.png)
 
-Model parameters control how the AI generates responses. Access them from the right panel, “Parameters" section, or directly from the agent creation form.
+Model parameters control how the AI generates responses. Access them from the right panel, the "Parameters" section, or directly from the agent creation form.
 
-![image](/help-images/en_0082.png)
+![image](/help-images/en_0093.png)
 
 ### Temperature – Response Creativity
 
-Temperature controls how “creative" or “precise" the agent is. It is the most important parameter to adjust.
+Temperature controls how "creative" or "precise" the agent is. It is the most important parameter to adjust.
 
 
-| Parametru | Recommended value | Efect |
+| Parameter | Recommended Value | Effect |
 | --- | --- | --- |
 | Temperature: 0.0–0.3 | Exact, technical responses | Ideal for code review, FAQ |
 | Temperature: 0.4–0.7 | Balanced (default 1.0) | Suitable for general conversations |
@@ -345,35 +338,35 @@ Temperature controls how “creative" or “precise" the agent is. It is the mos
 | Temperature: 1.6–2.0 | Random responses | Experimental, not recommended for production |
 
 
-How to adjust it: slide the Temperature slider in the Parameters panel. The default value is 1.0.
+How to adjust: drag the Temperature slider in the Parameters panel. The default value is 1.0.
 
-For technical agents (code review, internal FAQ, contract analysis) use small values (0.1–0.3). For creative agents (drafting emails, brainstorming) use large values (0.7–1.2).
+For technical agents (code review, internal FAQ, contract analysis), use low values (0.1–0.3). For creative agents (drafting emails, brainstorming), use high values (0.7–1.2).
 
 ### Top P – Vocabulary Diversity
 
-Top P is an alternative parameter for controlling response diversity. Small values = more restricted and predictable vocabulary; large values = varied vocabulary (default: 1.0).
+Top P is an alternative parameter for controlling response diversity. Lower values result in a more restricted and predictable vocabulary; higher values result in a more varied vocabulary (default: 1.0).
 
-⚠️  Do not adjust Temperature and Top P simultaneously. Recommendation: adjust only one of them. If Temperature is already configured, leave Top P at the default value.
+⚠️  Do not adjust Temperature and Top P simultaneously. Recommendation: adjust only one of them at a time. If Temperature is already configured, leave Top P at its default value.
 
 ### Max Tokens – Response Length
 
-Max Tokens controls how long a response can be. One token = approximately 4 characters in English or 3 characters in Romanian.
+Max Tokens controls how long a response can be. One token is approximately 4 characters in English or 3 characters in Romanian.
 
 
-| Interval | Response type | When to use |
+| Range | Tip response | When is uses |
 | --- | --- | --- |
-| 256–512 | Short | Quick responses, simple confirmations |
-| 1024 (implicit) | Medium | Standard conversations, explanations |
-| 2048–4096 | Long, detaliat | Documentation, complex code, articles |
+| 256–512 | Short | Responses quick, simple confirmations |
+| 1024 (default) | Medium | Standard conversations, explanations |
+| 2048–4096 | Long, detailed | Documentation, complex code, articles |
 
 
-How to adjust it: modify the value in the Max Tokens field. The default value is 1024.
+How to adjust: modify the value in the Max Tokens field. The default value is 1024.
 
-For agents that provide short responses (confirmations, YES/NO, data extraction), reduce Max Tokens to 256–512 for faster and more efficient responses.
+For agents that provide short responses (confirmations, yes/no, date extraction), reduce Max Tokens to 256–512 for quicker and more efficient responses.
 
 ### Frequency Penalty – Reducing Repetitions
 
-Frequency Penalty penalises words that already appear frequently in the response, forcing the agent to vary its vocabulary. Range: 0.0–2.0.
+Frequency Penalty penalizes words that already appear frequently in the response, forcing the agent to vary its vocabulary. Range: 0.0–2.0.
 
 0.0 (default) – no penalty, natural response
 
@@ -381,39 +374,39 @@ Frequency Penalty penalises words that already appear frequently in the response
 
 1.0–2.0 – maximum variety, forced
 
-Increase the value if you notice that the agent repeats the same phrases or expressions within a response.
+Increase the value if you notice the agent repeating certain phrases or expressions within a response.
 
 ### Presence Penalty – Exploring New Topics
 
-Presence Penalty encourages the agent to bring new ideas and not return to already discussed topics. Range: -2.0 to 2.0.
+Presence Penalty encourages the agent to introduce new ideas and avoid returning to previously discussed topics. Range: -2.0 to 2.0.
 
-0.0 (default) – standard behaviour
+0.0 (default) – standard behavior
 
-0.5–1.0 – the agent explores multiple angles
+0.5–1.0 – the agent explores more angles
 
 1.0–2.0 – the agent actively avoids repeating topics
 
-Use positive values for brainstorming or exploratory conversations. Leave at 0 for responses focused on a single topic.
+Use positive values for brainstorming or exploration conversations. Leave at 0 for responses focused on a single topic.
 
-### Saving Configuration as Preset
+### Saving a Configuration as a Preset
 
-If you have found a combination of parameters that works well, you can save it as a preset to apply quickly in the future:
+If you have found a parameter combination that works well, you can save it as a preset to apply it quickly in the future:
 
 Configure the desired parameters
 
-Press "Save As Preset" from the bottom of the Parameters panel
+Press "Save As Preset" at the bottom of the Parameters panel
 
-Enter a descriptive name for the preset (e.g.: “Strict Technical", “Moderately Creative")
+Enter a nume descriptive for preset (ex.: „Tehnic strict", „Creativ moderat")
 
-Press "Save"
+Press „Save"
 
-To set a preset as default, press the pin icon next to it
+To set a preset as default, click the pin icon next to it
 
-Saved presets appear in the list in the Parameters panel and can be applied with a single click in any conversation.
+Saved presets appear in the Parameters panel list and can be applied with a single click in any conversation.
 
-## File Management and "File Search" Function
+## File Management and the "File Search" Function
 
-File Search allows uploading your own documents (PDF, Word, text) directly into the chat and asking questions based on their content. It is ideal when you have documentation that is not in Confluence or project-specific working materials.
+File Search allows you to upload your own documents (PDF, Word, text) directly into the chat and ask questions based on their content. It is ideal when you have documentation that is not in Confluence or for project-specific work materials.
 
 Supported formats:
 
@@ -423,9 +416,9 @@ Word (.docx, .doc)
 
 Text (.txt, .md)
 
-**The maximum file size is 25 MB and the total storage space is 1024 MB.**
+**The maximum file size is 25 MB and the total storage space is 1,024 MB.**
 
-![image](/help-images/en_0083.png)
+![image](/help-images/en_0094.png)
 
 ### Upload and Indexing Process
 
@@ -437,11 +430,11 @@ Click on the attachment icon in the bottom bar of the message field
 
 Select "Attach files"
 
-Choose the desired file and press "Open"
+Choose the file desired and press "Open"
 
-The file appears above the message field and in the right panel with the status "RAG Processing"
+The file appears above the message field and in the right panel with the status "Processing RAG"
 
-Wait for indexing to complete (60–90 seconds – depends on file size); press Refresh to update status
+Wait for indexing to complete (60–90 seconds – depending on the file size); click Refresh to update the status
 
 After completion, the file is available for semantic search
 
@@ -455,79 +448,77 @@ After completion, the file is available for semantic search
 
 - Text (.txt, .md)
 
-Limitations:
-
-**Maximum file size:** 512 MB (default, can be modified by administrator)
+Limitations: Maximum file size: 512 MB (default, can be modified by administrator)
 
 ### RAG Processing Status
 
-After upload, the file goes through the following stages:
+After uploading, the file goes through the following stages:
 
 
 | Status | Description |
 | --- | --- |
-| 🔄 Processing RAG | The system processes and vectorises the content (60-90 sec) |
-| ✅Indexat | The file is indexed and available for search |
+| 🔄 Processing RAG | The system processes and vectorizes the content (60–90 sec) |
+| ✅Indexed | The file is indexed and available for search |
 
 
-Example:
+**Example:**
 
-When the file is selected, the "File Search" function becomes active in the chat area. On the right side, the file can be seen in "RAG Processing" status”.
+At the moment the file is selected, the "File Search" feature becomes active in the chat area. On the right side, it can be observed that the file is in "Processing RAG" status.
 
-![image](/help-images/en_0084.png)
+![image](/help-images/en_0095.png)
 
-Rezultat:
+Result:
 
-![image](/help-images/en_0085.png)
+![image](/help-images/en_0096.png)
 
 How to manage uploaded files:
 
-Press the “Manage Files" button in the right panel
+Press the "Manage Files" button in the right panel
 
 Check the checkbox next to the file you want to delete
 
-Press "Delete" — confirmation "✓ Successfully deleted" appears
+Press „Delete" — appears confirming „✓ Successfully deleted"
 
-⚠️  If a file remains stuck in “RAG Processing" for more than 2 minutes, delete it from Manage Files and re-upload it.
+⚠️  If a file remains stuck in "RAG Processing" for more than 2 minutes, delete it from Manage Files and restore it.
 
 ## Bookmarks – Marking Important Messages
 
-Bookmarks are labels that you attach to important conversations, to instantly find them without searching the chronological list. They are useful whenever you want to quickly return to a chat with an important analysis, a document draft, or a reference conversation for a project. A bookmark does not modify or move the conversation — it only adds a visible marker in the right panel, accessible with a single click. **The same bookmark can be used for multiple chats.**
+Bookmarks are labels attached to important conversations, allowing you to find them instantly without searching through the chronological list. They are useful whenever you want to quickly return to a chat with an important analysis, a document draft, or a reference conversation for a project. A bookmark does not modify or move the conversation — it only adds a visible marker in the right panel, accessible with a single click. The same bookmark can be used for multiple chats.
 
-![image](/help-images/en_0086.png)
+![image](/help-images/en_0097.png)
 
 ### Creating a Bookmark
 
-Before marking a chat, you must create at least one bookmark (a label). Access the right panel and press the Bookmarks icon, visible in the top right bar:
+Before bookmarking a chat, you must create at least one bookmark (a label). Access the right panel and click the Bookmarks icon, visible in the top-right bar:
 
 Press "+ New Bookmark" and fill in the "Title" field with a descriptive title
 
 Fill in the "Description" field with an additional description and press "Save"
 
-Navigate in the conversation to the desired message and click on the bookmark icon in the message action bar
+Navigate in the conversation to the desired message and click the bookmark icon in the message's action bar
 
 Select the desired bookmark from the displayed dropdown
 
-The bookmark appears active in the right side panel
+The bookmark appears as active in the right side panel
 
-### Associating a Bookmark to a Chat
+### Associating a Bookmark with a Chat
 
-Once the bookmark is created, you can associate it with a chat in two ways: from the bookmark icon located in the top navigation bar (next to the agent selector), or directly from the Bookmarks panel on the right. Press the bookmark icon in the top bar, select the desired label from the displayed list and the current chat will be marked automatically.
+Once the bookmark is created, you can associate it with a chat in two ways: from the bookmark icon located in the top navigation bar (next to the agent selector), or directly from the Bookmarks panel on the right. Press the bookmark icon in the top bar, select the desired label from the displayed list, and the current chat will be marked automatically.
 
-![image](/help-images/en_0087.png)
+![image](/help-images/en_0098.png)
 
 ### Searching Chats by Bookmark
 
-To quickly filter the list of conversations by a specific bookmark, press the bookmark icon in the top navigation bar and select the desired label. The chat list in the left panel will display exclusively the conversations marked with that bookmark, hiding all others. The numeric counter next to each label in the Bookmarks panel shows how many chats have been marked with that label.
+To quickly filter the conversation list by a specific bookmark, click the bookmark icon in the top navigation bar and select the desired label. The chat list in the left panel will display exclusively conversations marked with that bookmark, hiding all others. The numeric counter next to each label in the Bookmarks panel shows how many chats have been marked with that label.
 
-![image](/help-images/en_0088.png)
+![image](/help-images/en_0099.png)
 
 ### Managing and Deleting Bookmarks
 
-Individual editing or deletion of a bookmark is done directly from the right panel, by pressing the edit (✏️) or delete (🗑) icon next to each label. Changes are applied immediately and are automatically reflected in all chats marked with that bookmark.
+Editing or individually deleting a bookmark is done directly from the right panel, by clicking the edit icon (✏️) or delete icon (🗑) next to each label. Changes are applied immediately and are automatically reflected in all chats marked with that bookmark.
 
-To return to the normal view of all conversations and deactivate any active filter, press the “Clear all" button in the bookmarks menu. This action does not delete the labels — it only removes the active filter, displaying the complete list of chats again.
+To return to the normal view of all conversations and deactivate any active filtering, press the "Clear all" button in the bookmarks menu. This action does not delete the labels — it only removes the active filter, displaying the complete chat list again.
 
-![image](/help-images/en_0089.png)
+![image](/help-images/en_0100.png)
 
-![image](/help-images/en_0090.png)
+![image](/help-images/en_0101.png)

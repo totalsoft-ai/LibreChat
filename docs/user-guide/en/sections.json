@@ -8,7 +8,7 @@
     },
     {
       "id": "application-authentication",
-      "title": "Application Authentication",
+      "title": "Application authentication",
       "order": 1,
       "filename": "application-authentication.md"
     },

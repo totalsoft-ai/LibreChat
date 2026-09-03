@@ -1,19 +1,28 @@
 # Introduction
 
-**Tessa** is an intelligent AI-based conversation platform designed to offer users a modern and intuitive chat interface. The application integrates complementary virtual assistants and a functionality for creating custom agents that generate responses based on uploaded documentation.
+Tessa is an AI-based conversational platform designed to provide users with a modern and intuitive chat interface. The application integrates an automatic agent orchestrator, advanced document search capabilities, and a complete suite of AI tools.
 
-The first assistant functions as a specialized QnA system for Charisma, providing answers to questions based on documentation uploaded in Confluence. The user formulates questions in the chat, and the assistant returns relevant and contextualized answers, where the information is available.
+Tessa uses an Orchestrator system that automatically identifies the user's requirement and routes the request to the appropriate specialized agent without the need for manual assistant selection. All features available in previous versions are fully preserved, now brought together under a unified interface named the "Assistant".
 
-The second assistant has a suite of tools and functionalities that automatically direct requests to specialized agents, offering an experience similar to ChatGPT. The assistant offers:
+Tessa extracts information from:
+
+Confluence — documentation synchronized automatically overnight (02:00)
+
+Coda — specifications, documentation, and documents of type Specification, Documentation, etc., if uploaded and configured in the platform.
+
+Locally uploaded files — PDF, Word, or text documents attached directly in the chat
 
 
 | Agent | Actions | Activation keywords |
 | --- | --- | --- |
-| Chat | General conversation, Q&A | Any general request |
-| Summarizer | Summarize long texts | "summarize", "summary" |
-| Translator | Translate texts/files | "translate to", "translation" |
-| DocuFlow | Generate PRDs, plans, diagrams | "prd", "execution plan", "diagram" |
-| Code Review | Analyze and improve code | "code review", "analyze code" |
+| QnA | Answers questions about Charisma | Contextual and detailed questions for easier identification |
+| PPM | Entering timesheets in PPM | Conversational input containing structured information “log hours  on the project” |
+| Chat | Conversation general, Q&A | Any general  request |
+| Summarizer | Summarizes long texts | "summarize", "summary" |
+| Translator | Translates texts/files | "translate to", "translation" |
+| DocuFlow | Generates PRDs, plans, diagrams | "prd", "execution plan", "diagram" |
+| Code Review | Analyzes and improves code | "code review", "analyze code" |
+| Jira Match | Reads a screenshot/photo of an application error and searches for a matching Jira ticket | Drop attached screenshot or photo of a Charisma screen error message |
 
 
-The **File Search** option gives us the ability to ask an agent for information based on documentation uploaded locally in a personal or team agent.
+The **File Search** option remains separate and gives us the ability to ask an agent for information based on documentation uploaded locally in a personal or team agent.

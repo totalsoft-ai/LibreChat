@@ -8,13 +8,13 @@
     },
     {
       "id": "autentificarea-in-aplicatie",
-      "title": "Autentificarea in aplicatie",
+      "title": "Autentificarea în aplicație",
       "order": 1,
       "filename": "autentificarea-in-aplicatie.md"
     },
     {
       "id": "sectiuni-aplicatie",
-      "title": "Sectiuni aplicatie",
+      "title": "Secțiuni aplicație",
       "order": 2,
       "filename": "sectiuni-aplicatie.md"
     },
@@ -26,7 +26,7 @@
     },
     {
       "id": "setari-aditionale",
-      "title": "Setari aditionale",
+      "title": "Setări Adiționale",
       "order": 4,
       "filename": "setari-aditionale.md"
     },
