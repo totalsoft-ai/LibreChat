@@ -1,18 +1,18 @@
-# Setari aditionale
+# Setări Adiționale
 
-Meniul de configurare a asistenților se află în partea dreaptă a ecranului și oferă control asupra parametrilor AI. Fiecare utilizator își poate crea agenți care să ofere răspunsuri personale, mai scurte sau mai elaborate.
+Meniul de configurare a asistenților se află în partea dreaptă a ecranului și oferă control asupra parametrilor AI. Fiecare utilizator își poate crea agenți care oferă răspunsuri personalizate, fie mai scurte fie mai elaborate.
 
-![image](/help-images/ro_0068.png)
+![image](/help-images/ro_0079.png)
 
-![image](/help-images/ro_0069.png)
+![image](/help-images/ro_0080.png)
 
-## Definire agenti
+## Definire Agenți
 
 Funcționalitatea Agent Builder permite crearea de agenți AI personalizați cu instrucțiuni specifice, model configurat și capabilități extinse.
 
-![image](/help-images/ro_0070.png)
+![image](/help-images/ro_0081.png)
 
-Câmpuri necesare pentru crearea unui agent:
+**Câmpuri necesare pentru crearea unui agent:**
 
 
 | Câmp | Descriere și Scop |
@@ -24,25 +24,26 @@ Câmpuri necesare pentru crearea unui agent:
 | Model | Modelul AI utilizat de agent. Permite selectarea capabilităților necesare în funcție de complexitatea sarcinilor. |
 
 
-![image](/help-images/ro_0071.png)
+![image](/help-images/ro_0082.png)
 
 **Configurări Avansate AI**
 
-![image](/help-images/ro_0072.png)
+![image](/help-images/ro_0083.png)
 
 ### Temperatura
 
 Temperatura afectează răspunsurile oferite de agent. Aceasta poate fi modificată și trebuie testată la fiecare nivel pentru a verifica dacă răspunsurile sunt adecvate ca lungime și relevanță.
 
-Interval: 0.0 pana la 2.0
+**Interval: 0.0 până la 2.0**
 
-0.0 - 0.3: specific, consistent
 
-0.4 - 0.7: echilibrat (setarea standard este 1.0)
+| Interval | Valoare recomandată | Efect |
+| --- | --- | --- |
+| 0.0–0.3 | Tehnic/exact | Ideal pentru code review, FAQ |
+| 0.4–0.7 | Echilibrat | Potrivit pentru conversații generale |
+| 0.8–1.5 | Creativ | Util pentru brainstorming,, texte creative |
+| 1.6–2.0 | Aleatoriu | Experimental, nu se recomandă în producție |
 
-0.8 - 1.5: creativ, variat
-
-1.6 - 2.0: aleatoriu, experimental
 
 ***Notă:*** *Testați diferite niveluri pentru a identifica setarea optimă pentru cazul dvs.*
 
@@ -69,17 +70,17 @@ Valori mai mari = răspunsuri mai diverse
 
 ### Max Tokens (Lungimea Output-ului)
 
-Controleaza lungimea maximă a răspunsului AI, variază în funcție de model (de obicei 256 până la 4096+)
+Controlează lungimea maximă a răspunsului AI, variază în funcție de model (de obicei 256 până la 4096+)
 
 
 | Interval | Tip Răspuns | Cazuri de Utilizare |
 | --- | --- | --- |
-| 256 - 512 | Scurt | Răspunsuri rapide, simple; Optimizare resurse |
-| 1024 | Mediu (implicit) | Conversații standard; Majoritatea cazurilor |
-| 2048 - 4096 | Lung, detaliat | Explicații complexe; Cod elaborat; Articole |
+| 256 - 512 | Scurt | Răspunsuri rapide, simple; optimizare resurse |
+| 1024 | Mediu (implicit) | Conversații standard; majoritatea cazurilor |
+| 2048 - 4096 | Lung, detaliat | Explicații complexe; cod elaborat; articole |
 
 
-### Frequency Penalty (Penalizare pentru Frecvență)
+### Frequency Penalty
 
 Reduce repetarea cuvintelor și expresiilor deja utilizate în răspuns.
 Interval: 0.0 până la 2.0
@@ -92,7 +93,7 @@ Interval: 0.0 până la 2.0
 
 Se recomandă creșterea valorii dacă răspunsurile par repetitive sau monotone.
 
-### Presence Penalty (Penalizare pentru Prezență)
+### Presence Penalty
 
 Încurajează modelul să abordeze subiecte noi și să evite revenirea la teme deja discutate.
 Interval: -2.0 până la 2.0
@@ -109,31 +110,31 @@ Valori mai mari pentru discuții mai diverse
 
 Valori mai mici pentru răspunsuri concentrate, pe subiect
 
-### Eliminare agenti
+### Eliminare Agenți
 
-Pentru a sterge un agent trebuie sa identificam in ce workspace a fost creat. Selectam workspace-ul dorit si din tabul My Agents selectam agentul care se doreste a fi sters.
+Pentru a șterge un agent, trebuie mai întâi identificat workspace-ul în care a fost creat. Selectați workspace-ul dorit și, din tab-ul My Agents, selectați agentul pe care doriți să îl ștergeți.
 
-![image](/help-images/ro_0073.png)
+![image](/help-images/ro_0084.png)
 
-Pe agentul dorit se deschide ecranul din dreapta si apasam butonul ‘’Delete’’ din partea inferiora a ecranului. 
+Pe agentul dorit se deschide ecranul din dreapta și se apasă butonul "Delete" din partea inferioară a ecranului. 
 
-![image](/help-images/ro_0074.png)
+![image](/help-images/ro_0085.png)
 
-## Biblioteca de Prompturi
+## Prompt Library
 
 Biblioteca de Prompturi permite crearea și reutilizarea rapidă a șabloanelor de instrucțiuni frecvente. Prompturile pot conține variabile și pot fi apelate printr-o comandă scurtă direct din câmpul de mesaj.
 
-![image](/help-images/ro_0075.png)
+![image](/help-images/ro_0086.png)
 
 Exemple de prompturi utile:
 
-/trad – „Traduce în {{limba}}:" → apelabil pentru orice limbă
+/trad – "Traduce în {{limba}}:" → apelabil pentru orice limbă
 
-/email – „Redactează un email profesional pentru {{client}} despre {{subiect}}"
+/email – "Redactează un email profesional pentru {{client}} despre {{subiect}}"
 
-/cr – „Code review pentru cod {{limbaj}}"
+/cr – "Code review pentru cod {{limbaj}}"
 
-/rezumat – „Sumarizează în română textul de mai jos"
+/summary – "Sumarizează în română textul de mai jos"
 
 ### Crearea Prompturilor
 
@@ -155,7 +156,7 @@ Variabile: Detectate automat din {{nume_variabilă}}, cu posibilitate de definir
 
 Apăsați "Salvează" sau "Creează" → promptul apare în bibliotecă
 
-![image](/help-images/ro_0076.png)
+![image](/help-images/ro_0087.png)
 
 ### Utilizarea Prompturilor
 
@@ -171,34 +172,34 @@ Textul promptului este populat automat în câmpul de mesaj
 
 Apăsați Enter sau butonul de trimitere pentru a trimite promptul
 
-![image](/help-images/ro_0077.png)
+![image](/help-images/ro_0088.png)
 
-![image](/help-images/ro_0078.png)
+![image](/help-images/ro_0089.png)
 
 ### Variabile în Prompturi – Ghid Detaliat cu Exemple
 
-Variabilele sunt elemente dinamice inserate într-un prompt, marcate prin sintaxa **{{nume_variabila}}**. La utilizarea promptului, sistemul detectează automat variabilele și le înlocuiește cu valorile introduse de utilizator la momentul trimiterii. Aceasta permite crearea unor prompturi flexibile, reutilizabile în contexte diferite.
+Variabilele sunt elemente dinamice inserate într-un prompt, marcate prin sintaxa {{nume_variabilă}}. La utilizarea promptului, sistemul detectează automat variabilele și le înlocuiește cu valorile introduse de utilizator la momentul trimiterii. Aceasta permite crearea unor prompturi flexibile, reutilizabile în contexte diferite.
 
 
 | Variabilă în prompt | Ce introduce utilizatorul la trimitere |
 | --- | --- |
-| {{limba}} | „engleză", „franceză", „germană" etc. |
-| {{nume_client}} | „Alfa SRL", „Beta SA" etc. |
-| {{tip_document}} | „SRS", „PRD", „Raport de analiză" etc. |
-| {{cod_sursa}} | Codul copiat din IDE (C#, SQL, JS etc.) |
+| {{limba}} | "engleză", "franceză", "germană" etc. |
+| {{nume_client}} | "Alfa SRL", "Beta SA" etc. |
+| {{tip_document}} | "SRS", "PRD", "Raport de analiză", etc. |
+| {{cod_sursa}} | Codul copiat din IDE (C#, SQL, JS, etc.) |
 
 
 #### Sintaxa variabilelor
 
-O variabilă se declară prin înconjurarea numelui cu duble acolade. Numele variabilei trebuie să fie descriptiv, fără spații (se folosește underscore “_” în loc de spații):
+O variabilă se declară prin înconjurarea numelui cu duble acolade. Numele variabilei trebuie să fie descriptiv și fără spații (se folosesc underscore-uri „_” în loc de spații):
 
-**{{limba}}** – variabilă simplă pentru o limbă de traducere
+{{limba}} – variabilă simplă pentru o limbă de traducere
 
-**{{nume_client}}** – variabilă pentru numele unui client
+{{nume_client}} – variabilă pentru numele unui client
 
-**{{tip_document}}** – variabilă pentru tipul documentului de generat
+{{tip_document}} – variabilă pentru tipul documentului de generat
 
-**{{text_de_procesat}}** – variabilă pentru conținut lung (text, cod, etc.)
+{{text_de_procesat}} – variabilă pentru conținut lung (text, cod, etc.)
 
 #### Exemplul 1 – Prompt de traducere cu variabile
 
@@ -206,21 +207,19 @@ Scenariu: Doriți un prompt reutilizabil pentru traduceri, unde puteți schimba 
 
 **Textul promptului (se introduce la creare):**
 
-*Traduce următorul text în limba {{limba}}. Răspunde doar cu textul tradus, fără explicații suplimentare:*
+"Traduce următorul text în limba {{limba}}.
 
-*{{text_de_tradus}}*
+Răspunde doar cu textul tradus, fără explicații suplimentare: {{text_de_tradus}}"
 
-**Comanda rapidă asociată:** /trad
+**Comanda rapidă asociată: /trad**
 
 **Cum se folosește:**
 
-În câmpul de mesaj tastați **/trad** și selectați promptul din dropdown.
+În câmpul de mesaj tastați /trad și selectați promptul din dropdown.
 
-Sistemul afișează un formular cu două câmpuri: **limba** și **text_de_tradus**.
+Sistemul afișează un formular cu două câmpuri: limba și text_de_tradus.
 
 Introduceți: ***limba*** = “engleză” și ***text_de_tradus*** = textul dorit, apoi apăsați Enter.
-
-Promptul complet trimis automat către AI va fi: “Traduce următorul text în limba engleză. Răspunde doar cu textul tradus, fără explicații suplimentare: [textul dvs.]”
 
 **⚠️ Avantaj:** ***Același prompt /trad poate fi folosit pentru orice limbă (franceză, spaniolă, germană etc.) fără a crea câte un prompt separat pentru fiecare.***
 
@@ -230,9 +229,9 @@ Scenariu: Un consultant care trimite des emailuri formale către clienți diferi
 
 **Textul promptului (se introduce la creare):**
 
-*Redactează un email profesional în limba română către clientul {{nume_client}}, referitor la subiectul: {{subiect_email}}. Tonul trebuie să fie formal, concis și prietenos. Semnează cu “Echipa de suport TotalSoft”.*
+"Redactează un email profesional în limba română către clientul {{nume_client}}, referitor la subiectul: {{subiect_email}}. Tonul trebuie să fie formal, concis și prietenos. Semnează cu “Echipa de suport TotalSoft”."
 
-**Comanda rapidă asociată:** /email
+**Comanda rapidă asociată: /email**
 
 **Exemplu de completare:**
 
@@ -242,29 +241,25 @@ Scenariu: Un consultant care trimite des emailuri formale către clienți diferi
 
 **Rezultatul generat automat de AI:**
 
-*Stimate Alfa SRL,*
+Stimate Alfa SRL,
 
-*Vă contactăm referitor la întârzierea livrării modulului de salarizare. Dorim să vă informăm că echipa noastră lucrează activ pentru a remedia situația și vă vom comunica un termen revizuit în cel mai scurt timp posibil. Vă mulțumim pentru înțelegere.*
-
-*Cu stimă, Echipa de suport TotalSoft*
+Vă contactăm referitor la întârzierea livrării modulului de salarizare. Dorim să vă informăm că echipa noastră lucrează activ pentru a remedia situația și vă vom comunica un termen revizuit în cel mai scurt timp posibil. Vă mulțumim pentru înțelegere. Cu stimă, Echipa de suport TotalSoft.
 
 #### Exemplul 3 – Prompt pentru generare de documentație tehnică
 
 Scenariu: Un analist de business generează frecvent documente de specificații. Dorește un prompt cu trei variabile: tipul documentului, sistemul vizat și audiența țintă.
 
-**Textul promptului (se introduce la creare):**
-
-*Generează un {{tip_document}} pentru sistemul {{sistem}}, destinat audienței {{audienta}}. Documentul trebuie să includă: obiective, cerințe funcționale, cerințe non-funcționale și riscuri identificate. Limbă: română, stil formal.*
+Textul promptului (se introduce la creare): "Generează un {{tip_document}} pentru sistemul {{sistem}}, destinat audienței {{audienta}}. Documentul trebuie să includă: obiective, cerințe funcționale, cerințe non-funcționale și riscuri identificate. Limbă: română, stil formal."
 
 **Comanda rapidă asociată:** /doc
 
 **Exemple de completare:**
 
-**tip_document** = “Specificație de sistem (SRS)”
+**tip_document = “Specificație de sistem (SRS)”**
 
-**sistem** = “Charisma HR – modulul de pontaj”
+**sistem = “Charisma HR – modulul de pontaj”**
 
-**audienta** = “echipa de dezvoltare și clientul final”
+**audienta = “echipa de dezvoltare și clientul final”**
 
 Rezultat: AI generează automat o specificație SRS completă, adaptată modulului de pontaj din Charisma HR, adresată simultan echipei tehnice și clientului.
 
@@ -272,39 +267,37 @@ Rezultat: AI generează automat o specificație SRS completă, adaptată modulul
 
 Scenariu: Un dezvoltator face code review pentru mai multe limbaje de programare și dorește un singur prompt adaptabil.
 
-*Ești un expert {{limbaj_programare}}. Analizează următorul cod, identifică erorile, propune optimizări și furnizează versiunea corectată cu comentarii explicative. Acordă un calificativ final (Excellent / Good / Needs Improvement):*
-
-*{{cod_sursa}}*
+"Ești un expert {{limbaj_programare}}. Analizează următorul cod, identifică erorile, propune optimizări și furnizează versiunea corectată cu comentarii explicative. Acordă un calificativ final (Excellent / Good / Needs Improvement): {{cod_sursa}}"
 
 **Comanda rapidă:** /cr (code review)
 
 **Exemple de completare:**
 
-**limbaj_programare** = “SQL / Python” (în funcție de contextul curent)
+limbaj_programare = “SQL / Python” (în funcție de contextul curent)
 
-**cod_sursa** = codul copiat din IDE/editor
+cod_sursa = codul copiat din IDE/editor
 
 #### Bune practici pentru variabile
 
-**Folosiți nume descriptive:** {{limba_tinta}} este mai clar decât {{l}} sau {{x}}.
+Folosiți nume descriptive: {{limba_tinta}} este mai clar decât {{l}} sau {{x}}
 
-**Nu folosiți spații în numele variabilei:** {{nume_client}} ✅ vs {{nume client}} ❌.
+Nu folosiți spații în numele variabilei: {{nume_client}} ✅ vs {{nume client}} ❌
 
-**Puteți folosi aceeași variabilă de mai multe ori** în același prompt: “Bună ziua {{nume_client}}! Vă transmitem oferta pentru {{nume_client}}...” – valoarea se completează o singură dată și se propagă automat.
+Puteți folosi aceeași variabilă de mai multe ori în același prompt: “Bună ziua {{nume_client}}! Vă transmitem oferta pentru {{nume_client}}...” – valoarea se completează o singură dată și se propagă automat
 
-**Combinați variabilele cu instrucțiuni fixe** pentru a menține consistența stilului și a formatului răspunsului, indiferent de valorile introduse.
+Combinați variabilele cu instrucțiuni fixe pentru a menține consistența stilului și a formatului, indiferent de valorile introduse
 
-**Notă:** ***Variabilele transformă un prompt static într-un instrument dinamic, reutilizabil în zeci de scenarii diferite, fără a fi nevoie să rescrieți instrucțiunile de fiecare dată. Ele reprezintă elementul cheie pentru construirea unei biblioteci de prompturi eficiente la nivel de echipă.***
+***Notă: Variabilele transformă un prompt static într-un instrument dinamic, reutilizabil în zeci de scenarii diferite, fără a fi nevoie să rescrieți instrucțiunile de fiecare dată. Ele reprezintă elementul cheie pentru construirea unei biblioteci de prompturi eficiente la nivel de echipă.***
 
 ## Gestionarea Memoriei AI (Memories)
 
 Funcționalitatea Memories permite stocarea de informații persistente despre utilizator sau context, pe care agentul le va folosi automat în toate conversațiile viitoare. Dacă setați că sunteți „consultant business specializat pe Charisma HR", agentul va ține cont de asta la fiecare interacțiune.
 
-![image](/help-images/ro_0079.png)
+![image](/help-images/ro_0090.png)
 
 Memoria este compusă din perechi cheie-valoare (Key-Value), unde Key reprezintă eticheta sub care este stocată informația, iar Value conține informația propriu-zisă.
 
-![image](/help-images/ro_0080.png)
+![image](/help-images/ro_0091.png)
 
 Pași pentru crearea unei memorii:
 
@@ -320,17 +313,17 @@ Verificați că toggle-ul "Use memory" este activat (ON) pentru ca agentul să u
 
 Memoria apare în lista Memories. Puteți edita sau șterge orice intrare oricând
 
-**Notă:** ***Memoriile active sunt indicate prin indicatorul "Usage" și pot fi editate sau șterse oricând.***
+**Notă: Memoriile active sunt indicate prin indicatorul "Usage" și pot fi editate sau șterse oricând.**
 
 ## Parameters – Configurarea Parametrilor Modelului
 
 Funcționalitatea Parameters permite configurarea detaliată a comportamentului modelului AI: temperatură, lungimea răspunsurilor, instrucțiuni personalizate și salvarea configurațiilor ca preseturi reutilizabile.
 
-![image](/help-images/ro_0081.png)
+![image](/help-images/ro_0092.png)
 
 Parametrii modelului controlează cum generează AI-ul răspunsurile. Accesați-i din panoul drept, secțiunea „Parameters", sau direct din formularul de creare a agentului.
 
-![image](/help-images/ro_0082.png)
+![image](/help-images/ro_0093.png)
 
 ### Temperature – Creativitatea Răspunsurilor
 
@@ -423,9 +416,9 @@ Word (.docx, .doc)
 
 Text (.txt, .md)
 
-**Dimensiunea maximă per fișier este 25 MB si spatial de stocare total este de 1024MB.**
+**Dimensiunea maximă per fișier este de 25 MB, iar spațiul de stocare total este de 1.024 MB.**
 
-![image](/help-images/ro_0083.png)
+![image](/help-images/ro_0094.png)
 
 ### Procesul de Încărcare și Indexare
 
@@ -441,7 +434,7 @@ Alegeți fișierul dorit și apăsați "Open"
 
 Fișierul apare deasupra câmpului de mesaj și în panoul din dreapta cu statusul "Procesare RAG"
 
-Așteptați finalizarea indexării (60–90 secunde – depinde de dimensiunea fisierului); apăsați Refresh pentru a actualiza statusul
+Așteptați finalizarea indexării (60–90 secunde – depinde de dimensiunea fișierului); apăsați Refresh pentru a actualiza statusul
 
 După finalizare, fișierul este disponibil pentru căutare semantică
 
@@ -455,9 +448,7 @@ După finalizare, fișierul este disponibil pentru căutare semantică
 
 - Text (.txt, .md)
 
-Limitări:
-
-**Dimensiune maximă fișier:** 512 MB (implicit, poate fi modificat de administrator)
+Limitări: Dimensiune maximă fișier: 512 MB (implicit, poate fi modificat de administrator)
 
 ### Status de Procesare RAG
 
@@ -466,19 +457,19 @@ După upload, fișierul trece prin următoarele stadii:
 
 | Status | Descriere |
 | --- | --- |
-| 🔄 Processing RAG | Sistemul procesează și vectorizează conținutul (60-90 sec) |
+| 🔄 Processing RAG | Sistemul procesează și vectorizează conținutul (60–90 sec) |
 | ✅Indexat | Fișierul este indexat și disponibil pentru căutare |
 
 
-Exemplu:
+**Exemplu:**
 
-In momentul in care fisierul e selectat, in partea de chat apare activa functia “File Search”. In partea din dreapta se observa faptul ca fisierul este in statusul “Procesare RAG”.
+În momentul în care fișierul este selectat, în partea de chat apare activă funcția "File Search". În partea din dreapta se observă faptul că fișierul este în statusul "Procesare RAG".
 
-![image](/help-images/ro_0084.png)
+![image](/help-images/ro_0095.png)
 
 Rezultat:
 
-![image](/help-images/ro_0085.png)
+![image](/help-images/ro_0096.png)
 
 Cum gestionați fișierele încărcate:
 
@@ -492,9 +483,9 @@ Apăsați „Delete" — apare confirmarea „✓ Successfully deleted"
 
 ## Bookmarks – Marcarea Mesajelor Importante
 
-Bookmarks-urile sunt etichete pe care le atașați unor conversații importante, pentru a le regăsi instantaneu fără a le căuta în lista cronologică. Sunt utile ori de câte ori doriți să reveniți rapid la un chat cu o analiză importantă, un draft de document sau o conversație de referință pentru un proiect. Un bookmark nu modifică și nu mută conversația — adaugă doar un marcaj vizibil în panoul din dreapta, accesibil cu un singur click. Acelasi bookmark poate fi folosit pentru mai multe chat-uri.
+Bookmarks-urile sunt etichete pe care le atașați unor conversații importante, pentru a le regăsi instantaneu fără a le căuta în lista cronologică. Sunt utile ori de câte ori doriți să reveniți rapid la un chat cu o analiză importantă, un draft de document sau o conversație de referință pentru un proiect. Un bookmark nu modifică și nu mută conversația — adaugă doar un marcaj vizibil în panoul din dreapta, accesibil cu un singur click. Același bookmark poate fi folosit pentru mai multe chat-uri.
 
-![image](/help-images/ro_0086.png)
+![image](/help-images/ro_0097.png)
 
 ### Crearea unui Bookmark
 
@@ -514,13 +505,13 @@ Bookmark-ul apare activ în panoul lateral drept
 
 Odată creat bookmark-ul, îl puteți asocia unui chat în două moduri: din iconița de bookmark localizată în bara superioară de navigare (lângă selectorul de agent), sau direct din panoul Bookmarks din dreapta. Apăsați iconița de bookmark din bara de sus, selectați eticheta dorită din lista afișată și chat-ul curent va fi marcat automat.
 
-![image](/help-images/ro_0087.png)
+![image](/help-images/ro_0098.png)
 
 ### Căutarea Chat-urilor după Bookmark
 
 Pentru a filtra rapid lista de conversații după un bookmark specific, apăsați iconița de bookmark din bara superioară de navigare și selectați eticheta dorită. Lista de chat-uri din panoul stâng va afișa exclusiv conversațiile marcate cu acel bookmark, ascunzând toate celelalte. Contorul numeric de lângă fiecare etichetă din panoul Bookmarks arată câte chat-uri au fost marcate cu acea etichetă.
 
-![image](/help-images/ro_0088.png)
+![image](/help-images/ro_0099.png)
 
 ### Gestionarea și Ștergerea Bookmark-urilor
 
@@ -528,6 +519,6 @@ Editarea sau ștergerea individuală a unui bookmark se face direct din panoul d
 
 Pentru a reveni la vizualizarea normală a tuturor conversațiilor și a dezactiva orice filtrare activă, apăsați butonul „Clear all" din meniul bookmarks. Această acțiune nu șterge etichetele — doar elimină filtrul activ, afișând din nou lista completă de chat-uri.
 
-![image](/help-images/ro_0089.png)
+![image](/help-images/ro_0100.png)
 
-![image](/help-images/ro_0090.png)
+![image](/help-images/ro_0101.png)
