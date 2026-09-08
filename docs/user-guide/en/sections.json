@@ -35,6 +35,12 @@
       "title": "Troubleshooting Guide",
       "order": 5,
       "filename": "troubleshooting-guide.md"
+    },
+    {
+      "id": "jira-projects-from-which-tickets-were-extracted",
+      "title": "Jira Projects From Which Tickets Were Extracted",
+      "order": 6,
+      "filename": "jira-projects-from-which-tickets-were-extracted.md"
     }
   ],
   "default": "introduction"

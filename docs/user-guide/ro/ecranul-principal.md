@@ -406,7 +406,7 @@ Deschideți o conversație cu Assistant și atașați o captură de ecran sau o 
 
 **Tichet similar găsit**
 
-Tessa răspunde cu un mesaj de tipul „Am găsit un tichet posibil similar — ERPCORE-XXXXX”, unde ERPCORE-XXXXX este un link pe care se poate face clic și care deschide tichetul corespunzător direct în Jira.
+Tessa răspunde cu un mesaj de tipul „Am găsit câteva tichete posibil similare”, urmat de o listă cu până la 3 tichete Jira (de exemplu, ERPCORE-XXXXX), fiecare afișat ca link pe care se poate face clic și care deschide tichetul corespunzător direct în Jira. Dacă doriți să vedeți și alte tichete similare, puteți solicita acest lucru în continuarea conversației, iar Tessa va căuta încă până la 3 tichete suplimentare.
 
 **Niciun tichet similar găsit**
 

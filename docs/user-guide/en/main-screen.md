@@ -406,7 +406,7 @@ Open a conversation with the Assistant and attach a screenshot or photo showing 
 
 **Similar ticket found**
 
-Tessa replies with a message such as “Am găsit un tichet posibil similar — ERPCORE-XXXXX”, where ERPCORE-XXXXX is a clickable link that opens the matching ticket directly in Jira.
+Tessa replies with a message such as “Am găsit câteva tichete posibil similare”, followed by a list of up to 3 Jira tickets (for example, ERPCORE-XXXXX), each shown as a clickable link that opens the matching ticket directly in Jira. If you want to see other similar tickets, you can ask for them in the conversation, and Tessa will search for up to 3 additional tickets.
 
 **No similar ticket was found**
 

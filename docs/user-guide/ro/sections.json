@@ -35,6 +35,12 @@
       "title": "Ghid de troubleshooting",
       "order": 5,
       "filename": "ghid-de-troubleshooting.md"
+    },
+    {
+      "id": "proiecte-de-jira-din-care-au-fost-extrase-tichetele",
+      "title": "Proiecte de Jira din care au fost extrase tichetele",
+      "order": 6,
+      "filename": "proiecte-de-jira-din-care-au-fost-extrase-tichetele.md"
     }
   ],
   "default": "introducere"
