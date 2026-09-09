@@ -6,12 +6,19 @@ export interface IFeedbackImage {
   filename?: string;
 }
 
+export interface IFeedbackResponse {
+  text: string;
+  respondedBy: Schema.Types.ObjectId;
+  respondedAt: Date;
+}
+
 export interface IFeedback extends Document {
   user: Schema.Types.ObjectId;
   message: string;
   category?: 'bug' | 'suggestion' | 'other';
   status: 'new' | 'reviewed';
   images?: IFeedbackImage[];
+  response?: IFeedbackResponse;
 }
 
 const feedback = new Schema<IFeedback>(
@@ -45,6 +52,14 @@ const feedback = new Schema<IFeedback>(
         filename: { type: String },
       },
     ],
+    response: {
+      type: {
+        text: { type: String, required: true },
+        respondedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+        respondedAt: { type: Date, required: true },
+      },
+      required: false,
+    },
   },
   { timestamps: true },
 );
