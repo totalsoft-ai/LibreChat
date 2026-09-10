@@ -26,7 +26,7 @@ const notifyAdminsOfNewFeedback = async (feedback, userId) => {
       return;
     }
 
-    const appName = process.env.APP_TITLE || 'LibreChat';
+    const appName = process.env.APP_TITLE || 'Tessa';
     const submitterName = submitter?.name || submitter?.username || submitter?.email || 'A user';
     const feedbackUrl = `${process.env.DOMAIN_CLIENT}/feedback`;
 
@@ -92,7 +92,7 @@ const notifyUserOfFeedbackResponse = async (feedback) => {
   }
 
   try {
-    const appName = process.env.APP_TITLE || 'LibreChat';
+    const appName = process.env.APP_TITLE || 'Tessa';
     await sendInternalEmail({
       email: feedback.user.email,
       subject: `You have a response to your feedback in ${appName}`,

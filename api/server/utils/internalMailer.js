@@ -22,7 +22,7 @@ function getInternalEmailConfig() {
       process.env.STATUS_ALERT_EMAIL_FROM_NAME ||
       process.env.EMAIL_FROM_NAME ||
       process.env.APP_TITLE ||
-      'LibreChat',
+      'Tessa',
   };
 }
 
