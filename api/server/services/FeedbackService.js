@@ -111,6 +111,67 @@ const notifyUserOfFeedbackResponse = async (feedback) => {
 };
 
 /**
+ * Emails all other admins that a feedback entry has received a response.
+ * Excludes the admin who wrote the response - they already know.
+ * Failures here are logged and swallowed - they must never block the admin's response.
+ * @param {Object} feedback - The updated feedback document, with `user` populated and `response` set.
+ * @param {string} respondedByAdminId - The id of the admin who wrote the response.
+ * @returns {Promise<void>}
+ */
+const notifyAdminsOfFeedbackResponse = async (feedback, respondedByAdminId) => {
+  if (!isInternalEmailConfigured()) {
+    return;
+  }
+
+  try {
+    const admins = await User.find({ role: SystemRoles.ADMIN })
+      .select('email name username')
+      .lean();
+
+    const responder = admins.find((admin) => String(admin._id) === String(respondedByAdminId));
+    const responderName = responder?.name || responder?.username || responder?.email || 'An admin';
+
+    const recipients = admins.filter(
+      (admin) => admin.email && String(admin._id) !== String(respondedByAdminId),
+    );
+    if (!recipients.length) {
+      return;
+    }
+
+    const appName = process.env.APP_TITLE || 'Tessa';
+    const submitterName =
+      feedback.user?.name || feedback.user?.username || feedback.user?.email || 'A user';
+    const feedbackUrl = `${process.env.DOMAIN_CLIENT}/feedback`;
+
+    await Promise.allSettled(
+      recipients.map((admin) =>
+        sendInternalEmail({
+          email: admin.email,
+          subject: `Feedback responded to in ${appName}`,
+          payload: {
+            appName,
+            name: admin.name || admin.username || admin.email,
+            responderName,
+            submitterName,
+            category: feedback.category,
+            message: feedback.message,
+            responseText: feedback.response.text,
+            feedbackUrl,
+            year: new Date().getFullYear(),
+          },
+          template: 'feedbackResponded.handlebars',
+        }),
+      ),
+    );
+  } catch (error) {
+    logger.error(
+      '[notifyAdminsOfFeedbackResponse] Error notifying admins of feedback response',
+      error,
+    );
+  }
+};
+
+/**
  * Retrieves a paginated list of feedback entries for admin review, newest first.
  * @param {Object} params
  * @param {number} [params.page=1]
@@ -201,6 +262,9 @@ const respondToFeedback = async ({ id, text, adminId }) => {
   notifyUserOfFeedbackResponse(feedback).catch((error) => {
     logger.error('[respondToFeedback] Error notifying user of feedback response', error);
   });
+  notifyAdminsOfFeedbackResponse(feedback, adminId).catch((error) => {
+    logger.error('[respondToFeedback] Error notifying admins of feedback response', error);
+  });
 
   return feedback;
 };
@@ -212,4 +276,5 @@ module.exports = {
   respondToFeedback,
   notifyAdminsOfNewFeedback,
   notifyUserOfFeedbackResponse,
+  notifyAdminsOfFeedbackResponse,
 };

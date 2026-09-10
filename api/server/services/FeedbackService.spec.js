@@ -8,6 +8,7 @@ const {
   respondToFeedback,
   notifyAdminsOfNewFeedback,
   notifyUserOfFeedbackResponse,
+  notifyAdminsOfFeedbackResponse,
 } = require('./FeedbackService');
 
 jest.mock('~/db/models', () => ({
@@ -234,6 +235,80 @@ describe('FeedbackService', () => {
     });
   });
 
+  describe('notifyAdminsOfFeedbackResponse', () => {
+    const feedback = {
+      category: 'bug',
+      message: 'Something is broken',
+      response: { text: 'Fixed in the next release' },
+      user: { name: 'Submitter Name' },
+    };
+
+    it('does nothing when email is not configured', async () => {
+      isInternalEmailConfigured.mockReturnValue(false);
+
+      await notifyAdminsOfFeedbackResponse(feedback, 'admin-1');
+
+      expect(User.find).not.toHaveBeenCalled();
+      expect(sendInternalEmail).not.toHaveBeenCalled();
+    });
+
+    it('emails every other admin, excluding the one who responded', async () => {
+      isInternalEmailConfigured.mockReturnValue(true);
+      User.find.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        lean: jest.fn().mockResolvedValue([
+          { _id: 'admin-1', email: 'responder@example.com', name: 'Responder Admin' },
+          { _id: 'admin-2', email: 'admin2@example.com', name: 'Admin Two' },
+          { _id: 'admin-3', email: null, name: 'No Email Admin' },
+        ]),
+      });
+      sendInternalEmail.mockResolvedValue(true);
+
+      await notifyAdminsOfFeedbackResponse(feedback, 'admin-1');
+
+      expect(sendInternalEmail).toHaveBeenCalledTimes(1);
+      expect(sendInternalEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: 'admin2@example.com',
+          template: 'feedbackResponded.handlebars',
+          payload: expect.objectContaining({
+            name: 'Admin Two',
+            responderName: 'Responder Admin',
+            submitterName: 'Submitter Name',
+            category: 'bug',
+            message: 'Something is broken',
+            responseText: 'Fixed in the next release',
+          }),
+        }),
+      );
+    });
+
+    it('does nothing when there are no other admins with an email', async () => {
+      isInternalEmailConfigured.mockReturnValue(true);
+      User.find.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        lean: jest
+          .fn()
+          .mockResolvedValue([
+            { _id: 'admin-1', email: 'responder@example.com', name: 'Responder Admin' },
+          ]),
+      });
+
+      await notifyAdminsOfFeedbackResponse(feedback, 'admin-1');
+
+      expect(sendInternalEmail).not.toHaveBeenCalled();
+    });
+
+    it('swallows errors instead of throwing', async () => {
+      isInternalEmailConfigured.mockReturnValue(true);
+      User.find.mockImplementation(() => {
+        throw new Error('db error');
+      });
+
+      await expect(notifyAdminsOfFeedbackResponse(feedback, 'admin-1')).resolves.toBeUndefined();
+    });
+  });
+
   describe('respondToFeedback', () => {
     it('returns null when the feedback entry does not exist', async () => {
       Feedback.findByIdAndUpdate.mockReturnValue({
@@ -270,6 +345,42 @@ describe('FeedbackService', () => {
         { new: true },
       );
       expect(result).toBe(updated);
+    });
+
+    it('also notifies the other admins that the feedback was responded to', async () => {
+      isInternalEmailConfigured.mockReturnValue(true);
+      const updated = {
+        _id: 'fb-1',
+        message: 'hello',
+        category: 'bug',
+        response: { text: 'hi there' },
+        user: { name: 'Submitter Name', email: 'user@example.com' },
+      };
+      Feedback.findByIdAndUpdate.mockReturnValue({
+        populate: jest.fn().mockReturnThis(),
+        lean: jest.fn().mockResolvedValue(updated),
+      });
+      User.find.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        lean: jest.fn().mockResolvedValue([
+          { _id: 'admin-1', email: 'responder@example.com', name: 'Responder Admin' },
+          { _id: 'admin-2', email: 'admin2@example.com', name: 'Admin Two' },
+        ]),
+      });
+      sendInternalEmail.mockResolvedValue(true);
+
+      await respondToFeedback({ id: 'fb-1', text: 'hi there', adminId: 'admin-1' });
+      await new Promise((resolve) => setImmediate(resolve));
+
+      expect(sendInternalEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: 'admin2@example.com',
+          template: 'feedbackResponded.handlebars',
+        }),
+      );
+      expect(sendInternalEmail).not.toHaveBeenCalledWith(
+        expect.objectContaining({ email: 'responder@example.com' }),
+      );
     });
 
     it('does not let a notification failure block the response from being saved', async () => {
