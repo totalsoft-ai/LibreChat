@@ -1,7 +1,6 @@
 const { SystemRoles } = require('librechat-data-provider');
-const { checkEmailConfig } = require('@librechat/api');
 const { logger } = require('~/config');
-const { sendEmail } = require('~/server/utils');
+const { isInternalEmailConfigured, sendInternalEmail } = require('~/server/utils/internalMailer');
 const { Feedback, User } = require('~/db/models');
 
 /**
@@ -12,7 +11,7 @@ const { Feedback, User } = require('~/db/models');
  * @returns {Promise<void>}
  */
 const notifyAdminsOfNewFeedback = async (feedback, userId) => {
-  if (!checkEmailConfig()) {
+  if (!isInternalEmailConfigured()) {
     return;
   }
 
@@ -29,11 +28,11 @@ const notifyAdminsOfNewFeedback = async (feedback, userId) => {
 
     const appName = process.env.APP_TITLE || 'LibreChat';
     const submitterName = submitter?.name || submitter?.username || submitter?.email || 'A user';
-    const feedbackUrl = `${process.env.DOMAIN_CLIENT}/admin/feedback`;
+    const feedbackUrl = `${process.env.DOMAIN_CLIENT}/feedback`;
 
     await Promise.allSettled(
       adminsWithEmail.map((admin) =>
-        sendEmail({
+        sendInternalEmail({
           email: admin.email,
           subject: `New feedback submitted in ${appName}`,
           payload: {
@@ -46,7 +45,6 @@ const notifyAdminsOfNewFeedback = async (feedback, userId) => {
             year: new Date().getFullYear(),
           },
           template: 'newFeedback.handlebars',
-          throwError: false,
         }),
       ),
     );
@@ -89,13 +87,13 @@ const createFeedback = async ({ userId, message, category, images = [] }) => {
  * @returns {Promise<void>}
  */
 const notifyUserOfFeedbackResponse = async (feedback) => {
-  if (!checkEmailConfig() || !feedback.user?.email) {
+  if (!isInternalEmailConfigured() || !feedback.user?.email) {
     return;
   }
 
   try {
     const appName = process.env.APP_TITLE || 'LibreChat';
-    await sendEmail({
+    await sendInternalEmail({
       email: feedback.user.email,
       subject: `You have a response to your feedback in ${appName}`,
       payload: {
@@ -106,7 +104,6 @@ const notifyUserOfFeedbackResponse = async (feedback) => {
         year: new Date().getFullYear(),
       },
       template: 'feedbackResponse.handlebars',
-      throwError: false,
     });
   } catch (error) {
     logger.error('[notifyUserOfFeedbackResponse] Error notifying user of feedback response', error);
