@@ -32,6 +32,17 @@ export const useSubmitFeedback = (
   return useMutation((payload: FeedbackPayload) => request.post('/api/feedback', payload), config);
 };
 
+export type FeedbackAdminResponse = {
+  text: string;
+  respondedAt: string;
+  respondedBy?: {
+    _id: string;
+    name?: string;
+    email?: string;
+    username?: string;
+  };
+};
+
 export type FeedbackListItem = {
   _id: string;
   message: string;
@@ -45,6 +56,7 @@ export type FeedbackListItem = {
     email?: string;
     username?: string;
   };
+  response?: FeedbackAdminResponse;
 };
 
 export type FeedbackListParams = {
@@ -80,6 +92,15 @@ export const useUpdateFeedbackStatusMutation = (
 ): UseMutationResult<FeedbackListItem, unknown, { id: string; status: FeedbackStatus }> => {
   return useMutation(
     ({ id, status }) => request.patch(`/api/admin/feedback/${id}/status`, { status }),
+    config,
+  );
+};
+
+export const useRespondToFeedbackMutation = (
+  config?: UseMutationOptions<FeedbackListItem, unknown, { id: string; text: string }>,
+): UseMutationResult<FeedbackListItem, unknown, { id: string; text: string }> => {
+  return useMutation(
+    ({ id, text }) => request.patch(`/api/admin/feedback/${id}/response`, { text }),
     config,
   );
 };

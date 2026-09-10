@@ -13,6 +13,7 @@ import {
   useSubmitFeedback,
   useGetFeedbackList,
   useUpdateFeedbackStatusMutation,
+  useRespondToFeedbackMutation,
 } from '~/data-provider/Feedback';
 import type {
   FeedbackCategory,
@@ -83,6 +84,8 @@ function userLabel(user: FeedbackListItem['user']) {
   return user.name || user.username || user.email || '—';
 }
 
+const respondedByLabel = userLabel;
+
 function ImageThumbnail({ image }: { image: FeedbackImage }) {
   const src = `data:${image.contentType};base64,${image.data}`;
   return <ImagePreview imageBase64={src} alt={image.filename ?? 'attachment'} />;
@@ -105,6 +108,8 @@ export default function Feedback() {
   const [page, setPage] = useState(1);
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [respondingId, setRespondingId] = useState<string | null>(null);
+  const [responseDraft, setResponseDraft] = useState('');
 
   const submitFeedback = useSubmitFeedback({
     onSuccess: () => {
@@ -139,6 +144,42 @@ export default function Feedback() {
       showToast({ message: localize('com_nav_feedback_admin_update_error'), status: 'error' });
     },
   });
+
+  const respondToFeedback = useRespondToFeedbackMutation({
+    onSuccess: () => {
+      queryClient.invalidateQueries(['admin-feedback-list']);
+      setRespondingId(null);
+      setResponseDraft('');
+      showToast({
+        message: localize('com_nav_feedback_admin_response_success'),
+        status: 'success',
+      });
+    },
+    onError: () => {
+      showToast({ message: localize('com_nav_feedback_admin_response_error'), status: 'error' });
+    },
+  });
+
+  const startResponding = useCallback((item: FeedbackListItem) => {
+    setRespondingId(item._id);
+    setResponseDraft(item.response?.text ?? '');
+  }, []);
+
+  const cancelResponding = useCallback(() => {
+    setRespondingId(null);
+    setResponseDraft('');
+  }, []);
+
+  const submitResponse = useCallback(
+    (id: string) => {
+      const text = responseDraft.trim();
+      if (!text || respondToFeedback.isLoading) {
+        return;
+      }
+      respondToFeedback.mutate({ id, text });
+    },
+    [responseDraft, respondToFeedback],
+  );
 
   const trimmedLength = message.trim().length;
   const canSubmit = trimmedLength > 0 && trimmedLength <= MAX_MESSAGE_LENGTH;
@@ -429,6 +470,68 @@ export default function Feedback() {
                                   <ImageThumbnail key={index} image={image} />
                                 ))}
                               </div>
+                            )}
+
+                            {item.response && respondingId !== item._id && (
+                              <div className="rounded-md border border-border-light bg-surface-secondary p-3">
+                                <div className="mb-1 text-xs font-medium text-text-secondary">
+                                  {localize('com_nav_feedback_admin_response_label')}
+                                </div>
+                                <p className="whitespace-pre-wrap text-sm text-text-primary">
+                                  {item.response.text}
+                                </p>
+                                <div className="mt-2 text-xs text-text-secondary">
+                                  {localize('com_nav_feedback_admin_responded_meta', {
+                                    0: formatDate(item.response.respondedAt),
+                                    1: respondedByLabel(item.response.respondedBy),
+                                  })}
+                                </div>
+                              </div>
+                            )}
+
+                            {respondingId === item._id ? (
+                              <div className="space-y-2">
+                                <textarea
+                                  value={responseDraft}
+                                  onChange={(e) => setResponseDraft(e.target.value)}
+                                  placeholder={localize(
+                                    'com_nav_feedback_admin_response_placeholder',
+                                  )}
+                                  rows={3}
+                                  maxLength={MAX_MESSAGE_LENGTH}
+                                  className="w-full resize-none rounded-md border border-border-light bg-surface-primary px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                                <div className="flex gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => submitResponse(item._id)}
+                                    disabled={!responseDraft.trim() || respondToFeedback.isLoading}
+                                    className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-40"
+                                  >
+                                    {respondToFeedback.isLoading
+                                      ? localize('com_nav_feedback_admin_response_sending')
+                                      : localize('com_nav_feedback_admin_response_send')}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={cancelResponding}
+                                    disabled={respondToFeedback.isLoading}
+                                    className="rounded-md border border-border-light px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-surface-hover disabled:opacity-40"
+                                  >
+                                    {localize('com_nav_feedback_admin_response_cancel')}
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => startResponding(item)}
+                                className="self-start text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
+                              >
+                                {item.response
+                                  ? localize('com_nav_feedback_admin_edit_response')
+                                  : localize('com_nav_feedback_admin_reply')}
+                              </button>
                             )}
                           </div>
                         ))}

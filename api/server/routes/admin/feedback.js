@@ -2,7 +2,11 @@ const express = require('express');
 const { requireJwtAuth } = require('~/server/middleware');
 const checkAdmin = require('~/server/middleware/roles/admin');
 const { logger } = require('~/config');
-const { getFeedbackList, updateFeedbackStatus } = require('~/server/services/FeedbackService');
+const {
+  getFeedbackList,
+  updateFeedbackStatus,
+  respondToFeedback,
+} = require('~/server/services/FeedbackService');
 
 const router = express.Router();
 
@@ -12,6 +16,7 @@ router.use(checkAdmin);
 
 const CATEGORIES = ['bug', 'suggestion', 'other'];
 const STATUSES = ['new', 'reviewed'];
+const MAX_RESPONSE_LENGTH = 5000;
 
 /**
  * GET /api/admin/feedback
@@ -51,6 +56,35 @@ router.patch('/:id/status', async (req, res) => {
   } catch (error) {
     logger.error('[PATCH /api/admin/feedback/:id/status] Failed to update feedback', error);
     res.status(500).json({ error: 'Failed to update feedback' });
+  }
+});
+
+/**
+ * PATCH /api/admin/feedback/:id/response
+ * Records an admin's response to a feedback entry and emails the submitter about it.
+ */
+router.patch('/:id/response', async (req, res) => {
+  try {
+    const { text } = req.body ?? {};
+    if (typeof text !== 'string' || !text.trim()) {
+      return res.status(400).json({ error: 'Response text is required' });
+    }
+    if (text.trim().length > MAX_RESPONSE_LENGTH) {
+      return res.status(400).json({ error: 'Response is too long' });
+    }
+
+    const updated = await respondToFeedback({
+      id: req.params.id,
+      text: text.trim(),
+      adminId: req.user.id,
+    });
+    if (!updated) {
+      return res.status(404).json({ error: 'Feedback not found' });
+    }
+    res.json(updated);
+  } catch (error) {
+    logger.error('[PATCH /api/admin/feedback/:id/response] Failed to respond to feedback', error);
+    res.status(500).json({ error: 'Failed to respond to feedback' });
   }
 });
 

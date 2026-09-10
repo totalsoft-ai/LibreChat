@@ -1,5 +1,57 @@
+const { SystemRoles } = require('librechat-data-provider');
 const { logger } = require('~/config');
-const { Feedback } = require('~/db/models');
+const { isInternalEmailConfigured, sendInternalEmail } = require('~/server/utils/internalMailer');
+const { Feedback, User } = require('~/db/models');
+
+/**
+ * Emails all admin users that a new feedback entry was submitted.
+ * Failures here are logged and swallowed - they must never block feedback submission.
+ * @param {Object} feedback - The created feedback document.
+ * @param {string} userId - The id of the user who submitted the feedback.
+ * @returns {Promise<void>}
+ */
+const notifyAdminsOfNewFeedback = async (feedback, userId) => {
+  if (!isInternalEmailConfigured()) {
+    return;
+  }
+
+  try {
+    const [admins, submitter] = await Promise.all([
+      User.find({ role: SystemRoles.ADMIN }).select('email name username').lean(),
+      User.findById(userId).select('email name username').lean(),
+    ]);
+
+    const adminsWithEmail = admins.filter((admin) => admin.email);
+    if (!adminsWithEmail.length) {
+      return;
+    }
+
+    const appName = process.env.APP_TITLE || 'Tessa';
+    const submitterName = submitter?.name || submitter?.username || submitter?.email || 'A user';
+    const feedbackUrl = `${process.env.DOMAIN_CLIENT}/feedback`;
+
+    await Promise.allSettled(
+      adminsWithEmail.map((admin) =>
+        sendInternalEmail({
+          email: admin.email,
+          subject: `New feedback submitted in ${appName}`,
+          payload: {
+            appName,
+            name: admin.name || admin.username || admin.email,
+            submitterName,
+            category: feedback.category,
+            message: feedback.message,
+            feedbackUrl,
+            year: new Date().getFullYear(),
+          },
+          template: 'newFeedback.handlebars',
+        }),
+      ),
+    );
+  } catch (error) {
+    logger.error('[notifyAdminsOfNewFeedback] Error notifying admins of new feedback', error);
+  }
+};
 
 /**
  * Creates a new general feedback entry submitted by a user.
@@ -13,11 +65,109 @@ const { Feedback } = require('~/db/models');
  * @returns {Promise<Object>} The created feedback document.
  */
 const createFeedback = async ({ userId, message, category, images = [] }) => {
+  let feedback;
   try {
-    return await Feedback.create({ user: userId, message, category, images });
+    feedback = await Feedback.create({ user: userId, message, category, images });
   } catch (error) {
     logger.error('[createFeedback] Error creating feedback', error);
     throw new Error('Error creating feedback');
+  }
+
+  notifyAdminsOfNewFeedback(feedback, userId).catch((error) => {
+    logger.error('[createFeedback] Error notifying admins of new feedback', error);
+  });
+
+  return feedback;
+};
+
+/**
+ * Emails the user who submitted a feedback entry that an admin has responded to it.
+ * Failures here are logged and swallowed - they must never block the admin's response.
+ * @param {Object} feedback - The updated feedback document, with `user` populated (name/email/username) and `response` set.
+ * @returns {Promise<void>}
+ */
+const notifyUserOfFeedbackResponse = async (feedback) => {
+  if (!isInternalEmailConfigured() || !feedback.user?.email) {
+    return;
+  }
+
+  try {
+    const appName = process.env.APP_TITLE || 'Tessa';
+    await sendInternalEmail({
+      email: feedback.user.email,
+      subject: `You have a response to your feedback in ${appName}`,
+      payload: {
+        appName,
+        name: feedback.user.name || feedback.user.username || feedback.user.email,
+        originalMessage: feedback.message,
+        responseText: feedback.response.text,
+        year: new Date().getFullYear(),
+      },
+      template: 'feedbackResponse.handlebars',
+    });
+  } catch (error) {
+    logger.error('[notifyUserOfFeedbackResponse] Error notifying user of feedback response', error);
+  }
+};
+
+/**
+ * Emails all other admins that a feedback entry has received a response.
+ * Excludes the admin who wrote the response - they already know.
+ * Failures here are logged and swallowed - they must never block the admin's response.
+ * @param {Object} feedback - The updated feedback document, with `user` populated and `response` set.
+ * @param {string} respondedByAdminId - The id of the admin who wrote the response.
+ * @returns {Promise<void>}
+ */
+const notifyAdminsOfFeedbackResponse = async (feedback, respondedByAdminId) => {
+  if (!isInternalEmailConfigured()) {
+    return;
+  }
+
+  try {
+    const admins = await User.find({ role: SystemRoles.ADMIN })
+      .select('email name username')
+      .lean();
+
+    const responder = admins.find((admin) => String(admin._id) === String(respondedByAdminId));
+    const responderName = responder?.name || responder?.username || responder?.email || 'An admin';
+
+    const recipients = admins.filter(
+      (admin) => admin.email && String(admin._id) !== String(respondedByAdminId),
+    );
+    if (!recipients.length) {
+      return;
+    }
+
+    const appName = process.env.APP_TITLE || 'Tessa';
+    const submitterName =
+      feedback.user?.name || feedback.user?.username || feedback.user?.email || 'A user';
+    const feedbackUrl = `${process.env.DOMAIN_CLIENT}/feedback`;
+
+    await Promise.allSettled(
+      recipients.map((admin) =>
+        sendInternalEmail({
+          email: admin.email,
+          subject: `Feedback responded to in ${appName}`,
+          payload: {
+            appName,
+            name: admin.name || admin.username || admin.email,
+            responderName,
+            submitterName,
+            category: feedback.category,
+            message: feedback.message,
+            responseText: feedback.response.text,
+            feedbackUrl,
+            year: new Date().getFullYear(),
+          },
+          template: 'feedbackResponded.handlebars',
+        }),
+      ),
+    );
+  } catch (error) {
+    logger.error(
+      '[notifyAdminsOfFeedbackResponse] Error notifying admins of feedback response',
+      error,
+    );
   }
 };
 
@@ -45,6 +195,7 @@ const getFeedbackList = async ({ page = 1, pageSize = 20, category, status } = {
     const [data, total] = await Promise.all([
       Feedback.find(query)
         .populate('user', 'name email username')
+        .populate('response.respondedBy', 'name email username')
         .skip(skip)
         .limit(pageSize)
         .sort({ createdAt: -1 })
@@ -78,4 +229,52 @@ const updateFeedbackStatus = async ({ id, status }) => {
   }
 };
 
-module.exports = { createFeedback, getFeedbackList, updateFeedbackStatus };
+/**
+ * Records an admin's response to a feedback entry and emails the submitter about it.
+ * @param {Object} params
+ * @param {string} params.id
+ * @param {string} params.text
+ * @param {string} params.adminId
+ * @returns {Promise<Object|null>} The updated feedback document, or null if not found.
+ */
+const respondToFeedback = async ({ id, text, adminId }) => {
+  let feedback;
+  try {
+    feedback = await Feedback.findByIdAndUpdate(
+      id,
+      {
+        response: { text, respondedBy: adminId, respondedAt: new Date() },
+        status: 'reviewed',
+      },
+      { new: true },
+    )
+      .populate('user', 'name email username')
+      .lean();
+  } catch (error) {
+    logger.error('[respondToFeedback] Error responding to feedback', error);
+    throw new Error('Error responding to feedback');
+  }
+
+  if (!feedback) {
+    return null;
+  }
+
+  notifyUserOfFeedbackResponse(feedback).catch((error) => {
+    logger.error('[respondToFeedback] Error notifying user of feedback response', error);
+  });
+  notifyAdminsOfFeedbackResponse(feedback, adminId).catch((error) => {
+    logger.error('[respondToFeedback] Error notifying admins of feedback response', error);
+  });
+
+  return feedback;
+};
+
+module.exports = {
+  createFeedback,
+  getFeedbackList,
+  updateFeedbackStatus,
+  respondToFeedback,
+  notifyAdminsOfNewFeedback,
+  notifyUserOfFeedbackResponse,
+  notifyAdminsOfFeedbackResponse,
+};
