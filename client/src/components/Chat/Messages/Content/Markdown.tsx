@@ -15,14 +15,16 @@ import MarkdownErrorBoundary from './MarkdownErrorBoundary';
 import { langSubset, preprocessLaTeX } from '~/utils';
 import { unicodeCitation } from '~/components/Web';
 import { code, a, p } from './MarkdownComponents';
+import { ThinkingIndicator } from './Parts';
 import store from '~/store';
 
 type TContentProps = {
   content: string;
   isLatestMessage: boolean;
+  isSubmitting?: boolean;
 };
 
-const Markdown = memo(({ content = '', isLatestMessage }: TContentProps) => {
+const Markdown = memo(({ content = '', isLatestMessage, isSubmitting = false }: TContentProps) => {
   const LaTeXParsing = useRecoilValue<boolean>(store.LaTeXParsing);
   const isInitializing = content === '';
 
@@ -66,10 +68,13 @@ const Markdown = memo(({ content = '', isLatestMessage }: TContentProps) => {
   ];
 
   if (isInitializing) {
+    if (isLatestMessage && isSubmitting) {
+      return <ThinkingIndicator />;
+    }
     return (
       <div className="absolute">
         <p className="relative">
-          <span className={isLatestMessage ? 'result-thinking' : ''} />
+          <span />
         </p>
       </div>
     );
