@@ -12,7 +12,7 @@ import { MessageContext, SearchContext } from '~/Providers';
 import MemoryArtifacts from './MemoryArtifacts';
 import Sources from '~/components/Web/Sources';
 import { mapAttachments } from '~/utils/map';
-import { EditTextPart, EmptyText } from './Parts';
+import { EditTextPart, ThinkingIndicator } from './Parts';
 import { useLocalize } from '~/hooks';
 import store from '~/store';
 import Part from './Part';
@@ -82,7 +82,7 @@ const ContentParts = memo(
       return null;
     }
     if (!isCreatedByUser && isLast && effectiveIsSubmitting && content.length === 0) {
-      return <EmptyText />;
+      return <ThinkingIndicator />;
     }
     if (edit === true && enterEdit && setSiblingIdx) {
       return (
