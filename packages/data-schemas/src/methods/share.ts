@@ -432,7 +432,11 @@ export function createShareMethods(mongoose: typeof import('mongoose')) {
   /**
    * Update a shared link with new messages
    */
-  async function updateSharedLink(user: string, shareId: string): Promise<t.UpdateShareResult> {
+  async function updateSharedLink(
+    user: string,
+    shareId: string,
+    targetMessageId?: string,
+  ): Promise<t.UpdateShareResult> {
     if (!user || !shareId) {
       throw new ShareServiceError('Missing required parameters', 'INVALID_PARAMS');
     }
@@ -457,6 +461,9 @@ export function createShareMethods(mongoose: typeof import('mongoose')) {
         messages: updatedMessages,
         user,
         shareId: newShareId,
+        // Re-anchor to the current latest message so a refresh always reflects
+        // the full, up-to-date conversation instead of the original share point.
+        targetMessageId: targetMessageId || updatedMessages[updatedMessages.length - 1]?.messageId,
       };
 
       const updatedShare = (await SharedLink.findOneAndUpdate({ shareId, user }, update, {
