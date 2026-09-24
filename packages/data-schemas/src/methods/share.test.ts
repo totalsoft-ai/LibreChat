@@ -26,6 +26,7 @@ describe('Share Methods', () => {
         user: { type: String, index: true },
         messages: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Message' }],
         shareId: { type: String, index: true },
+        targetMessageId: { type: String },
         isPublic: { type: Boolean, default: true },
       },
       { timestamps: true },
@@ -656,6 +657,90 @@ describe('Share Methods', () => {
         'messages',
       );
       expect(updatedShare?.messages).toHaveLength(2);
+    });
+
+    test('should re-anchor targetMessageId so refresh reflects the full conversation, not just the original share point (issue #175)', async () => {
+      const userId = new mongoose.Types.ObjectId().toString();
+      const conversationId = `conv_${nanoid()}`;
+      const oldShareId = `share_${nanoid()}`;
+
+      // Conversation starts with a single Q/A, shared right away (as reported in issue #175)
+      const [msg1] = await Message.create([
+        {
+          messageId: `msg_1`,
+          conversationId,
+          user: userId,
+          text: 'First question',
+          isCreatedByUser: true,
+        },
+      ]);
+
+      await SharedLink.create({
+        shareId: oldShareId,
+        conversationId,
+        user: userId,
+        messages: [msg1._id],
+        targetMessageId: msg1.messageId,
+        isPublic: true,
+      });
+
+      // User keeps chatting after sharing
+      const msg2 = await Message.create({
+        messageId: `msg_2`,
+        conversationId,
+        user: userId,
+        parentMessageId: 'msg_1',
+        text: 'Follow-up question',
+        isCreatedByUser: true,
+      });
+
+      // Refresh, passing the current latest message as the new anchor (what the UI now does)
+      const result = await shareMethods.updateSharedLink(userId, oldShareId, msg2.messageId);
+
+      const updatedShare = await SharedLink.findOne({ shareId: result.shareId });
+      expect(updatedShare?.targetMessageId).toBe(msg2.messageId);
+
+      const sharedMessages = await shareMethods.getSharedMessages(result.shareId);
+      expect(sharedMessages?.messages).toHaveLength(2);
+    });
+
+    test('should re-anchor to the latest message even if no explicit targetMessageId is provided', async () => {
+      const userId = new mongoose.Types.ObjectId().toString();
+      const conversationId = `conv_${nanoid()}`;
+      const oldShareId = `share_${nanoid()}`;
+
+      const [msg1] = await Message.create([
+        {
+          messageId: `msg_1`,
+          conversationId,
+          user: userId,
+          text: 'First question',
+          isCreatedByUser: true,
+        },
+      ]);
+
+      await SharedLink.create({
+        shareId: oldShareId,
+        conversationId,
+        user: userId,
+        messages: [msg1._id],
+        targetMessageId: msg1.messageId,
+        isPublic: true,
+      });
+
+      await Message.create({
+        messageId: `msg_2`,
+        conversationId,
+        user: userId,
+        parentMessageId: 'msg_1',
+        text: 'Follow-up question',
+        isCreatedByUser: true,
+      });
+
+      const result = await shareMethods.updateSharedLink(userId, oldShareId);
+
+      const sharedMessages = await shareMethods.getSharedMessages(result.shareId);
+      expect(sharedMessages?.messages).toHaveLength(2);
     });
 
     test('should throw error if share not found', async () => {

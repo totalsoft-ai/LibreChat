@@ -82,7 +82,7 @@ export default function SharedLinkButton({
     if (!shareId) {
       return;
     }
-    const updateShare = await mutateAsync({ shareId });
+    const updateShare = await mutateAsync({ shareId, targetMessageId });
     const newLink = generateShareLink(updateShare.shareId);
     setSharedLink(newLink);
   };
