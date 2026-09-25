@@ -23,5 +23,3 @@ The appendix below lists the Jira projects from which the tickets included in th
 | TED | TS ERP Delivery |
 | STOCKFIN | SPINITY |
 
-
-**Note: Tickets containing personal data (for example, the personal numeric code – CNP – or other identifying information) were not included in the ticket extraction and indexing process, in accordance with personal data protection requirements.**
