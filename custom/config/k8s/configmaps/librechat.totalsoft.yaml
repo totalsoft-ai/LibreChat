@@ -58,53 +58,6 @@ modelSpecs:
         endpoint: "Local Models"
         model: "gpt-5.6-luna"
 
- #   - name: "general-assistant"
- #     label: "General Assistant"
- #     preset:
- #      endpoint: "Local Models"
- #      model: "gemma3:4b"
-#
- #   - name: "local-gemma3-27b"
- #     label: "Gemma 3 27B"
- #     group: "Local Models"
- #     preset:
- #       endpoint: "Local Models"
- #       model: "gemma3:27b"
-#
- #   - name: "local-qwen3-8b"
- #     label: "Qwen3 8B"
- #     group: "Local Models"
- #     preset:
- #       endpoint: "Local Models"
- #       model: "qwen3:8b"
-#
- #   - name: "local-phi4-mini"
- #     label: "Phi4 Mini"
- #     group: "Local Models"
- #     preset:
- #       endpoint: "Local Models"
- #       model: "phi4-mini:latest"
-#
- #   - name: "local-deepseek-r1-8b"
- #     label: "DeepSeek R1 8B"
- #     group: "Local Models"
- #     preset:
- #       endpoint: "Local Models"
- #       model: "deepseek-r1:8b"
-#
- #   - name: "local-qwen25-coder-14b"
- #     label: "Qwen2.5 Coder 14B"
- #     group: "Local Models"
- #     preset:
- #       endpoint: "Local Models"
- #       model: "qwen2.5-coder:14b"
-#
- #   - name: "local-gemma3-tools"
- #     label: "Gemma 3 Tools"
- #     group: "Local Models"
- #     preset:
- #       endpoint: "Local Models"
- #       model: "orieg/gemma3-tools:4b-it-qat"
 
 
 # Example Actions Object Structure
@@ -189,6 +142,8 @@ endpoints:
       models:
         default: ["gpt-5.6-luna"]
         fetch: false
+      # GPT-5-family models reject non-default sampling params
+      dropParams: ["temperature", "top_p"]
       streamRate: 35
       tokenConfig:
         "gpt-5.6-luna":
@@ -203,6 +158,8 @@ endpoints:
       models:
         default: ["gpt-5.6-luna"]
         fetch: false
+      # GPT-5-family models reject non-default sampling params
+      dropParams: ["temperature", "top_p"]
       titleModel: 'gpt-5.6-luna'
       titleEndpoint: "Local Models"
       tokenConfig:
@@ -268,13 +225,13 @@ endpoints:
 #  messageWindowSize: 8
 #  agent:
 #    provider: "Local Models"
-#    model: "phi4-mini:latest"
+#    model: "gpt-5.6-luna"
 #    instructions: |
 #      You are a memory assistant. Store only user-approved, useful facts and preferences.
 #    model_parameters:
 #      temperature: 0.2
 #      max_tokens: 1000
 #  tokenConfig:
-#        "phi4-mini:latest":
+#        "gpt-5.6-luna":
 #          prompt: 0
 #          completion: 0
