@@ -140,7 +140,6 @@ jobs:
           "WEB_SCRAPING_API_URL" = "${{ vars.WEB_SCRAPING_API_URL }}"
           "ASSISTANT_WITH_K_BASEURL" = "${{ vars.ASSISTANT_WITH_K_BASEURL }}"
           "ASSISTANT_WITH_K_MODELS" = "${{ vars.ASSISTANT_WITH_K_MODELS }}"
-          "LOCAL_MODELS_BASEURL" = "${{ vars.LOCAL_MODELS_BASEURL }}"
           "MCP_SERVER_BASEURL" = "${{ vars.MCP_SERVER_BASEURL }}"
           "KEYCLOAK_CLIENT_ID" = "${{ vars.KEYCLOAK_CLIENT_ID }}"
           "LIBRECHAT_REDIRECT_BASEURL" = "${{ vars.LIBRECHAT_REDIRECT_BASEURL }}"
@@ -179,7 +178,6 @@ jobs:
           "USER_FILE_SIZE_LIMIT_MB" = "${{ vars.USER_FILE_SIZE_LIMIT_MB }}"
           "USER_STORAGE_LIMIT_MB" = "${{ vars.USER_STORAGE_LIMIT_MB }}"
           "OPENID_PROMPT" = "${{ vars.OPENID_PROMPT }}"
-          "PPM_GEMMA_BASEURL" = "${{ vars.PPM_GEMMA_BASEURL }}"
         }
 
         ./custom/scripts/build-and-deploy.ps1 `
