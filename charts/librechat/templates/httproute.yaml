@@ -1,0 +1,84 @@
+{{- /*
+Gateway API routes (replaces templates/ingress.yaml on clusters that use a
+shared Gateway API gateway — the totalsoft.local cluster's ingress-nginx was
+replaced by Envoy Gateway, gateway/shared, in Nov 2026).
+
+values:
+  httpRoute.enabled             render the routes
+  httpRoute.parentRef           {name, namespace} of the Gateway
+  httpRoute.hostnames           list of hostnames
+  httpRoute.httpsRedirect       true: app route on :443 + 308 redirect route on :80
+                                false: one route on every listener (http + https)
+  httpRoute.timeout             overall request timeout (Envoy's default would be 15s)
+  httpRoute.requestBufferLimit  optional max request body (Envoy Gateway
+                                BackendTrafficPolicy requestBuffer; buffers the
+                                body in proxy memory — keep it small)
+TLS is terminated by the Gateway, not by this chart.
+*/ -}}
+{{- if .Values.httpRoute.enabled -}}
+{{- $fullName := include "librechat.fullname" . -}}
+{{- $r := .Values.httpRoute -}}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ $fullName }}
+  labels:
+    {{- include "librechat.labels" . | nindent 4 }}
+spec:
+  parentRefs:
+    - name: {{ $r.parentRef.name }}
+      namespace: {{ $r.parentRef.namespace }}
+      {{- if $r.httpsRedirect }}
+      port: 443
+      {{- end }}
+  hostnames:
+    {{- range $r.hostnames }}
+    - {{ . | quote }}
+    {{- end }}
+  rules:
+    - matches:
+        - path: {type: PathPrefix, value: /}
+      timeouts:
+        request: {{ $r.timeout | default "0s" }}
+      backendRefs:
+        - name: {{ $fullName }}
+          port: {{ .Values.service.port }}
+{{- if $r.httpsRedirect }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ $fullName }}-https-redirect
+  labels:
+    {{- include "librechat.labels" . | nindent 4 }}
+spec:
+  parentRefs:
+    - name: {{ $r.parentRef.name }}
+      namespace: {{ $r.parentRef.namespace }}
+      port: 80
+  hostnames:
+    {{- range $r.hostnames }}
+    - {{ . | quote }}
+    {{- end }}
+  rules:
+    - filters:
+        - type: RequestRedirect
+          requestRedirect: {scheme: https, statusCode: 308}
+{{- end }}
+{{- if $r.requestBufferLimit }}
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: BackendTrafficPolicy
+metadata:
+  name: {{ $fullName }}-route-policy
+  labels:
+    {{- include "librechat.labels" . | nindent 4 }}
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: {{ $fullName }}
+  requestBuffer:
+    limit: {{ $r.requestBufferLimit }}
+{{- end }}
+{{- end }}

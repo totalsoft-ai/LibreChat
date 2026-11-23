@@ -45,6 +45,18 @@ service:
   type: LoadBalancer
   port: 80
 
+# Gateway API routes (templates/httproute.yaml). Disabled by default; see the
+# template header for the fields.
+httpRoute:
+  enabled: false
+  parentRef:
+    name: shared
+    namespace: gateway
+  hostnames: []
+  httpsRedirect: true
+  timeout: 0s
+  requestBufferLimit: ""
+
 ingress:
   enabled: true
   className: "nginx"
