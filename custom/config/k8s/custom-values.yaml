@@ -75,8 +75,23 @@ autoscaling:
   targetCPUUtilizationPercentage: 80
   targetMemoryUtilizationPercentage: 80
 
+# Served by the cluster's shared Gateway API gateway (gateway/shared, Envoy
+# Gateway), which replaced ingress-nginx in Nov 2026. TLS for tessa.totalsoft.local
+# is terminated there (per-host listener using this namespace's
+# totalsoft-wildcard-tls secret, still created by build-and-deploy.ps1).
+httpRoute:
+  enabled: true
+  hostnames:
+    - tessa.totalsoft.local
+  httpsRedirect: true
+  # nginx had 600s read/send timeouts; LLM answers stream for a while.
+  timeout: 6000s
+  # was nginx proxy-body-size 30m
+  requestBufferLimit: 30Mi
+
+# The nginx Ingress below is no longer served by anything; kept disabled for reference.
 ingress:
-  enabled: true 
+  enabled: false
   className: nginx
   annotations:
     kubernetes.io/ingress.class: nginx
